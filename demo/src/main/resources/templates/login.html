@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments :: head">
+</head>
+<body>
+    <div class="container">
+        <!-- Include the logout message fragment -->
+        <div th:replace="fragments :: logout-message"></div>
+
+        <div class="logo-container">
+            <div class="logo-background"></div>
+        </div>
+        
+        <!-- Login form -->
+        <form th:action="@{/login}" method="post">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        
+        <!-- Error message displayed when login fails -->
+        <div th:if="${param.error}" class="error-message">
+            Invalid username or password.
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        // Fade out logout message
+        var logoutMessage = document.getElementById('logoutMessage');
+        if (logoutMessage) {
+            setTimeout(function() {
+                logoutMessage.classList.add('fade-out');
+                setTimeout(function() {
+                    logoutMessage.style.display = 'none';
+                }, 600);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

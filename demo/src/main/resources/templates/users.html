@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Manage Users</title>
+    <!-- Google Fonts for Poppins font family -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- CSRF token meta tags for security -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <style>
+        /* CSS styles for the page layout and components */
+        * {
+            margin: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #18191A;
+            color: #ffffff;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 500px;
+            padding: 2rem;
+            background-color: #242526;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+
+        th, td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        th {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .button {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem 0;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border: 1px solid #ffffff;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #ffffff;
+            color: #18191A;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+        }
+
+        .back-button {
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        /* Modal styles for delete confirmation */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #242526;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .modal-buttons {
+            margin-top: 20px;
+        }
+
+        .modal-button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .confirm-button {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .cancel-button {
+            background-color: #6c757d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Manage Users</h1>
+        <!-- Table to display user information -->
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Iterate over users and display their information -->
+                <tr th:each="user : ${users}">
+                    <td th:text="${user.username}"></td>
+                    <td th:text="${user.role}"></td>
+                    <td>
+                        <!-- Delete button for each user -->
+                        <button class="button delete-btn" th:attr="onclick='showDeleteConfirmation(\'' + ${user.username} + '\')'">Delete</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <!-- Back to Home button -->
+        <a th:href="@{/home}" class="button back-button">Back to Home</a>
+    </div>
+
+    <!-- Modal for delete confirmation -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <p>Are you sure you want to delete this user?</p>
+            <div class="modal-buttons">
+                <button id="confirmDelete" class="modal-button confirm-button">Yes, Delete</button>
+                <button id="cancelDelete" class="modal-button cancel-button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript for handling user deletion -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var currentUsername = '';
+        var csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        var csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+        // Function to show delete confirmation modal
+        function showDeleteConfirmation(username) {
+            currentUsername = username;
+            document.getElementById('deleteModal').style.display = 'block';
+        }
+
+        // Event listener for confirm delete button
+        document.getElementById('confirmDelete').addEventListener('click', function() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', /*[[@{/users/delete}]]*/ '/users/delete', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.setRequestHeader(csrfHeader, csrfToken);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    location.reload(); // Reload the page to reflect changes
+                } else {
+                    // Handle error
+                    alert(xhr.responseText || 'Error deleting user');
+                }
+                document.getElementById('deleteModal').style.display = 'none';
+            };
+            xhr.send('username=' + encodeURIComponent(currentUsername));
+        });
+
+        // Event listener for cancel delete button
+        document.getElementById('cancelDelete').addEventListener('click', function() {
+            document.getElementById('deleteModal').style.display = 'none';
+        });
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            var modal = document.getElementById('deleteModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+        /*]]>*/
+    </script>
+</body>
+</html>
