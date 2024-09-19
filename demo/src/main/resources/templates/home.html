@@ -1,31 +1,127 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <title>Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <link rel="stylesheet" th:href="@{/styles2.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        /* ... Keep your existing CSS ... */
+        @keyframes slideInFade {
+            0% {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeInFromTop {
+            0% {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        nav {
+            animation: slideInFade 0.5s ease-out;
+        }
+
+        nav .logo,
+        nav ul li,
+        nav .logout {
+            opacity: 0;
+            animation: slideInFade 0.5s ease-out forwards;
+        }
+
+        nav .logo {
+            animation-delay: 0.2s;
+        }
+
+        nav ul li:nth-child(1) {
+            animation-delay: 0.4s;
+        }
+
+        nav ul li:nth-child(2) {
+            animation-delay: 0.6s;
+        }
+
+        nav .logout {
+            animation-delay: 0.8s;
+        }
+
+        .main-top {
+            animation: fadeInFromTop 0.5s ease-out;
+        }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <h1>Dashboard</h1>
-        <ul class="sidebar-nav">
-            <li><a th:href="@{/manage-users}">Manage Users</a></li>
-            <li><a th:href="@{/register-user}">Register Users</a></li>
-            <li><a th:href="@{/pack-med}">Pack Med</a></li>
-            <li>
-                <form th:action="@{/logout}" method="post">
-                    <button type="submit" class="logout-button">Logout</button>
+    <nav id="mainNav">
+        <div class="navbar">
+            <div class="logo">
+                <img src="/logo.png" alt="McKesson Logo">
+            </div>
+            <ul>
+                <li sec:authorize="hasRole('ADMIN')">
+                    <a href="#" onclick="fadeOutAndNavigate('/users', event)"><i class="fas fa-users"></i> Manage User</a>
+                </li>
+                <li><a href="#" onclick="fadeOutAndNavigate('/packmed', event)"><i class="fas fa-box"></i> Pack Med</a></li>
+            </ul>
+            <div class="logout">
+                <form th:action="@{/logout}" method="post" onsubmit="return fadeOutAndSubmit(this, event)">
+                    <button type="submit" class="button"><i class="fas fa-sign-out-alt"></i> Logout</button>
                 </form>
-            </li>
-        </ul>
-    </div>
-    <div class="content">
-        <div class="dashboard-card">
-            <h2>Welcome, <span th:text="${#authentication.name}">User</span>!</h2>
-            <p>Select an option from the sidebar to get started.</p>
+            </div>
+        </div>
+    </nav>
+    <div class="main" id="mainContent">
+        <div class="main-top">
+            <h2>Dashboard</h2>
+        </div>
+        <div class="welcome-message" id="welcomeMessage">
+            <h1>Hello, <span th:text="${#authentication.name}">User</span>!</h1>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            
+            setTimeout(function() {
+                welcomeMessage.style.opacity = '0';
+                setTimeout(function() {
+                    welcomeMessage.style.display = 'none';
+                }, 1000); // Wait for fade out to complete before hiding
+            }, 6000); // Start fading out after 6 seconds (reduced from 9 seconds)
+        });
+
+        function fadeOutAndNavigate(url, event) {
+            event.preventDefault();
+            fadeOutElements();
+            setTimeout(() => {
+                window.location.href = url;
+            }, 500);
+        }
+
+        function fadeOutAndSubmit(form, event) {
+            event.preventDefault();
+            fadeOutElements();
+            setTimeout(() => {
+                form.submit();
+            }, 500);
+        }
+
+        function fadeOutElements() {
+            document.getElementById('mainNav').classList.add('fade-out');
+            document.getElementById('mainContent').classList.add('fade-out');
+        }
+    </script>
 </body>
 </html>

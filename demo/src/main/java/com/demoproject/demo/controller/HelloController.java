@@ -3,8 +3,6 @@ package com.demoproject.demo.controller;
 import com.demoproject.demo.userdto.UserDTO;
 import com.demoproject.demo.entity.UserAnswer;
 import com.demoproject.demo.repository.UserAnswerRepository;
-import com.demoproject.demo.repository.RoleRepository;
-import com.demoproject.demo.entity.Role;
 
 import org.springframework.ui.Model;
 
@@ -39,6 +37,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 public class HelloController {
 
     private final UserService userService;
+    private static final Logger logger = LoggerFactory.getLogger(HelloController.class);
     private final UserAnswerRepository userAnswerRepository;
 
     /**
@@ -65,7 +64,12 @@ public class HelloController {
      * @return The name of the home view
      */
     @GetMapping("/home")
-    public String home() {
+    public String home(Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
+            return "redirect:/login";
+        }
+        model.addAttribute("username", auth.getName());
         return "home";
     }
 
@@ -92,42 +96,35 @@ public class HelloController {
         if (!model.containsAttribute("user")) {
             model.addAttribute("user", new UserDTO());
         }
-        model.addAttribute("allRoles", roleRepository.findAll());
         return "register";
     }
 
     /**
      * Handles user registration.
-     * @param user The UserDTO object containing user details
+     * @param user The UserDTO object containing user information
      * @param result BindingResult for validation errors
      * @param model The Model object to add attributes
      * @param redirectAttributes RedirectAttributes for adding flash attributes
-     * @return Redirects to home page on success, or back to registration form on error
+     * @return Redirects to the users page if successful, otherwise returns the register view
      */
     @PostMapping("/register")
     @PreAuthorize("hasRole('ADMIN')")
     public String registerUser(@ModelAttribute("user") @Valid UserDTO user, BindingResult result, Model model, RedirectAttributes redirectAttributes) {
         if (result.hasErrors()) {
-            logger.error("Validation errors: {}", result.getAllErrors());
             return "register";
         }
         try {
             userService.registerNewUser(user);
-            logger.info("User registered successfully: {}", user.getUsername());
-            redirectAttributes.addFlashAttribute("successMessage", "User registered successfully");
-            return "redirect:/home";
+            redirectAttributes.addFlashAttribute("successMessage", "User registered successfully!");
+            return "redirect:/users";
         } catch (DataIntegrityViolationException e) {
-            logger.error("User already exists: {}", user.getUsername());
             result.rejectValue("username", "error.user", "Username already exists");
-        } catch (Exception e) {
-            logger.error("Error registering user: {}", e.getMessage(), e);
-            result.rejectValue("username", "error.user", "An unexpected error occurred");
+            return "register";
         }
-        return "register";
     }
 
     /**
-     * Displays a list of all users.
+     * Displays the list of users.
      * @param model The Model object to add attributes
      * @return The name of the users view
      */
@@ -219,22 +216,5 @@ public class HelloController {
         userAnswerRepository.deleteById(id);
         redirectAttributes.addFlashAttribute("successMessage", "Response deleted successfully!");
         return "redirect:/view-responses";
-    }
-
-    @GetMapping("/create-role")
-    public String showCreateRoleForm(Model model) {
-        model.addAttribute("role", new Role());
-        return "createRole";
-    }
-
-    @PostMapping("/create-role")
-    public String createRole(@ModelAttribute Role role, RedirectAttributes redirectAttributes) {
-        try {
-            roleRepository.save(role);
-            redirectAttributes.addFlashAttribute("message", "Role '" + role.getName() + "' created successfully!");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error creating role: " + e.getMessage());
-        }
-        return "redirect:/users";
     }
 }

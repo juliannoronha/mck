@@ -78,7 +78,6 @@
 		<dependency>
     		<groupId>org.springframework.boot</groupId>
     		<artifactId>spring-boot-starter-security</artifactId>
-    		<!-- Remove the version tag to use the one defined by the parent -->
 		</dependency>
 		<!-- Validation for data validation and error handling -->
 		<dependency>

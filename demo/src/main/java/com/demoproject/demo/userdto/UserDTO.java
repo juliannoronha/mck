@@ -1,5 +1,7 @@
 package com.demoproject.demo.userdto;
 
+import com.demoproject.demo.entity.User;
+
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -30,7 +32,7 @@ public class UserDTO {
      * Must not be null.
      */
     @NotNull(message = "Role cannot be null")
-    private String role;  // Change this to String
+    private User.Role role;
 
     /**
      * No-args constructor for UserDTO.
@@ -47,7 +49,7 @@ public class UserDTO {
     public UserDTO(String username, String password, String role) {
         this.username = username;
         this.password = password;
-        this.role = role;
+        this.role = User.Role.valueOf(role.toUpperCase());
     }
 
     /**
@@ -91,7 +93,7 @@ public class UserDTO {
      *
      * @return The role
      */
-    public String getRole() {
+    public User.Role getRole() {
         return role;
     }
 
@@ -100,9 +102,7 @@ public class UserDTO {
      *
      * @param role The role to set
      */
-    public void setRole(String role) {
+    public void setRole(User.Role role) {
         this.role = role;
     }
-
-    // Remove the getRoleAsEnum() method entirely
 }

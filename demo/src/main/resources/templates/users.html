@@ -2,13 +2,10 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Manage Users</title>
-    <!-- Google Fonts for Poppins font family -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <!-- CSRF token meta tags for security -->
     <meta name="_csrf" th:content="${_csrf.token}"/>
     <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <style>
-        /* CSS styles for the page layout and components */
         * {
             margin: 0;
             box-sizing: border-box;
@@ -18,16 +15,16 @@
         body {
             margin: 0;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-direction: column;
             min-height: 100vh;
-            background: #18191A;
+            background: #1a1a1a;
             color: #ffffff;
         }
 
         .container {
             width: 90%;
-            max-width: 500px;
+            max-width: 800px;
+            margin: 2rem auto;
             padding: 2rem;
             background-color: #242526;
             border-radius: 10px;
@@ -46,7 +43,7 @@
         }
 
         th, td {
-            padding: 0.5rem;
+            padding: 0.75rem;
             text-align: left;
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         }
@@ -58,30 +55,27 @@
         .button {
             display: inline-block;
             padding: 0.5rem 1rem;
-            margin: 1rem 0;
-            background-color: #3a3b3c;
+            margin: 0.25rem 0;
+            background-color: #007bff;
             color: white;
             text-decoration: none;
-            border: 1px solid #ffffff;
+            border: none;
             border-radius: 5px;
             cursor: pointer;
             font-size: 0.9em;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            transition: background-color 0.3s ease;
         }
 
         .button:hover {
-            background-color: #ffffff;
-            color: #18191A;
+            background-color: #0056b3;
         }
 
         .delete-btn {
             background-color: #dc3545;
-            border-color: #dc3545;
         }
 
         .delete-btn:hover {
             background-color: #c82333;
-            border-color: #bd2130;
         }
 
         .back-button {
@@ -91,7 +85,19 @@
             margin-top: 1rem;
         }
 
-        /* Modal styles for delete confirmation */
+        .register-button {
+            display: block;
+            width: 200px;
+            margin: 1rem auto;
+            text-align: center;
+            background-color: #28a745;
+        }
+
+        .register-button:hover {
+            background-color: #218838;
+        }
+
+        /* Modal styles remain the same */
         .modal {
             display: none;
             position: fixed;
@@ -134,31 +140,17 @@
             background-color: #6c757d;
             color: white;
         }
-
-        .alert {
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 5px;
-        }
-
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Manage Users</h1>
         
-        <!-- Add this section to display messages -->
-        <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+        <!-- Display success message -->
+        <div th:if="${successMessage}" class="success-message" th:text="${successMessage}"></div>
         
-        <div class="button-group">
-            <a th:href="@{/register}" class="button">Register New User</a>
-            <a th:href="@{/create-role}" class="button">Create New Role</a>
-        </div>
+        <!-- Register New User button -->
+        <a href="/register" class="button register-button">Register New User</a>
         
         <!-- Table to display user information -->
         <table>

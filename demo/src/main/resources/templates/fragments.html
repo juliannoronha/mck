@@ -40,7 +40,7 @@
         .logo-background {
             width: 200px;
             height: 100px;
-            background-image: url('/logo.png');
+            background-image: url([[@{/logo.png}]]);
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
@@ -63,7 +63,7 @@
         }
 
         button {
-            background: rgb(76, 175, 80);
+            background: #4CAF50;
             color: white;
             padding: 10px;
             margin-top: 20px;
@@ -104,5 +104,21 @@
     <div th:fragment="logout-message" th:if="${param.logout}" class="logout-message" id="logoutMessage">
         You have been logged out successfully.
     </div>
+    <!-- Navigation fragment -->
+    <nav th:fragment="navigation">
+        <!-- ... other navigation items ... -->
+        <div class="logout">
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="button"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <!-- Add this script fragment -->
+    <script th:fragment="logoutScript">
+        document.querySelector('form[action="/logout"]').addEventListener('submit', function() {
+            sessionStorage.removeItem('dashboardCardShown');
+        });
+    </script>
 </body>
 </html>
