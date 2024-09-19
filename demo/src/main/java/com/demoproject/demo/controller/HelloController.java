@@ -3,6 +3,8 @@ package com.demoproject.demo.controller;
 import com.demoproject.demo.userdto.UserDTO;
 import com.demoproject.demo.entity.UserAnswer;
 import com.demoproject.demo.repository.UserAnswerRepository;
+import com.demoproject.demo.repository.RoleRepository;
+import com.demoproject.demo.entity.Role;
 
 import org.springframework.ui.Model;
 
@@ -37,7 +39,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 public class HelloController {
 
     private final UserService userService;
-    private static final Logger logger = LoggerFactory.getLogger(HelloController.class);
     private final UserAnswerRepository userAnswerRepository;
 
     /**
@@ -91,6 +92,7 @@ public class HelloController {
         if (!model.containsAttribute("user")) {
             model.addAttribute("user", new UserDTO());
         }
+        model.addAttribute("allRoles", roleRepository.findAll());
         return "register";
     }
 
@@ -217,5 +219,22 @@ public class HelloController {
         userAnswerRepository.deleteById(id);
         redirectAttributes.addFlashAttribute("successMessage", "Response deleted successfully!");
         return "redirect:/view-responses";
+    }
+
+    @GetMapping("/create-role")
+    public String showCreateRoleForm(Model model) {
+        model.addAttribute("role", new Role());
+        return "createRole";
+    }
+
+    @PostMapping("/create-role")
+    public String createRole(@ModelAttribute Role role, RedirectAttributes redirectAttributes) {
+        try {
+            roleRepository.save(role);
+            redirectAttributes.addFlashAttribute("message", "Role '" + role.getName() + "' created successfully!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error creating role: " + e.getMessage());
+        }
+        return "redirect:/users";
     }
 }

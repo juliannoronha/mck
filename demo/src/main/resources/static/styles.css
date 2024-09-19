@@ -33,27 +33,6 @@ h1 {
     margin-bottom: 1rem;
 }
 
-/* Button styles */
-.button {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    margin: 0.5rem;
-    background-color: #18191A; /* Dark background to match the container */
-    color: white;
-    text-decoration: none;
-    border: 1px solid #ffffff; /* White border for contrast */
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* Button hover effect */
-.button:hover {
-    background-color: #ffffff; /* White background on hover */
-    color: #18191A; /* Dark text on hover */
-}
-
 /* Form group styles */
 .form-group {
     margin-bottom: 1rem;
@@ -125,13 +104,14 @@ h1 {
 .logo-container {
     display: flex;
     justify-content: center;
-    align-items: center;
-    margin-bottom: 2rem;
+    margin-top: 1rem;
 }
+
 .logo {
-    max-width: 80%;
+    max-width: 50%; /* Reduce this value to make the logo smaller */
     height: auto;
-    max-height: 100px; /* Adjust this value as needed */
+    align-items: center;
+    max-height: 50px; /* Reduce this value to limit the height */
 }
 
 /* Additional margin for logout message */
@@ -148,4 +128,40 @@ h1 {
 /* Higher z-index for logout message to appear on top */
 .container > .logout-message {
     z-index: 2;
+}
+
+/* Sidebar styles */
+.sidebar-nav {
+    list-style-type: none;
+}
+
+.sidebar-nav li {
+    margin-bottom: 5px;
+}
+
+.sidebar-nav a, .sidebar-nav form {
+    display: block;
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+    padding: 10px 20px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    text-align: center;
+}
+
+.sidebar-nav a:hover, .sidebar-nav form:hover {
+    background-color: #ffffff;
+    color: #18191A;
+}
+
+.logo-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.dashboard-card .logo {
+    max-width: 100px;
+    height: auto;
 }

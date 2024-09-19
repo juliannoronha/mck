@@ -22,47 +22,8 @@ import org.springframework.security.config.annotation.authentication.configurati
  */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
-    private final UserRepository userRepository;
 
-    /**
-     * Constructor for SecurityConfig.
-     * @param userRepository Repository for user data, injected by Spring.
-     */
-    public SecurityConfig(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-
-    /**
-     * Defines the password encoder bean.
-     * @return BCryptPasswordEncoder for secure password hashing.
-     */
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    /**
-     * Configures the UserDetailsService for authentication.
-     * @return A UserDetailsService that retrieves user details from the database.
-     */
-    @Bean
-    public UserDetailsService userDetailsService() {
-        return username -> userRepository.findByUsername(username)
-            .map(user -> User.withUsername(user.getUsername())
-                .password(user.getPassword())
-                .roles(user.getRole().name()) // Convert the Role enum to a String
-                .build())
-            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-    }
-
-    /**
-     * Configures the SecurityFilterChain for HTTP security.
-     * @param http HttpSecurity object to be configured.
-     * @return Configured SecurityFilterChain.
-     * @throws Exception if an error occurs during configuration.
-     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -84,14 +45,5 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Configures the AuthenticationManager.
-     * @param authConfig AuthenticationConfiguration to be used.
-     * @return Configured AuthenticationManager.
-     * @throws Exception if an error occurs during configuration.
-     */
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-        return authConfig.getAuthenticationManager();
-    }
+    // ... other beans and methods ...
 }

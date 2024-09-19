@@ -113,6 +113,28 @@
             padding: 0.5rem;
             border-radius: 5px;
         }
+
+        /* Back button styles */
+        .back-button {
+            display: block;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            margin: 0.5rem 0;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border: 1px solid #ffffff;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Button hover effect */
+        .back-button:hover {
+            background-color: #ffffff;
+            color: #18191A;
+        }
     </style>
 </head>
 <body>
@@ -138,8 +160,10 @@
             <div class="form-group">
                 <label for="role">Role:</label>
                 <select id="role" th:field="*{role}" required>
-                    <option value="USER">User</option>
-                    <option value="ADMIN">Admin</option>
+                    <option th:each="role : ${allRoles}" 
+                            th:value="${role.name}" 
+                            th:text="${role.name}">
+                    </option>
                 </select>
                 <!-- Error message for role field -->
                 <div th:if="${#fields.hasErrors('role')}" class="error-message" th:errors="*{role}"></div>
@@ -147,8 +171,8 @@
             <!-- Submit button for the form -->
             <button type="submit" class="button">Register</button>
         </form>
-        <!-- Back to Home button -->
-        <a th:href="@{/home}" class="button" style="margin-top: 1rem;">Back to Home</a>
+        <!-- Back to Manage Users button -->
+        <a th:href="@{/users}" class="button back-button">Back to Manage Users</a>
     </div>
 </body>
 </html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Create New Role</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        /* Global styles */
+        * {
+            margin: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #18191A;
+        }
+
+        .glass-container {
+            width: 90%;
+            max-width: 400px;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+        }
+
+        h1 {
+            color: #ffffff;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            font-size: 1em;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .button {
+            display: inline-block;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            margin: 0.5rem 0;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border: 1px solid #ffffff;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #ffffff;
+            color: #18191A;
+        }
+
+        .back-button {
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-container">
+        <h1>Create New Role</h1>
+        <form th:action="@{/create-role}" method="post">
+            <div class="form-group">
+                <label for="roleName">Role Name:</label>
+                <input type="text" id="roleName" name="roleName" required>
+            </div>
+            <button type="submit" class="button">Create Role</button>
+        </form>
+        <a th:href="@{/users}" class="button back-button">Back to Manage Users</a>
+    </div>
+</body>
+</html>

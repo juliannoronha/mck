@@ -58,8 +58,8 @@
         .button {
             display: inline-block;
             padding: 0.5rem 1rem;
-            margin: 0.25rem 0;
-            background-color: rgba(255, 255, 255, 0.2);
+            margin: 1rem 0;
+            background-color: #3a3b3c;
             color: white;
             text-decoration: none;
             border: 1px solid #ffffff;
@@ -134,11 +134,32 @@
             background-color: #6c757d;
             color: white;
         }
+
+        .alert {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 5px;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Manage Users</h1>
+        
+        <!-- Add this section to display messages -->
+        <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+        
+        <div class="button-group">
+            <a th:href="@{/register}" class="button">Register New User</a>
+            <a th:href="@{/create-role}" class="button">Create New Role</a>
+        </div>
+        
         <!-- Table to display user information -->
         <table>
             <thead>
