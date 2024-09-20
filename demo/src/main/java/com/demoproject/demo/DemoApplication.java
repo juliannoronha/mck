@@ -2,6 +2,7 @@ package com.demoproject.demo;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
@@ -10,6 +11,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  * This class serves as the entry point for the Spring Boot application.
  */
 @SpringBootApplication
+@ComponentScan(basePackages = {"com.demoproject.demo"})
 @EntityScan("com.demoproject.demo.entity")
 @EnableJpaRepositories("com.demoproject.demo.repository")
 public class DemoApplication {

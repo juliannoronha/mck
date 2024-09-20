@@ -62,7 +62,6 @@
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             width: 300px;
-            margin: 20px auto;
         }
         h2 {
             text-align: center;
@@ -162,6 +161,42 @@
         .success-message.fade-out {
             opacity: 0;
         }
+        
+        /* New styles for the layout and dashboard */
+        .content-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            margin: 20px auto;
+            max-width: 1200px;
+        }
+        .form-container {
+            margin-right: 20px;
+        }
+        .container, .dashboard {
+            background-color: #2a2a2a;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            width: 300px;
+        }
+        .dashboard h3 {
+            text-align: center;
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+        .dashboard-item {
+            margin-bottom: 15px;
+        }
+        .dashboard-item-label {
+            font-size: 0.9em;
+            color: #888;
+        }
+        .dashboard-item-value {
+            font-size: 1.2em;
+            color: #ffffff;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -180,54 +215,74 @@
         </div>
     </nav>
 
-    <!-- Main content container -->
-    <div class="container">
-        <h2>Pack Med</h2>
-        
-        <!-- Success message display -->
-        <div th:if="${successMessage}" class="success-message" id="successMessage">
-            <p th:text="${successMessage}"></p>
+    <div class="content-wrapper">
+        <!-- Main content container -->
+        <div class="form-container">
+            <div class="container">
+                <h2>Pack Med</h2>
+                
+                <!-- Success message display -->
+                <div th:if="${successMessage}" class="success-message" id="successMessage">
+                    <p th:text="${successMessage}"></p>
+                </div>
+                
+                <!-- Pack Med form -->
+                <form th:action="@{/submit-questions}" method="post" id="questionForm">
+                    <div class="input-group">
+                        <label for="startTime">What time did you start checking?</label>
+                        <input type="time" id="startTime" name="startTime" required>
+                        <div class="error" id="startTimeError"></div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="endTime">What time did you finish checking?</label>
+                        <input type="time" id="endTime" name="endTime" required>
+                        <div class="error" id="endTimeError"></div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="store">What store are you checking?</label>
+                        <select id="store" name="store" required>
+                            <option value="">Select store</option>
+                            <option value="Vanier">Vanier</option>
+                            <option value="Elgin">Elgain</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="pouchesChecked">How many pouches did you check?</label>
+                        <input type="number" id="pouchesChecked" name="pouchesChecked" required min="0">
+                        <div class="error" id="pouchesError"></div>
+                    </div>
+                    
+                    <button type="submit">Submit</button>
+                </form>
+                <!-- Home button for non-admin users -->
+                <div sec:authorize="!hasRole('ADMIN')">
+                    <a th:href="@{/home}" class="button home-button">Home</a>
+                </div>
+                <!-- Admin-specific buttons -->
+                <div sec:authorize="hasRole('ADMIN')" class="admin-buttons">
+                    <a th:href="@{/view-responses}" class="button admin-button">View Responses</a>
+                    <a th:href="@{/home}" class="button home-button">Home</a>
+                </div>
+            </div>
         </div>
-        
-        <!-- Pack Med form -->
-        <form th:action="@{/submit-questions}" method="post" id="questionForm">
-            <div class="input-group">
-                <label for="startTime">What time did you start checking?</label>
-                <input type="time" id="startTime" name="startTime" required>
-                <div class="error" id="startTimeError"></div>
+
+        <!-- Dashboard Card - Now visible to all users -->
+        <div class="dashboard">
+            <div class="dashboard-item">
+                <div class="dashboard-item-label">Total Submissions</div>
+                <div class="dashboard-item-value" id="totalSubmissions">-</div>
             </div>
-            
-            <div class="input-group">
-                <label for="endTime">What time did you finish checking?</label>
-                <input type="time" id="endTime" name="endTime" required>
-                <div class="error" id="endTimeError"></div>
+            <div class="dashboard-item">
+                <div class="dashboard-item-label">Average Time Duration</div>
+                <div class="dashboard-item-value" id="avgTimeDuration">-</div>
             </div>
-            
-            <div class="input-group">
-                <label for="store">What store are you checking?</label>
-                <select id="store" name="store" required>
-                    <option value="">Select store</option>
-                    <option value="Vanier">Vanier</option>
-                    <option value="Elgin">Elgain</option>
-                </select>
+            <div class="dashboard-item">
+                <div class="dashboard-item-label">Average Pouches per Hour</div>
+                <div class="dashboard-item-value" id="avgPouchesPerHour">-</div>
             </div>
-            
-            <div class="input-group">
-                <label for="pouchesChecked">How many pouches did you check?</label>
-                <input type="number" id="pouchesChecked" name="pouchesChecked" required min="0">
-                <div class="error" id="pouchesError"></div>
-            </div>
-            
-            <button type="submit">Submit</button>
-        </form>
-        <!-- Home button for non-admin users -->
-        <div sec:authorize="!hasRole('ADMIN')">
-            <a th:href="@{/home}" class="button home-button">Home</a>
-        </div>
-        <!-- Admin-specific buttons -->
-        <div sec:authorize="hasRole('ADMIN')" class="admin-buttons">
-            <a th:href="@{/view-responses}" class="button admin-button">View Responses</a>
-            <a th:href="@{/home}" class="button home-button">Home</a>
         </div>
     </div>
 
@@ -278,6 +333,21 @@
                 }, 1000); // Wait for fade out to complete before hiding
             }, 4000); // Start fading out after 4 seconds
         }
+
+        // Fetch overall productivity data
+        function fetchOverallProductivity() {
+            fetch('/api/overall-productivity')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('totalSubmissions').textContent = data.totalSubmissions;
+                    document.getElementById('avgTimeDuration').textContent = data.avgTimeDuration;
+                    document.getElementById('avgPouchesPerHour').textContent = data.avgPouchesPerHour.toFixed(2);
+                })
+                .catch(error => console.error('Error fetching overall productivity:', error));
+        }
+
+        // Call this function when the page loads
+        document.addEventListener('DOMContentLoaded', fetchOverallProductivity);
     </script>
 </body>
 </html>

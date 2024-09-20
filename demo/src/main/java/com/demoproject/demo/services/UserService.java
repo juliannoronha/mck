@@ -17,18 +17,18 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserService {
 
-    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     /**
      * Constructor for UserService.
-     * @param userRepository Repository for user data operations.
      * @param passwordEncoder Encoder for password hashing.
+     * @param userRepository Repository for user data operations.
      */
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
+    public UserService(PasswordEncoder passwordEncoder, UserRepository userRepository) {
         this.passwordEncoder = passwordEncoder;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -45,6 +45,7 @@ public class UserService {
         }
         User user = new User();
         user.setUsername(userDTO.getUsername());
+        // Hash the password before saving
         user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         user.setRole(User.Role.valueOf(userDTO.getRole().name()));
         logger.info("Saving user to database: {}", user);

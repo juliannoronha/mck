@@ -3,6 +3,7 @@ package com.demoproject.demo.repository;
 import com.demoproject.demo.entity.UserAnswer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 
 /**
  * Repository interface for managing UserAnswer entities.
@@ -17,4 +18,6 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
      * @param id The ID of the UserAnswer to be deleted.
      */
     void deleteById(Long id);
+    
+    List<UserAnswer> findByName(String name);
 }

@@ -29,6 +29,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.util.Map;
+import java.util.HashMap;
+import java.time.LocalTime;
+import java.time.Duration;
+
 /**
  * Controller class for handling various HTTP requests related to user management,
  * authentication, and user responses.
@@ -219,5 +224,53 @@ public class HelloController {
         userAnswerRepository.deleteById(id);
         redirectAttributes.addFlashAttribute("successMessage", "Response deleted successfully!");
         return "redirect:/view-responses";
+    }
+
+    @GetMapping("/api/overall-productivity")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getOverallProductivity() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        List<UserAnswer> userAnswers = userAnswerRepository.findByName(username);
+
+        int totalSubmissions = userAnswers.size();
+        double avgTimeDuration = calculateAvgTimeDuration(userAnswers);
+        double avgPouchesPerHour = calculateAvgPouchesPerHour(userAnswers);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("totalSubmissions", totalSubmissions);
+        response.put("avgTimeDuration", formatDuration(avgTimeDuration));
+        response.put("avgPouchesPerHour", avgPouchesPerHour);
+
+        return ResponseEntity.ok(response);
+    }
+
+    private double calculateAvgTimeDuration(List<UserAnswer> userAnswers) {
+        return userAnswers.stream()
+                .mapToLong(answer -> {
+                    LocalTime start = answer.getStartTime();
+                    LocalTime end = answer.getEndTime();
+                    return Duration.between(start, end).toMinutes();
+                })
+                .average()
+                .orElse(0) / 60.0; // Convert to hours
+    }
+
+    private double calculateAvgPouchesPerHour(List<UserAnswer> userAnswers) {
+        return userAnswers.stream()
+                .mapToDouble(answer -> {
+                    LocalTime start = answer.getStartTime();
+                    LocalTime end = answer.getEndTime();
+                    double hours = Duration.between(start, end).toMinutes() / 60.0;
+                    return answer.getPouchesChecked() / hours;
+                })
+                .average()
+                .orElse(0);
+    }
+
+    private String formatDuration(double hours) {
+        int wholeHours = (int) hours;
+        int minutes = (int) ((hours - wholeHours) * 60);
+        return String.format("%dh %dm", wholeHours, minutes);
     }
 }
