@@ -70,6 +70,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(requests -> requests
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/*.png", "/*.ico", "/h2-console/**").permitAll()
                 .requestMatchers("/", "/login").permitAll()
+                .requestMatchers("/api/overall-productivity").hasAnyRole("ADMIN", "MODERATOR")
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form

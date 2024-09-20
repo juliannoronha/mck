@@ -1,6 +1,7 @@
 package com.demoproject.demo.controller;
 
-import com.demoproject.demo.userdto.UserDTO;
+import com.demoproject.demo.dto.UserProductivityDTO;
+import com.demoproject.demo.dto.UserDTO;
 import com.demoproject.demo.entity.UserAnswer;
 import com.demoproject.demo.repository.UserAnswerRepository;
 
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -30,10 +32,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Map;
-import java.util.HashMap;
-import java.time.LocalTime;
-import java.time.Duration;
-
 /**
  * Controller class for handling various HTTP requests related to user management,
  * authentication, and user responses.
@@ -57,11 +55,11 @@ public class HelloController {
 
     /**
      * Handles the root URL request.
-     * @return Redirects to the login page
+     * @return Redirects to the home page
      */
     @GetMapping("/")
     public String root() {
-        return "redirect:/login";
+        return "redirect:/home";  // Redirect to home instead of login
     }
 
     /**
@@ -228,49 +226,33 @@ public class HelloController {
 
     @GetMapping("/api/overall-productivity")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> getOverallProductivity() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
-        List<UserAnswer> userAnswers = userAnswerRepository.findByName(username);
-
-        int totalSubmissions = userAnswers.size();
-        double avgTimeDuration = calculateAvgTimeDuration(userAnswers);
-        double avgPouchesPerHour = calculateAvgPouchesPerHour(userAnswers);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("totalSubmissions", totalSubmissions);
-        response.put("avgTimeDuration", formatDuration(avgTimeDuration));
-        response.put("avgPouchesPerHour", avgPouchesPerHour);
-
-        return ResponseEntity.ok(response);
+    @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
+    public ResponseEntity<UserProductivityDTO> getOverallProductivity() {
+        UserProductivityDTO overallProductivity = userService.getOverallProductivity();
+        return ResponseEntity.ok(overallProductivity);
     }
 
-    private double calculateAvgTimeDuration(List<UserAnswer> userAnswers) {
-        return userAnswers.stream()
-                .mapToLong(answer -> {
-                    LocalTime start = answer.getStartTime();
-                    LocalTime end = answer.getEndTime();
-                    return Duration.between(start, end).toMinutes();
-                })
-                .average()
-                .orElse(0) / 60.0; // Convert to hours
+    @GetMapping("/user-productivity")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
+    public String userProductivity(Model model) {
+        List<UserProductivityDTO> users = userService.getAllUserProductivity();
+        model.addAttribute("users", users);
+        return "user-productivity";
     }
 
-    private double calculateAvgPouchesPerHour(List<UserAnswer> userAnswers) {
-        return userAnswers.stream()
-                .mapToDouble(answer -> {
-                    LocalTime start = answer.getStartTime();
-                    LocalTime end = answer.getEndTime();
-                    double hours = Duration.between(start, end).toMinutes() / 60.0;
-                    return answer.getPouchesChecked() / hours;
-                })
-                .average()
-                .orElse(0);
+    @GetMapping("/api/user-productivity/{username}")
+    @ResponseBody
+    @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
+    public ResponseEntity<Map<String, Object>> getUserProductivity(@PathVariable String username) {
+        Map<String, Object> productivity = userService.getUserProductivity(username);
+        return ResponseEntity.ok(productivity);
     }
 
-    private String formatDuration(double hours) {
-        int wholeHours = (int) hours;
-        int minutes = (int) ((hours - wholeHours) * 60);
-        return String.format("%dh %dm", wholeHours, minutes);
+    @GetMapping("/overall-productivity")
+    @ResponseBody
+    @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
+    public ResponseEntity<UserProductivityDTO> getOverallProductivitySummary() {
+        UserProductivityDTO overallProductivity = userService.getOverallProductivity();
+        return ResponseEntity.ok(overallProductivity);
     }
 }

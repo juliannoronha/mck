@@ -1,4 +1,4 @@
-package com.demoproject.demo.userdto;
+package com.demoproject.demo.dto;
 
 import com.demoproject.demo.entity.User;
 
