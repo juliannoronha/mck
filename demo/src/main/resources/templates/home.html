@@ -53,13 +53,135 @@
             animation-delay: 0.6s;
         }
 
-        nav .logout {
+        nav ul li:nth-child(3) {
             animation-delay: 0.8s;
+        }
+
+        nav .logout {
+            animation-delay: 1s;
         }
 
         .main-top {
             animation: fadeInFromTop 0.5s ease-out;
         }
+
+        .admin-panel {
+            width: 100%;
+            text-align: center;
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+
+        .admin-panel > span {
+            display: block;
+            padding: 10px;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+
+        .admin-panel ul {
+            list-style-type: none;
+            padding-left: 0;
+            margin-bottom: 0;
+        }
+
+        .admin-panel ul li {
+            padding: 5px 0;
+            width: 100%;
+        }
+
+        .admin-panel ul li:last-child {
+            padding-bottom: 10px;
+        }
+
+        .admin-panel ul li a {
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 16px; /* Match the font size of other nav items */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem 1.5rem;
+            transition: background-color 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .admin-panel ul li a i {
+            width: 24px;
+            font-size: 18px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        /* Adjust logo and admin panel positioning */
+        .logo {
+            margin-bottom: 0;
+            padding-bottom: 1rem;
+        }
+
+        nav ul {
+            margin-top: 0;
+        }
+
+        .panel {
+            width: 100%;
+            text-align: center;
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+
+        .panel > span {
+            display: block;
+            padding: 10px;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+
+        .panel ul {
+            list-style-type: none;
+            padding-left: 0;
+            margin-bottom: 0;
+        }
+
+        .panel ul li {
+            padding: 5px 0;
+            width: 100%;
+        }
+
+        .panel ul li:last-child {
+            padding-bottom: 10px;
+        }
+
+        .panel ul li a {
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem 1.5rem;
+            transition: background-color 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .panel ul li a i {
+            width: 24px;
+            font-size: 18px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .panel ul li a:hover {
+            background-color: #3a3a3a;
+        }
+
+        /* ... rest of the existing styles ... */
     </style>
 </head>
 <body>
@@ -70,9 +192,21 @@
             </div>
             <ul>
                 <li sec:authorize="hasRole('ADMIN')">
-                    <a href="#" onclick="fadeOutAndNavigate('/users', event)"><i class="fas fa-users"></i> Manage User</a>
+                    <div class="panel admin-panel">
+                        <span>Admin Panel</span>
+                        <ul>
+                            <li><a href="#" onclick="fadeOutAndNavigate('/users', event)"><i class="fas fa-users"></i> Manage Users</a></li>
+                        </ul>
+                    </div>
                 </li>
-                <li><a href="#" onclick="fadeOutAndNavigate('/packmed', event)"><i class="fas fa-box"></i> Pack Med</a></li>
+                <li>
+                    <div class="panel central-fill-panel">
+                        <span>Central Fill</span>
+                        <ul>
+                            <li><a href="#" onclick="fadeOutAndNavigate('/packmed', event)"><i class="fas fa-box"></i> Pack Med</a></li>
+                        </ul>
+                    </div>
+                </li>
             </ul>
             <div class="logout">
                 <form th:action="@{/logout}" method="post" onsubmit="return fadeOutAndSubmit(this, event)">

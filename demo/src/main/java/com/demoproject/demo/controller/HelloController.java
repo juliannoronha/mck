@@ -120,6 +120,9 @@ public class HelloController {
         } catch (DataIntegrityViolationException e) {
             result.rejectValue("username", "error.user", "Username already exists");
             return "register";
+        } catch (IllegalArgumentException e) {
+            result.rejectValue("role", "error.user", "Invalid role selected");
+            return "register";
         }
     }
 

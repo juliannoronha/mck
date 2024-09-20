@@ -5,11 +5,11 @@ import com.demoproject.demo.entity.User;
 import com.demoproject.demo.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service class for managing user-related operations.
@@ -20,7 +20,6 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
-    private static final String PROTECTED_USERNAME = "jn";
 
     /**
      * Constructor for UserService.
@@ -37,6 +36,7 @@ public class UserService {
      * @param userDTO Data Transfer Object containing user information.
      * @throws DataIntegrityViolationException if the username already exists.
      */
+    @Transactional
     public void registerNewUser(UserDTO userDTO) {
         logger.info("Attempting to register new user: {}", userDTO.getUsername());
         if (userRepository.findByUsername(userDTO.getUsername()).isPresent()) {
@@ -46,9 +46,11 @@ public class UserService {
         User user = new User();
         user.setUsername(userDTO.getUsername());
         user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
-        user.setRole(userDTO.getRole());
-        userRepository.save(user);
-        logger.info("User registered successfully: {}", userDTO.getUsername());
+        user.setRole(User.Role.valueOf(userDTO.getRole().name()));
+        logger.info("Saving user to database: {}", user);
+        User savedUser = userRepository.save(user);
+        userRepository.flush();
+        logger.info("User registered successfully: {}", savedUser);
     }
 
     /**
@@ -58,18 +60,16 @@ public class UserService {
      * @throws RuntimeException if the user is not found.
      */
     public void deleteUser(String username) {
-        userRepository.findByUsername(username)
-            .ifPresentOrElse(
-                user -> {
-                    if (PROTECTED_USERNAME.equals(username)) {
-                        throw new IllegalArgumentException("Cannot delete protected user");
-                    }
-                    userRepository.delete(user);
-                },
-                () -> {
-                    throw new UsernameNotFoundException("User not found: " + username);
-                }
-            );
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        
+        // Check if user is a protected user (e.g., admin)
+        if ("admin".equals(username)) {
+            throw new IllegalArgumentException("Cannot delete protected user");
+        }
+        
+        userRepository.delete(user);
+        logger.info("User deleted: {}", username);
     }
 
     /**
@@ -77,7 +77,9 @@ public class UserService {
      * @return A list of all users.
      */
     public List<User> getAllUsers() {
-        return userRepository.findAll();
+        List<User> users = userRepository.findAll();
+        logger.info("Retrieved {} users from the database", users.size());
+        return users;
     }
 
     /**

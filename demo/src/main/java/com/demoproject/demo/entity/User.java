@@ -22,13 +22,14 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role;
+
     public enum Role {
-        USER, ADMIN // Add other roles as needed
+        USER, MODERATOR, ADMIN  // Added MODERATOR role
     }
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 10)
-    private Role role;
     // Constructor with fields
     public User(String username, String password, String role) {
         this.username = username;
@@ -36,38 +37,5 @@ public class User {
         this.role = Role.valueOf(role.toUpperCase());
     }
 
-    // Getters and setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
-    // You might want to override toString(), equals(), and hashCode() methods
+    // Getters and setters are handled by Lombok's @Data annotation
 }

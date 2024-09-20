@@ -67,7 +67,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(requests -> requests
-                .requestMatchers("/css/**", "/js/**", "/images/**", "/*.png", "/*.ico").permitAll()
+                .requestMatchers("/css/**", "/js/**", "/images/**", "/*.png", "/*.ico", "/h2-console/**").permitAll()
                 .requestMatchers("/", "/login").permitAll()
                 .anyRequest().authenticated()
             )
@@ -79,6 +79,12 @@ public class SecurityConfig {
             .logout(logout -> logout
                 .logoutSuccessUrl("/login?logout")
                 .permitAll()
+            )
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/h2-console/**")
+            )
+            .headers(headers -> headers
+                .frameOptions().sameOrigin()
             );
 
         return http.build();
