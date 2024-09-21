@@ -197,7 +197,7 @@ public class HelloController {
      * @return The name of the responses view
      */
     @GetMapping("/view-responses")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")  // Change this line
     public String viewResponses(Model model) {
         List<UserAnswer> responses = userAnswerRepository.findAll();
         model.addAttribute("responses", responses);
@@ -220,6 +220,7 @@ public class HelloController {
      * @return Redirects to the view-responses page
      */
     @PostMapping("/delete-response")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")  // Add this line
     public String deleteResponse(@RequestParam Long id, RedirectAttributes redirectAttributes) {
         userAnswerRepository.deleteById(id);
         redirectAttributes.addFlashAttribute("successMessage", "Response deleted successfully!");

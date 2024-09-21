@@ -17,7 +17,7 @@
             <ul class="nav-links">
                 <li><a href="/home">Home</a></li>
                 <li><a href="/packmed" class="active">Pack Med</a></li>
-                <li sec:authorize="hasRole('ADMIN')"><a href="/view-responses">View Responses</a></li>
+                <li sec:authorize="hasAnyRole('ADMIN', 'MODERATOR')"><a href="/view-responses">View Responses</a></li>
                 <li><a href="/logout">Logout</a></li>
             </ul>
         </div>
@@ -65,12 +65,12 @@
                     
                     <button type="submit" class="button submit-button">Submit</button>
                 </form>
-                <!-- Home button for non-admin users -->
-                <div sec:authorize="!hasRole('ADMIN')">
+                <!-- Home button for non-admin and non-moderator users -->
+                <div sec:authorize="!hasAnyRole('ADMIN', 'MODERATOR')">
                     <a th:href="@{/home}" class="button home-button">Home</a>
                 </div>
-                <!-- Admin-specific buttons -->
-                <div sec:authorize="hasRole('ADMIN')" class="admin-buttons">
+                <!-- Admin and Moderator specific buttons -->
+                <div sec:authorize="hasAnyRole('ADMIN', 'MODERATOR')" class="admin-buttons">
                     <a th:href="@{/view-responses}" class="button admin-button">View Responses</a>
                     <a th:href="@{/home}" class="button home-button">Home</a>
                 </div>
