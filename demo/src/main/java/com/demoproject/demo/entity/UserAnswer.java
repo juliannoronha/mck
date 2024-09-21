@@ -6,6 +6,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Column;
 import java.time.LocalTime;
+import java.time.LocalDate;
 
 /**
  * Entity class representing a user's answer in the system.
@@ -49,6 +50,11 @@ public class UserAnswer {
      */
     @Column(nullable = false)
     private Integer pouchesChecked;
+
+    /**
+     * The date of submission.
+     */
+    private LocalDate submissionDate;
 
     // Getters and setters
     /**
@@ -145,5 +151,21 @@ public class UserAnswer {
      */
     public void setPouchesChecked(Integer pouchesChecked) {
         this.pouchesChecked = pouchesChecked;
+    }
+
+    /**
+     * Gets the submission date.
+     * @return The submission date.
+     */
+    public LocalDate getSubmissionDate() {
+        return submissionDate;
+    }
+
+    /**
+     * Sets the submission date.
+     * @param submissionDate The submission date to set.
+     */
+    public void setSubmissionDate(LocalDate submissionDate) {
+        this.submissionDate = submissionDate;
     }
 }

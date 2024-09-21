@@ -32,6 +32,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Map;
+import java.time.LocalDate;
 /**
  * Controller class for handling various HTTP requests related to user management,
  * authentication, and user responses.
@@ -183,6 +184,7 @@ public class HelloController {
         String username = auth.getName();
 
         userAnswer.setName(username);
+        userAnswer.setSubmissionDate(LocalDate.now()); // Set the submission date
         userAnswerRepository.save(userAnswer);
         
         redirectAttributes.addFlashAttribute("successMessage", "You have successfully submitted!");

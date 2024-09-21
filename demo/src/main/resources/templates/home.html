@@ -9,60 +9,28 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         @keyframes slideInFade {
-            0% {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         @keyframes fadeInFromTop {
-            0% {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        nav {
-            animation: slideInFade 0.5s ease-out;
-        }
-
-        nav .logo,
-        nav ul li,
-        nav .logout {
+        nav, nav .logo, nav ul li, nav .logout, .main-top {
             opacity: 0;
             animation: slideInFade 0.5s ease-out forwards;
         }
 
-        nav .logo {
-            animation-delay: 0.2s;
-        }
-
-        nav ul li:nth-child(1) {
-            animation-delay: 0.4s;
-        }
-
-        nav ul li:nth-child(2) {
-            animation-delay: 0.6s;
-        }
-
-        nav ul li:nth-child(3) {
-            animation-delay: 0.8s;
-        }
-
-        nav .logout {
-            animation-delay: 1s;
-        }
+        nav .logo { animation-delay: 0.2s; }
+        nav ul li:nth-child(1) { animation-delay: 0.4s; }
+        nav ul li:nth-child(2) { animation-delay: 0.6s; }
+        nav ul li:nth-child(3) { animation-delay: 0.8s; }
+        nav .logout { animation-delay: 1s; }
 
         .main-top {
-            animation: fadeInFromTop 0.5s ease-out;
+            animation-name: fadeInFromTop;
         }
 
         .logo {
@@ -77,12 +45,11 @@
         .panel, .admin-panel {
             width: 100%;
             text-align: left;
-            padding: 10px 1.5rem;
         }
 
         .panel > span, .admin-panel > span {
             display: block;
-            padding: 10px 0;
+            padding: 10px 1.5rem;
             color: #ffffff;
             font-weight: bold;
             font-size: 1em;
@@ -91,12 +58,11 @@
 
         .panel ul, .admin-panel ul {
             list-style-type: none;
-            padding-left: 0;
-            margin-bottom: 0;
+            padding: 0;
+            margin: 0;
         }
 
         .panel ul li, .admin-panel ul li {
-            padding: 5px 0;
             width: 100%;
         }
 
@@ -105,16 +71,7 @@
         }
 
         .panel ul li a, .admin-panel ul li a {
-            color: #ffffff;
-            text-decoration: none;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            padding: 1rem 0;
-            transition: background-color 0.3s ease;
-            width: 100%;
-            box-sizing: border-box;
+            padding: 1rem 1.5rem;
         }
 
         .panel ul li a i, .admin-panel ul li a i {
@@ -123,9 +80,6 @@
             margin-right: 10px;
             flex-shrink: 0;
         }
-
-        /* ... rest of the existing styles ... */
-
     </style>
 </head>
 <body>
