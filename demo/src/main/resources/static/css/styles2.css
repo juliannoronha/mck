@@ -114,10 +114,6 @@ nav i {
     transition: background-color 0.3s ease;
 }
 
-.logout .button:hover {
-    background-color: #3a3a3a;
-}
-
 /* Main content styles */
 .main {
     flex: 1;
