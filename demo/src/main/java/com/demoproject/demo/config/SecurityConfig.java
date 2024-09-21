@@ -16,6 +16,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.http.HttpMethod;
 
 /**
  * Configuration class for Spring Security settings.
@@ -71,7 +72,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .authorizeHttpRequests(requests -> requests
+            .authorizeHttpRequests(authz -> authz
+                .requestMatchers(HttpMethod.POST, "/submit-questions").authenticated()
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/*.png", "/*.ico", "/h2-console/**").permitAll()
                 .requestMatchers("/", "/login").permitAll()
                 .requestMatchers("/api/overall-productivity").hasAnyRole("ADMIN", "MODERATOR")

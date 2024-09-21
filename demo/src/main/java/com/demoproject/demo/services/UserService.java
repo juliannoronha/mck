@@ -1,5 +1,6 @@
 package com.demoproject.demo.services;
 
+import com.demoproject.demo.dto.UserProductivityQueryDTO;
 import com.demoproject.demo.dto.UserDTO;
 import com.demoproject.demo.entity.User;
 import com.demoproject.demo.repository.UserRepository;
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
+import java.time.LocalTime;
 import java.util.Map;
 import java.util.HashMap;
 import com.demoproject.demo.dto.UserProductivityDTO;
@@ -161,21 +163,21 @@ public class UserService {
     }
 
     public List<UserProductivityDTO> getAllUserProductivity() {
-        List<Object[]> results = userAnswerRepository.getUserProductivityData();
+        List<UserProductivityQueryDTO> summaries = userAnswerRepository.getUserProductivitySummary();
         List<UserProductivityDTO> productivityList = new ArrayList<>();
 
-        for (Object[] result : results) {
-            String username = (String) result[0];
-            Long totalSubmissions = (Long) result[1];
-            Double avgDurationMinutes = (Double) result[2];
-            Double avgPouchesPerHour = (Double) result[3];
-            
-            String formattedDuration = formatDuration(avgDurationMinutes);
+        for (UserProductivityQueryDTO summary : summaries) {
+            String username = summary.getUsername();
+            int totalSubmissions = summary.getTotalSubmissions().intValue();
+            Double avgPouchesChecked = summary.getAvgPouchesChecked();
+
+            String avgTimeDuration = calculateAverageDuration(username);
+            double avgPouchesPerHour = calculateAveragePouchesPerHour(avgPouchesChecked, avgTimeDuration);
 
             productivityList.add(new UserProductivityDTO(
                 username,
-                totalSubmissions.intValue(),
-                formattedDuration,
+                totalSubmissions,
+                avgTimeDuration,
                 avgPouchesPerHour
             ));
         }
@@ -183,8 +185,46 @@ public class UserService {
         return productivityList;
     }
 
-    private String formatDuration(Double minutes) {
-        if (minutes == null) return "N/A";
+    private String calculateAverageDuration(String username) {
+        List<UserAnswer> userAnswers = userAnswerRepository.findByName(username);
+        if (userAnswers.isEmpty()) {
+            return "0h 0m";
+        }
+
+        long totalMinutes = 0;
+        for (UserAnswer answer : userAnswers) {
+            LocalTime startTime = answer.getStartTime();
+            LocalTime endTime = answer.getEndTime();
+            Duration duration = Duration.between(startTime, endTime);
+            totalMinutes += duration.toMinutes();
+        }
+
+        double averageMinutes = (double) totalMinutes / userAnswers.size();
+        return formatDuration(averageMinutes);
+    }
+
+    private double calculateAveragePouchesPerHour(Double avgPouchesChecked, String avgTimeDuration) {
+        // Parse the time duration string
+        String[] parts = avgTimeDuration.split(" ");
+        double hours = 0;
+        for (String part : parts) {
+            if (part.endsWith("h")) {
+                hours += Double.parseDouble(part.replace("h", ""));
+            } else if (part.endsWith("m")) {
+                hours += Double.parseDouble(part.replace("m", "")) / 60;
+            }
+        }
+
+        // Avoid division by zero
+        if (hours == 0) {
+            return 0;
+        }
+
+        // Calculate pouches per hour
+        return avgPouchesChecked / hours;
+    }
+
+    private String formatDuration(double minutes) {
         long hours = (long) (minutes / 60);
         long remainingMinutes = (long) (minutes % 60);
         return String.format("%dh %dm", hours, remainingMinutes);
@@ -211,11 +251,5 @@ public class UserService {
             .orElse(0);
 
         return new UserProductivityDTO("Overall", (int) totalSubmissions, avgTimeDuration, avgPouchesPerHour);
-    }
-
-    private String formatDuration(double minutes) {
-        long hours = (long) (minutes / 60);
-        long remainingMinutes = (long) (minutes % 60);
-        return String.format("%dh %dm", hours, remainingMinutes);
     }
 }

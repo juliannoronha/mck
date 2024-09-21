@@ -4,123 +4,7 @@
     <title>User Responses</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #1a1a1a;
-            color: #ffffff;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 60%;
-            margin: 0 auto;
-            background-color: #2a2a2a;
-            padding: 20px;
-            border-radius: 10px;
-        }
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            padding: 10px;
-            text-align: center;
-            border-bottom: 1px solid #444;
-        }
-        th {
-            background-color: #333;
-        }
-        .button {
-            display: inline-block;
-            padding: 10px 15px;
-            background-color: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        .button:hover {
-            background-color: #0056b3;
-        }
-        .delete-btn {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8em;
-        }
-        .delete-btn:hover {
-            background-color: #c82333;
-        }
-        .success-message {
-            background-color: #28a745;
-            color: white;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .filter-btn {
-            top: 20px;
-            left: 20px;
-            background: none;
-            border: none;
-            color: #007bff;
-            font-size: 1.5em;
-            cursor: pointer;
-        }
-        .filter-panel {
-            background-color: #333;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        .filter-panel .filter-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        .filter-panel input, .filter-panel select {
-            width: 30%;
-            padding: 8px;
-            background-color: #444;
-            border: 1px solid #555;
-            color: #fff;
-            border-radius: 4px;
-        }
-        .filter-panel .button-row {
-            display: flex;
-            justify-content: flex-end;
-        }
-        .filter-panel button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-        .filter-panel button:hover {
-            background-color: #0056b3;
-        }
-
-        select option[value=""][disabled] {
-            display: none;
-        }
-
-        select:invalid {
-            color: #999;
-        }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/responses.css}">
 </head>
 <body>
     <!-- Navigation bar (content not shown) -->
@@ -199,6 +83,27 @@
         </table>
         <!-- Link to return to the questions page -->
         <a th:href="@{/packmed}" class="button">Back to Questions</a>
+    </div>
+
+    <!-- Pagination -->
+    <div th:if="${responses.totalPages > 1}" class="pagination-container">
+        <ul class="pagination">
+            <li th:class="${responses.first ? 'disabled' : ''}">
+                <a th:if="${not responses.first}" th:href="@{/view-responses(page=${responses.number-1},size=${responses.size})}">Previous</a>
+                <span th:if="${responses.first}">Previous</span>
+            </li>
+
+            <li th:each="pageNo : ${#numbers.sequence(0, responses.totalPages - 1)}"
+                th:class="${pageNo == responses.number ? 'active' : ''}">
+                <a th:if="${pageNo != responses.number}" th:href="@{/view-responses(page=${pageNo},size=${responses.size})}" th:text="${pageNo + 1}"></a>
+                <span th:if="${pageNo == responses.number}" th:text="${pageNo + 1}"></span>
+            </li>
+
+            <li th:class="${responses.last ? 'disabled' : ''}">
+                <a th:if="${not responses.last}" th:href="@{/view-responses(page=${responses.number+1},size=${responses.size})}">Next</a>
+                <span th:if="${responses.last}">Next</span>
+            </li>
+        </ul>
     </div>
 
     <script th:src="@{/js/responses.js}"></script>

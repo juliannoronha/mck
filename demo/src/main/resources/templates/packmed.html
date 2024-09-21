@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PacMed</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" th:href="@{/packmed-styles.css}">
+    <link rel="stylesheet" th:href="@{/css/packmed-styles.css}">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
 </head>
 <body>
     <!-- Navigation bar -->
@@ -34,8 +36,11 @@
                     <p th:text="${successMessage}"></p>
                 </div>
                 
+                <!-- Add this near the top of your form if it's not already there -->
+                <div id="successMessage" class="success-message" style="display: none;"></div>
+                
                 <!-- Pack Med form -->
-                <form th:action="@{/submit-questions}" method="post" id="questionForm">
+                <form id="questionForm" method="post">
                     <div class="input-group">
                         <label for="startTime">What time did you start checking?</label>
                         <input type="time" id="startTime" name="startTime" required>

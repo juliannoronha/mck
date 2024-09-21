@@ -24,7 +24,7 @@ public class UserAnswer {
     /**
      * The name associated with this user answer.
      */
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private String name;
 
     /**
@@ -42,14 +42,14 @@ public class UserAnswer {
     /**
      * The store associated with this user answer.
      */
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String store;
 
     /**
      * The number of pouches checked by the user.
      */
     @Column(nullable = false)
-    private Integer pouchesChecked;
+    private int pouchesChecked;
 
     /**
      * The date of submission.
@@ -141,7 +141,7 @@ public class UserAnswer {
      * Gets the number of pouches checked.
      * @return The number of pouches checked.
      */
-    public Integer getPouchesChecked() {
+    public int getPouchesChecked() {
         return pouchesChecked;
     }
 
@@ -149,7 +149,7 @@ public class UserAnswer {
      * Sets the number of pouches checked.
      * @param pouchesChecked The number of pouches checked to set.
      */
-    public void setPouchesChecked(Integer pouchesChecked) {
+    public void setPouchesChecked(int pouchesChecked) {
         this.pouchesChecked = pouchesChecked;
     }
 

@@ -1,0 +1,72 @@
+@keyframes slideInFade {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeInFromTop {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+nav, nav .logo, nav ul li, nav .logout, .main-top {
+    opacity: 0;
+    animation: slideInFade 0.5s ease-out forwards;
+}
+
+nav .logo { animation-delay: 0.2s; }
+nav ul li:nth-child(1) { animation-delay: 0.4s; }
+nav ul li:nth-child(2) { animation-delay: 0.6s; }
+nav ul li:nth-child(3) { animation-delay: 0.8s; }
+nav .logout { animation-delay: 1s; }
+
+.main-top {
+    animation-name: fadeInFromTop;
+}
+
+.logo {
+    margin-bottom: 0;
+    padding-bottom: 1rem;
+}
+
+nav ul {
+    margin-top: 0;
+}
+
+.panel, .admin-panel {
+    width: 100%;
+    text-align: left;
+}
+
+.panel > span, .admin-panel > span {
+    display: block;
+    padding: 10px 1.5rem;
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 1em;
+    margin-bottom: 10px;
+}
+
+.panel ul, .admin-panel ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.panel ul li, .admin-panel ul li {
+    width: 100%;
+}
+
+.panel ul li:last-child, .admin-panel ul li:last-child {
+    padding-bottom: 10px;
+}
+
+.panel ul li a, .admin-panel ul li a {
+    padding: 1rem 1.5rem;
+}
+
+.panel ul li a i, .admin-panel ul li a i {
+    width: 24px;
+    font-size: 18px;
+    margin-right: 10px;
+    flex-shrink: 0;
+}

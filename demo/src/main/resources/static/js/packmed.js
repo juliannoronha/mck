@@ -1,6 +1,50 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Form validation
-    document.getElementById('questionForm').addEventListener('submit', function(e) {
+    const form = document.getElementById('questionForm');
+    const successMessage = document.getElementById('successMessage');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        
+        // Add CSRF token if it's enabled
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+        fetch('/submit-questions', {
+            method: 'POST',
+            body: formData,
+            headers: csrfHeader ? {
+                [csrfHeader]: csrfToken
+            } : {},
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.text();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            successMessage.innerHTML = data;
+            successMessage.style.display = 'block';
+            form.reset();
+
+            // Hide the success message after 3 seconds
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+
+            // Refresh the dashboard data
+            fetchOverallProductivity();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            successMessage.innerHTML = 'An error occurred while submitting the form.';
+            successMessage.style.display = 'block';
+        });
+    });
+
+    function validateForm() {
         let isValid = true;
         const startTime = document.getElementsByName('startTime')[0].value;
         const endTime = document.getElementsByName('endTime')[0].value;
@@ -30,23 +74,10 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('pouchesError').textContent = '';
         }
 
-        if (!isValid) {
-            e.preventDefault();
-        }
-    });
-
-    // Success message fade-out
-    var successMessage = document.getElementById('successMessage');
-    if (successMessage) {
-        setTimeout(function() {
-            successMessage.classList.add('fade-out');
-            setTimeout(function() {
-                successMessage.style.display = 'none';
-            }, 1000); // Wait for fade out to complete before hiding
-        }, 4000); // Start fading out after 4 seconds
+        return isValid;
     }
 
-    // Fetch overall productivity data
+    // Existing fetchOverallProductivity function
     function fetchOverallProductivity() {
         console.log('Fetching productivity data...');
         fetch('/api/overall-productivity')

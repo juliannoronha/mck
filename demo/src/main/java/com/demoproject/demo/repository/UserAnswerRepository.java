@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import com.demoproject.demo.dto.UserProductivityQueryDTO;
 
 /**
  * Repository interface for managing UserAnswer entities.
@@ -26,4 +27,8 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
            "AVG(ua.pouchesChecked / (TIMESTAMPDIFF(HOUR, ua.startTime, ua.endTime))) " +
            "FROM UserAnswer ua GROUP BY ua.name")
     List<Object[]> getUserProductivityData();
+    
+    @Query("SELECT new com.demoproject.demo.dto.UserProductivityQueryDTO(u.name, COUNT(u), AVG(u.pouchesChecked)) " +
+           "FROM UserAnswer u GROUP BY u.name")
+    List<UserProductivityQueryDTO> getUserProductivitySummary();
 }
