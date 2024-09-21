@@ -18,7 +18,7 @@ import java.time.LocalTime;
 import java.util.Map;
 import java.util.HashMap;
 import com.demoproject.demo.dto.UserProductivityDTO;
-import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 /**
  * Service class for managing user-related operations.
@@ -163,26 +163,23 @@ public class UserService {
     }
 
     public List<UserProductivityDTO> getAllUserProductivity() {
-        List<UserProductivityQueryDTO> summaries = userAnswerRepository.getUserProductivitySummary();
-        List<UserProductivityDTO> productivityList = new ArrayList<>();
-
-        for (UserProductivityQueryDTO summary : summaries) {
-            String username = summary.getUsername();
-            int totalSubmissions = summary.getTotalSubmissions().intValue();
-            Double avgPouchesChecked = summary.getAvgPouchesChecked();
-
+        List<UserProductivityQueryDTO> results = userAnswerRepository.getUserProductivitySummary();
+        return results.stream().map(result -> {
+            String username = result.getUsername();
+            Long totalSubmissions = result.getTotalSubmissions();
+            Double avgPouchesChecked = result.getAvgPouchesChecked();
+            Long totalPouchesChecked = result.getTotalPouchesChecked();
+            
             String avgTimeDuration = calculateAverageDuration(username);
-            double avgPouchesPerHour = calculateAveragePouchesPerHour(avgPouchesChecked, avgTimeDuration);
-
-            productivityList.add(new UserProductivityDTO(
+            
+            return new UserProductivityDTO(
                 username,
-                totalSubmissions,
+                totalSubmissions.intValue(),
                 avgTimeDuration,
-                avgPouchesPerHour
-            ));
-        }
-
-        return productivityList;
+                calculateAveragePouchesPerHour(avgPouchesChecked, avgTimeDuration),
+                totalPouchesChecked.intValue()
+            );
+        }).collect(Collectors.toList());
     }
 
     private String calculateAverageDuration(String username) {
@@ -231,25 +228,42 @@ public class UserService {
     }
 
     public UserProductivityDTO getOverallProductivity() {
-        List<UserAnswer> allAnswers = userAnswerRepository.findAll();
+        Long totalSubmissions = userAnswerRepository.count();
+        Double avgPouchesPerHour = calculateOverallAveragePouchesPerHour();
+        String avgTimeDuration = calculateOverallAverageDuration();
+        Long totalPouchesChecked = userAnswerRepository.getTotalPouchesChecked();
         
-        long totalSubmissions = allAnswers.size();
-        
-        double avgTimeDurationMinutes = allAnswers.stream()
-            .mapToLong(answer -> Duration.between(answer.getStartTime(), answer.getEndTime()).toMinutes())
-            .average()
-            .orElse(0);
-        
-        String avgTimeDuration = formatDuration(avgTimeDurationMinutes);
-        
-        double avgPouchesPerHour = allAnswers.stream()
-            .mapToDouble(answer -> {
-                double hours = Duration.between(answer.getStartTime(), answer.getEndTime()).toMinutes() / 60.0;
-                return answer.getPouchesChecked() / hours;
-            })
-            .average()
-            .orElse(0);
+        return new UserProductivityDTO("Overall", totalSubmissions.intValue(), avgTimeDuration, avgPouchesPerHour, totalPouchesChecked.intValue());
+    }
 
-        return new UserProductivityDTO("Overall", (int) totalSubmissions, avgTimeDuration, avgPouchesPerHour);
+    private String calculateOverallAverageDuration() {
+        List<UserAnswer> allAnswers = userAnswerRepository.findAll();
+        if (allAnswers.isEmpty()) {
+            return "0h 0m";
+        }
+
+        long totalMinutes = allAnswers.stream()
+            .mapToLong(answer -> Duration.between(answer.getStartTime(), answer.getEndTime()).toMinutes())
+            .sum();
+
+        double averageMinutes = (double) totalMinutes / allAnswers.size();
+        return formatDuration(averageMinutes);
+    }
+
+    private double calculateOverallAveragePouchesPerHour() {
+        List<UserAnswer> allAnswers = userAnswerRepository.findAll();
+        if (allAnswers.isEmpty()) {
+            return 0;
+        }
+
+        double totalHours = allAnswers.stream()
+            .mapToDouble(answer -> Duration.between(answer.getStartTime(), answer.getEndTime()).toMinutes() / 60.0)
+            .sum();
+
+        long totalPouches = allAnswers.stream()
+            .mapToLong(UserAnswer::getPouchesChecked)
+            .sum();
+
+        return totalHours > 0 ? totalPouches / totalHours : 0;
     }
 }

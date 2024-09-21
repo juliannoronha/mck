@@ -91,12 +91,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('avgTimeDuration').textContent = data.avgTimeDuration ?? 'N/A';
                 document.getElementById('avgPouchesPerHour').textContent = 
                     data.avgPouchesPerHour != null ? data.avgPouchesPerHour.toFixed(2) : 'N/A';
+                document.getElementById('totalPouchesChecked').textContent = data.totalPouchesChecked ?? 'N/A';
             })
             .catch(error => {
                 console.error('Error fetching overall productivity:', error);
                 document.getElementById('totalSubmissions').textContent = 'Error';
                 document.getElementById('avgTimeDuration').textContent = 'Error';
                 document.getElementById('avgPouchesPerHour').textContent = 'Error';
+                document.getElementById('totalPouchesChecked').textContent = 'Error';
             });
     }
 

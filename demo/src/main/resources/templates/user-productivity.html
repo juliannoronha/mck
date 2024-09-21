@@ -56,6 +56,7 @@
                 <tr>
                     <th>Username</th>
                     <th>Total Submissions</th>
+                    <th>Total Pouches Checked</th>
                     <th>Average Time Duration</th>
                     <th>Average Pouches per Hour</th>
                 </tr>
@@ -64,6 +65,7 @@
                 <tr th:each="user : ${users}">
                     <td th:text="${user.username}"></td>
                     <td th:text="${user.totalSubmissions}"></td>
+                    <td th:text="${user.totalPouchesChecked}"></td>
                     <td th:text="${user.avgTimeDuration}"></td>
                     <td th:text="${#numbers.formatDecimal(user.avgPouchesPerHour, 1, 2)}"></td>
                 </tr>

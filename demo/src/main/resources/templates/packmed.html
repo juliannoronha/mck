@@ -56,7 +56,7 @@
                     <div class="input-group">
                         <label for="store">What store are you checking?</label>
                         <select id="store" name="store" required>
-                            <option value="">Select store</option>
+                            <option value="" disabled selected>Select store</option>
                             <option value="Vanier">Vanier</option>
                             <option value="Elgain">Elgain</option>
                         </select>
@@ -87,6 +87,10 @@
             <div class="dashboard-item">
                 <div class="dashboard-item-label">Total Submissions</div>
                 <div class="dashboard-item-value" id="totalSubmissions">-</div>
+            </div>
+            <div class="dashboard-item">
+                <div class="dashboard-item-label">Total Pouches Checked</div>
+                <div class="dashboard-item-value" id="totalPouchesChecked">-</div>
             </div>
             <div class="dashboard-item">
                 <div class="dashboard-item-label">Average Time Duration</div>
