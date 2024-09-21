@@ -49,17 +49,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fetch overall productivity data
     function fetchOverallProductivity() {
         console.log('Fetching productivity data...');
-        fetch(contextPath + 'api/overall-productivity')
+        fetch('/api/overall-productivity')
             .then(response => {
-                console.log('Response received:', response);
+                console.log('Response status:', response.status);
                 return response.json();
             })
             .then(data => {
-                console.log('Data received:', data);
-                document.getElementById('totalSubmissions').textContent = data.totalSubmissions || 'N/A';
-                document.getElementById('avgTimeDuration').textContent = data.avgTimeDuration || 'N/A';
+                console.log('Data received:', JSON.stringify(data));
+                document.getElementById('totalSubmissions').textContent = data.totalSubmissions ?? 'N/A';
+                document.getElementById('avgTimeDuration').textContent = data.avgTimeDuration ?? 'N/A';
                 document.getElementById('avgPouchesPerHour').textContent = 
-                    data.avgPouchesPerHour ? data.avgPouchesPerHour.toFixed(2) : 'N/A';
+                    data.avgPouchesPerHour != null ? data.avgPouchesPerHour.toFixed(2) : 'N/A';
             })
             .catch(error => {
                 console.error('Error fetching overall productivity:', error);

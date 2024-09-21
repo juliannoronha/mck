@@ -48,22 +48,14 @@ public class UserService {
      */
     @Transactional
     public void registerNewUser(UserDTO userDTO) {
-        logger.info("Attempting to register new user: {}", userDTO.getUsername());
         if (userRepository.findByUsername(userDTO.getUsername()).isPresent()) {
-            logger.warn("Username already exists: {}", userDTO.getUsername());
             throw new DataIntegrityViolationException("Username already exists");
         }
         User user = new User();
         user.setUsername(userDTO.getUsername());
-
-        
-        // Hash the password before saving
         user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         user.setRole(User.Role.valueOf(userDTO.getRole().name()));
-        logger.info("Saving user to database: {}", user);
-        User savedUser = userRepository.save(user);
-        userRepository.flush();
-        logger.info("User registered successfully: {}", savedUser);
+        userRepository.save(user);
     }
 
     /**
@@ -76,7 +68,6 @@ public class UserService {
         User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
         
-        // Check if user is a protected user (e.g., admin)
         if ("admin".equals(username)) {
             throw new IllegalArgumentException("Cannot delete protected user");
         }
@@ -123,14 +114,33 @@ public class UserService {
     public Map<String, Object> getUserProductivity(String username) {
         List<UserAnswer> userAnswers = userAnswerRepository.findByName(username);
         
+        long totalSubmissions = userAnswers.size();
+        
+        double avgTimeDurationMinutes = userAnswers.stream()
+            .mapToLong(answer -> Duration.between(answer.getStartTime(), answer.getEndTime()).toMinutes())
+            .average()
+            .orElse(0);
+        
+        String avgTimeDuration = formatDuration(avgTimeDurationMinutes);
+        
+        double avgPouchesPerHour = userAnswers.stream()
+            .mapToDouble(answer -> {
+                double hours = Duration.between(answer.getStartTime(), answer.getEndTime()).toMinutes() / 60.0;
+                return answer.getPouchesChecked() / hours;
+            })
+            .average()
+            .orElse(0);
+
         Map<String, Object> productivity = new HashMap<>();
-        productivity.put("totalSubmissions", userAnswers.size());
-        productivity.put("avgTimeDuration", calculateAvgTimeDuration(userAnswers));
-        productivity.put("avgPouchesPerHour", calculateAvgPouchesPerHour(userAnswers));
+        productivity.put("username", username);
+        productivity.put("totalSubmissions", totalSubmissions);
+        productivity.put("avgTimeDuration", avgTimeDuration);
+        productivity.put("avgPouchesPerHour", avgPouchesPerHour);
+
         return productivity;
     }
 
-    private String calculateAvgTimeDuration(List<UserAnswer> userAnswers) {
+    public String calculateAvgTimeDuration(List<UserAnswer> userAnswers) {
         double avgHours = userAnswers.stream()
                 .mapToLong(answer -> Duration.between(answer.getStartTime(), answer.getEndTime()).toMinutes())
                 .average()
@@ -140,7 +150,7 @@ public class UserService {
         return String.format("%dh %dm", wholeHours, minutes);
     }
 
-    private double calculateAvgPouchesPerHour(List<UserAnswer> userAnswers) {
+    public double calculateAvgPouchesPerHour(List<UserAnswer> userAnswers) {
         return userAnswers.stream()
                 .mapToDouble(answer -> {
                     double hours = Duration.between(answer.getStartTime(), answer.getEndTime()).toMinutes() / 60.0;
@@ -181,9 +191,9 @@ public class UserService {
     }
 
     public UserProductivityDTO getOverallProductivity() {
-        long totalSubmissions = userAnswerRepository.count();
-        
         List<UserAnswer> allAnswers = userAnswerRepository.findAll();
+        
+        long totalSubmissions = allAnswers.size();
         
         double avgTimeDurationMinutes = allAnswers.stream()
             .mapToLong(answer -> Duration.between(answer.getStartTime(), answer.getEndTime()).toMinutes())
@@ -199,9 +209,6 @@ public class UserService {
             })
             .average()
             .orElse(0);
-
-        logger.info("Calculated overall productivity: submissions={}, avgTime={}, avgPouches={}", 
-                totalSubmissions, avgTimeDuration, avgPouchesPerHour);
 
         return new UserProductivityDTO("Overall", (int) totalSubmissions, avgTimeDuration, avgPouchesPerHour);
     }

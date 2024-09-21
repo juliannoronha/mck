@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 /**
  * Configuration class for Spring Security settings.
@@ -24,6 +25,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
+@EnableAspectJAutoProxy
 public class SecurityConfig {
     private final UserRepository userRepository;
 
@@ -74,6 +76,8 @@ public class SecurityConfig {
                 .requestMatchers("/", "/login").permitAll()
                 .requestMatchers("/api/overall-productivity").hasAnyRole("ADMIN", "MODERATOR")
                 .requestMatchers("/view-responses").hasAnyRole("ADMIN", "MODERATOR")
+                .requestMatchers("/user-productivity").hasAnyRole("ADMIN", "MODERATOR")
+                .requestMatchers("/api/user-productivity/**").hasAnyRole("ADMIN", "MODERATOR")
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
