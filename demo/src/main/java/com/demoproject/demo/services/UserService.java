@@ -127,7 +127,6 @@ public class UserService {
         productivity.put("totalSubmissions", userAnswers.size());
         productivity.put("avgTimeDuration", calculateAvgTimeDuration(userAnswers));
         productivity.put("avgPouchesPerHour", calculateAvgPouchesPerHour(userAnswers));
-        
         return productivity;
     }
 
@@ -160,7 +159,7 @@ public class UserService {
             Long totalSubmissions = (Long) result[1];
             Double avgDurationMinutes = (Double) result[2];
             Double avgPouchesPerHour = (Double) result[3];
-
+            
             String formattedDuration = formatDuration(avgDurationMinutes);
 
             productivityList.add(new UserProductivityDTO(

@@ -3,6 +3,7 @@
 <head>
     <title>User Responses</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -12,7 +13,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 100%;
+            max-width: 60%;
             margin: 0 auto;
             background-color: #2a2a2a;
             padding: 20px;
@@ -29,7 +30,7 @@
         }
         th, td {
             padding: 10px;
-            text-align: left;
+            text-align: center;
             border-bottom: 1px solid #444;
         }
         th {
@@ -67,6 +68,58 @@
             margin-bottom: 20px;
             text-align: center;
         }
+        .filter-btn {
+            top: 20px;
+            left: 20px;
+            background: none;
+            border: none;
+            color: #007bff;
+            font-size: 1.5em;
+            cursor: pointer;
+        }
+        .filter-panel {
+            background-color: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .filter-panel .filter-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .filter-panel input, .filter-panel select {
+            width: 30%;
+            padding: 8px;
+            background-color: #444;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 4px;
+        }
+        .filter-panel .button-row {
+            display: flex;
+            justify-content: flex-end;
+        }
+        .filter-panel button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .filter-panel button:hover {
+            background-color: #0056b3;
+        }
+
+        select option[value=""][disabled] {
+            display: none;
+        }
+
+        select:invalid {
+            color: #999;
+        }
     </style>
 </head>
 <body>
@@ -76,15 +129,43 @@
     </nav>
 
     <div class="container">
-        <h2>User Responses</h2>
-
         <!-- Display success message if present -->
         <div th:if="${successMessage}" class="success-message">
             <p th:text="${successMessage}"></p>
         </div>
 
+        <!-- Remove the style="display: none;" attribute -->
+        <div class="filter-panel" id="filterPanel">
+            <div class="filter-row">
+                <input type="text" id="nameFilter" placeholder="Filter by Name">
+                <select id="storeFilter">
+                    <option value="" disabled selected>All Stores</option>
+                    <option value="Vanier">Vanier</option>
+                    <option value="Elgain">Elgain</option>
+                </select>
+                <select id="monthFilter">
+                    <option value="" disabled selected>All Months</option>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+            <div class="button-row">
+                <button id="resetFilter">Reset Filters</button>
+            </div>
+        </div>
+
         <!-- Table to display user responses -->
-        <table>
+        <table id="responsesTable">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -104,7 +185,8 @@
                     <td th:text="${response.endTime}"></td>
                     <td th:text="${response.store}"></td>
                     <td th:text="${response.pouchesChecked}"></td>
-                    <td th:text="${#temporals.format(response.submissionDate, 'yyyy-MM-dd')}"></td> <!-- New column -->
+                    <td th:text="${#temporals.format(response.submissionDate, 'MMMM d, yyyy')}"
+                        th:attr="data-sort=${response.submissionDate}"></td> <!-- New column -->
                     <td>
                         <!-- Form to delete a response -->
                         <form th:action="@{/delete-response}" method="post" onsubmit="return confirm('Are you sure you want to delete this response?');">
@@ -119,14 +201,6 @@
         <a th:href="@{/packmed}" class="button">Back to Questions</a>
     </div>
 
-    <script>
-        // JavaScript to hide the success message after 5 seconds
-        setTimeout(function() {
-            var successMessage = document.querySelector('.success-message');
-            if (successMessage) {
-                successMessage.style.display = 'none';
-            }
-        }, 5000);
-    </script>
+    <script th:src="@{/js/responses.js}"></script>
 </body>
 </html>

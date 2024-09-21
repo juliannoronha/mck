@@ -22,7 +22,8 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
     
     List<UserAnswer> findByName(String name);
     
-    @Query("SELECT ua.name, COUNT(ua), AVG(TIMESTAMPDIFF(MINUTE, ua.startTime, ua.endTime)), AVG(ua.pouchesChecked / (TIMESTAMPDIFF(HOUR, ua.startTime, ua.endTime) + 0.0)) " +
+    @Query("SELECT ua.name, COUNT(ua), AVG(TIMESTAMPDIFF(MINUTE, ua.startTime, ua.endTime)), " +
+           "AVG(ua.pouchesChecked / (TIMESTAMPDIFF(HOUR, ua.startTime, ua.endTime))) " +
            "FROM UserAnswer ua GROUP BY ua.name")
     List<Object[]> getUserProductivityData();
 }

@@ -38,4 +38,24 @@ window.onclick = function(event) {
         modal.style.display = 'none';
     }
 }
+
+// Add this new code for live search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const usersTable = document.getElementById('usersTable');
+    const rows = usersTable.getElementsByTagName('tr');
+
+    searchInput.addEventListener('keyup', function() {
+        const searchTerm = searchInput.value.toLowerCase();
+
+        for (let i = 1; i < rows.length; i++) {
+            const username = rows[i].getElementsByTagName('td')[0].textContent.toLowerCase();
+            if (username.includes(searchTerm)) {
+                rows[i].style.display = '';
+            } else {
+                rows[i].style.display = 'none';
+            }
+        }
+    });
+});
 /*]]>*/
