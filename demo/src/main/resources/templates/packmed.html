@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <title>Pack Med</title>
+    <title>PacMed</title>
     <!-- Import Google Fonts for Poppins font family -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -86,7 +86,7 @@
         }
         /* Button styles */
         button, .button {
-            background-color: #007bff;
+            background-color: #6c757d;
             color: white;
             border: none;
             padding: 8px 10px;
@@ -101,9 +101,18 @@
             box-sizing: border-box;
             font-size: 0.9em;
         }
+        
         button:hover, .button:hover {
-            background-color: #0056b3;
+            background-color: #5a6268;
         }
+
+        .submit-button {
+            padding: 12px 24px; /* Increase padding */
+            font-size: 0.9em;   /* Increase font size */
+            width: auto;        /* Adjust width as needed */
+            min-width: 90px;   /* Set a minimum width */
+        }
+        
         .admin-button {
             background-color: #28a745;
         }
@@ -197,6 +206,28 @@
             color: #ffffff;
             font-weight: 600;
         }
+
+        .button, .submit-button {
+        font-family: "Poppins", sans-serif; /* Ensure consistent font */
+        font-size: 0.9em;   /* Adjust to match the Home button */
+        padding: 8px 16px;  /* Adjust padding as needed */
+        background-color: #6c757d; /* Use the same color as other buttons */
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        }
+
+        .button:hover, .submit-button:hover {
+        background-color: #5a6268; /* Consistent hover effect */
+        }
+
+        .submit-button {
+        width: auto;        /* Allow the button to size based on content */
+        min-width: 90px;    /* Set a minimum width */
+        }
+
     </style>
 </head>
 <body>
@@ -219,7 +250,7 @@
         <!-- Main content container -->
         <div class="form-container">
             <div class="container">
-                <h2>Pack Med</h2>
+                <h2>PacMed</h2>
                 
                 <!-- Success message display -->
                 <div th:if="${successMessage}" class="success-message" id="successMessage">
@@ -245,7 +276,7 @@
                         <select id="store" name="store" required>
                             <option value="">Select store</option>
                             <option value="Vanier">Vanier</option>
-                            <option value="Elgin">Elgain</option>
+                            <option value="Elgain">Elgain</option>
                         </select>
                     </div>
                     
@@ -255,7 +286,7 @@
                         <div class="error" id="pouchesError"></div>
                     </div>
                     
-                    <button type="submit">Submit</button>
+                    <button type="submit" class="button submit-button">Submit</button>
                 </form>
                 <!-- Home button for non-admin users -->
                 <div sec:authorize="!hasRole('ADMIN')">
@@ -271,7 +302,6 @@
 
         <!-- Dashboard Card - Now visible only to ADMIN and MODERATOR -->
         <div class="dashboard" sec:authorize="hasAnyRole('ADMIN', 'MODERATOR')">
-            <h3>Group Productivity</h3>
             <div class="dashboard-item">
                 <div class="dashboard-item-label">Total Submissions</div>
                 <div class="dashboard-item-value" id="totalSubmissions">-</div>
@@ -291,75 +321,11 @@
             </div>
         </div>
     </div>
-
-    <script>
-        // Form validation
-        document.getElementById('questionForm').addEventListener('submit', function(e) {
-            let isValid = true;
-            const startTime = document.getElementsByName('startTime')[0].value;
-            const endTime = document.getElementsByName('endTime')[0].value;
-            const pouches = document.getElementsByName('pouchesChecked')[0].value;
-
-            // Validate start time
-            if (!startTime.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
-                document.getElementById('startTimeError').textContent = 'Please enter a valid time';
-                isValid = false;
-            } else {
-                document.getElementById('startTimeError').textContent = '';
-            }
-
-            // Validate end time
-            if (!endTime.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
-                document.getElementById('endTimeError').textContent = 'Please enter a valid time';
-                isValid = false;
-            } else {
-                document.getElementById('endTimeError').textContent = '';
-            }
-
-            // Validate pouches checked
-            if (isNaN(pouches) || pouches < 0) {
-                document.getElementById('pouchesError').textContent = 'Please enter a valid number';
-                isValid = false;
-            } else {
-                document.getElementById('pouchesError').textContent = '';
-            }
-
-            if (!isValid) {
-                e.preventDefault();
-            }
-        });
-
-        // Success message fade-out
-        var successMessage = document.getElementById('successMessage');
-        if (successMessage) {
-            setTimeout(function() {
-                successMessage.classList.add('fade-out');
-                setTimeout(function() {
-                    successMessage.style.display = 'none';
-                }, 1000); // Wait for fade out to complete before hiding
-            }, 4000); // Start fading out after 4 seconds
-        }
-
-        // Fetch overall productivity data
-        function fetchOverallProductivity() {
-            fetch('/api/overall-productivity')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('totalSubmissions').textContent = data.totalSubmissions || 'N/A';
-                    document.getElementById('avgTimeDuration').textContent = data.avgTimeDuration || 'N/A';
-                    document.getElementById('avgPouchesPerHour').textContent = 
-                        data.avgPouchesPerHour ? data.avgPouchesPerHour.toFixed(2) : 'N/A';
-                })
-                .catch(error => {
-                    console.error('Error fetching overall productivity:', error);
-                    document.getElementById('totalSubmissions').textContent = 'Error';
-                    document.getElementById('avgTimeDuration').textContent = 'Error';
-                    document.getElementById('avgPouchesPerHour').textContent = 'Error';
-                });
-        }
-
-        // Call this function when the page loads
-        document.addEventListener('DOMContentLoaded', fetchOverallProductivity);
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var contextPath = /*[[@{/}]]*/ '';
+        /*]]>*/
     </script>
+    <script th:src="@{/js/packmed.js}"></script>
 </body>
 </html>

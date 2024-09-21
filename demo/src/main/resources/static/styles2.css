@@ -5,10 +5,6 @@
 * {
     margin: 0;
     padding: 0;
-    outline: none;
-    border: none;
-    text-decoration: none;
-    list-style: none;
     box-sizing: border-box;
     font-family: "Poppins", sans-serif;
 }
@@ -17,7 +13,6 @@ body {
     background-color: #1a1a1a;
     color: #ffffff;
     display: flex;
-    font-family: 'Montserrat', sans-serif;
 }
 
 /* Navigation styles */
@@ -40,7 +35,7 @@ nav {
     display: flex;
     flex-direction: column;
     height: 100%;
-    align-items: center; /* Center-align the navigation items */
+    align-items: flex-start; /* Change from center to flex-start */
 }
 
 .logo {
@@ -49,6 +44,7 @@ nav {
     display: flex;
     justify-content: center;
     align-items: center;
+    width: 100%; /* Ensure logo takes full width */
 }
 
 .logo img {
@@ -64,7 +60,7 @@ nav ul {
     list-style-type: none;
     display: flex;
     flex-direction: column;
-    align-items: center; /* Center-align the list items */
+    align-items: flex-start; /* Change from center to flex-start */
     width: 100%;
 }
 
@@ -77,7 +73,7 @@ nav li a {
     color: #ffffff;
     display: flex;
     align-items: center;
-    justify-content: center; /* Center-align the link text */
+    justify-content: flex-start; /* Change from center to flex-start */
     padding: 1rem 1.5rem;
     transition: background-color 0.3s ease;
     width: 100%;
@@ -101,7 +97,7 @@ nav i {
     padding: 1rem;
     width: 100%;
     display: flex;
-    justify-content: center; /* Center-align the logout button */
+    justify-content: flex-start; /* Change from center to flex-start */
 }
 
 .logout form {
@@ -182,7 +178,7 @@ h1, h2 {
 /* Remove the fade-out class as it's no longer needed */
 
 /* Button styles */
-.button {
+.button, .submit-button, .admin-button, .home-button {
     display: inline-block;
     padding: 10px 15px;
     margin: 0.5rem;
@@ -196,9 +192,14 @@ h1, h2 {
     border: 1px solid #444;
 }
 
-.button:hover {
+.button:hover, .submit-button:hover {
     background-color: #3a3a3a;
 }
+
+.admin-button { background-color: #28a745; }
+.admin-button:hover { background-color: #218838; }
+.home-button { background-color: #6c757d; }
+.home-button:hover { background-color: #5a6268; }
 
 /* Form styles */
 .form-group {
@@ -267,23 +268,6 @@ h1, h2 {
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     margin: 20px auto;
-}
-
-/* Admin button styles */
-.admin-button {
-    background-color: #28a745;
-}
-
-.admin-button:hover {
-    background-color: #218838;
-}
-
-.home-button {
-    background-color: #6c757d;
-}
-
-.home-button:hover {
-    background-color: #5a6268;
 }
 
 /* Responsive design */

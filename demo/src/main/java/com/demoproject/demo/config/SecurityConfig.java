@@ -51,10 +51,12 @@ public class SecurityConfig {
     @Bean
     public UserDetailsService userDetailsService() {
         return username -> userRepository.findByUsername(username)
-            .map(user -> User.withUsername(user.getUsername())
-                .password(user.getPassword())
-                .roles(user.getRole().name()) // Convert the Role enum to a String
-                .build())
+            .map(user -> {
+                return User.withUsername(user.getUsername())
+                    .password(user.getPassword())
+                    .roles(user.getRole().name())
+                    .build();
+            })
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
