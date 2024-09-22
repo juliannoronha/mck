@@ -3,31 +3,19 @@ package com.demoproject.demo.dto;
 public class UserProductivityQueryDTO {
     private String username;
     private Long totalSubmissions;
-    private Double avgPouchesChecked;
-    private Long totalPouchesChecked; // New field
+    private Long totalPouchesChecked;
+    private Long totalMinutes;
 
-    public UserProductivityQueryDTO(String username, Long totalSubmissions, Double avgPouchesChecked, Long totalPouchesChecked) {
+    public UserProductivityQueryDTO(String username, Long totalSubmissions, Long totalPouchesChecked, Long totalMinutes) {
         this.username = username;
         this.totalSubmissions = totalSubmissions;
-        this.avgPouchesChecked = avgPouchesChecked;
         this.totalPouchesChecked = totalPouchesChecked;
+        this.totalMinutes = totalMinutes;
     }
 
-    // Existing getters
-    public String getUsername() {
-        return username;
-    }
-
-    public Long getTotalSubmissions() {
-        return totalSubmissions;
-    }
-
-    public Double getAvgPouchesChecked() {
-        return avgPouchesChecked;
-    }
-
-    // New getter for totalPouchesChecked
-    public Long getTotalPouchesChecked() {
-        return totalPouchesChecked;
-    }
+    // Getters
+    public String getUsername() { return username; }
+    public Long getTotalSubmissions() { return totalSubmissions; }
+    public Long getTotalPouchesChecked() { return totalPouchesChecked; }
+    public Long getTotalMinutes() { return totalMinutes; }
 }

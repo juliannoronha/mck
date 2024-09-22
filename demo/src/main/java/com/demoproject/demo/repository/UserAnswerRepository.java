@@ -3,8 +3,8 @@ package com.demoproject.demo.repository;
 import com.demoproject.demo.entity.UserAnswer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
 import com.demoproject.demo.dto.UserProductivityQueryDTO;
@@ -30,9 +30,20 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
            "FROM UserAnswer ua GROUP BY ua.name")
     List<Object[]> getUserProductivityData();
     
-    @Query("SELECT new com.demoproject.demo.dto.UserProductivityQueryDTO(u.name, COUNT(u), AVG(u.pouchesChecked), SUM(u.pouchesChecked)) " +
-           "FROM UserAnswer u GROUP BY u.name")
-    List<UserProductivityQueryDTO> getUserProductivitySummary(Pageable pageable);
+    @Query(value = "SELECT u.name as username, " +
+           "COUNT(*) as totalSubmissions, " +
+           "SUM(u.pouches_checked) as totalPouchesChecked, " +
+           "SUM(TIMESTAMPDIFF(MINUTE, u.start_time, u.end_time)) as totalMinutes " +
+           "FROM user_answer u GROUP BY u.name",
+           nativeQuery = true)
+    List<UserProductivityQueryProjection> getUserProductivitySummary(Pageable pageable);
+
+    interface UserProductivityQueryProjection {
+        String getUsername();
+        Long getTotalSubmissions();
+        Long getTotalPouchesChecked();
+        Long getTotalMinutes();
+    }
     
     @Query("SELECT SUM(ua.pouchesChecked) FROM UserAnswer ua WHERE ua.name = :username")
     Long getTotalPouchesCheckedByUser(@Param("username") String username);

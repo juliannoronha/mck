@@ -4,16 +4,19 @@ public class UserProductivityDTO {
     private String username;
     private int totalSubmissions;
     private String avgTimeDuration;
-    private double avgPouchesPerHour;
-    private int totalPouchesChecked; // New field
+    private Double avgPouchesPerHour;
+    private int totalPouchesChecked;
+    private Double avgPouchesChecked;  // Add this line
 
     // Update the constructor
-    public UserProductivityDTO(String username, int totalSubmissions, String avgTimeDuration, double avgPouchesPerHour, int totalPouchesChecked) {
+    public UserProductivityDTO(String username, int totalSubmissions, String avgTimeDuration, 
+                               Double avgPouchesPerHour, int totalPouchesChecked, Double avgPouchesChecked) {
         this.username = username;
         this.totalSubmissions = totalSubmissions;
         this.avgTimeDuration = avgTimeDuration;
         this.avgPouchesPerHour = avgPouchesPerHour;
         this.totalPouchesChecked = totalPouchesChecked;
+        this.avgPouchesChecked = avgPouchesChecked;  // Add this line
     }
 
     // Add getter and setter for the new field
@@ -23,6 +26,11 @@ public class UserProductivityDTO {
 
     public void setTotalPouchesChecked(int totalPouchesChecked) {
         this.totalPouchesChecked = totalPouchesChecked;
+    }
+
+    // Add getter for avgPouchesChecked
+    public Double getAvgPouchesChecked() {
+        return avgPouchesChecked;
     }
 
     // Getters and setters
