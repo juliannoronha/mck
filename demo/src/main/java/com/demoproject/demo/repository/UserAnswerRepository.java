@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 import com.demoproject.demo.dto.UserProductivityQueryDTO;
 
@@ -31,7 +32,7 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
     
     @Query("SELECT new com.demoproject.demo.dto.UserProductivityQueryDTO(u.name, COUNT(u), AVG(u.pouchesChecked), SUM(u.pouchesChecked)) " +
            "FROM UserAnswer u GROUP BY u.name")
-    List<UserProductivityQueryDTO> getUserProductivitySummary();
+    List<UserProductivityQueryDTO> getUserProductivitySummary(Pageable pageable);
     
     @Query("SELECT SUM(ua.pouchesChecked) FROM UserAnswer ua WHERE ua.name = :username")
     Long getTotalPouchesCheckedByUser(@Param("username") String username);

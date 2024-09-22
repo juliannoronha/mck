@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.HashMap;
 import com.demoproject.demo.dto.UserProductivityDTO;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Service class for managing user-related operations.
@@ -179,8 +181,9 @@ public class UserService {
                 .orElse(0);
     }
 
-    public List<UserProductivityDTO> getAllUserProductivity() {
-        List<UserProductivityQueryDTO> results = userAnswerRepository.getUserProductivitySummary();
+    public List<UserProductivityDTO> getAllUserProductivity(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        List<UserProductivityQueryDTO> results = userAnswerRepository.getUserProductivitySummary(pageable);
         return results.stream().map(result -> {
             String username = result.getUsername();
             Long totalSubmissions = result.getTotalSubmissions();

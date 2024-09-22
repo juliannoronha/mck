@@ -38,11 +38,15 @@ public class ProductivityController {
 
     @GetMapping("/user-productivity")
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
-    public String userProductivity(Model model) {
+    public String userProductivity(Model model, 
+                                   @RequestParam(defaultValue = "0") int page, 
+                                   @RequestParam(defaultValue = "10") int size) {
         logger.info("Fetching user productivity for all users");
-        List<UserProductivityDTO> users = userService.getAllUserProductivity();
+        List<UserProductivityDTO> users = userService.getAllUserProductivity(page, size);
         logger.debug("Retrieved {} user productivity records", users.size());
         model.addAttribute("users", users);
+        model.addAttribute("currentPage", page);
+        model.addAttribute("pageSize", size);
         return "user-productivity";
     }
 
