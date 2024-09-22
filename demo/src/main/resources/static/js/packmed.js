@@ -83,6 +83,9 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('/api/overall-productivity')
             .then(response => {
                 console.log('Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 return response.json();
             })
             .then(data => {
@@ -95,10 +98,10 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error fetching overall productivity:', error);
-                document.getElementById('totalSubmissions').textContent = 'Error';
-                document.getElementById('avgTimeDuration').textContent = 'Error';
-                document.getElementById('avgPouchesPerHour').textContent = 'Error';
-                document.getElementById('totalPouchesChecked').textContent = 'Error';
+                document.getElementById('totalSubmissions').textContent = 'Error: ' + error.message;
+                document.getElementById('avgTimeDuration').textContent = 'Error: ' + error.message;
+                document.getElementById('avgPouchesPerHour').textContent = 'Error: ' + error.message;
+                document.getElementById('totalPouchesChecked').textContent = 'Error: ' + error.message;
             });
     }
 

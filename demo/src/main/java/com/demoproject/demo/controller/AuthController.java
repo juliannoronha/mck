@@ -2,6 +2,9 @@ package com.demoproject.demo.controller;
 
 import com.demoproject.demo.dto.UserDTO;
 import com.demoproject.demo.services.UserService;
+import com.demoproject.demo.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import jakarta.validation.Valid;
 
@@ -15,8 +18,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,8 +127,13 @@ public class AuthController {
      */
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
-    public String listUsers(Model model) {
-        model.addAttribute("users", userService.getAllUsers());
+    public String listUsers(Model model, 
+                            @RequestParam(defaultValue = "0") int page, 
+                            @RequestParam(defaultValue = "10") int size) {
+        Page<User> users = userService.getAllUsers(PageRequest.of(page, size));
+        model.addAttribute("users", users.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", users.getTotalPages());
         return "users";
     }
 
@@ -150,4 +158,17 @@ public class AuthController {
         return "packmed";
     }
 
+    @PostMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> changePassword(@RequestParam String username, @RequestParam String newPassword, Authentication authentication) {
+        if (!authentication.getName().equals(username) && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You don't have permission to change this password");
+        }
+        try {
+            userService.changePassword(username, newPassword);
+            return ResponseEntity.ok("Password changed successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

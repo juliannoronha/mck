@@ -1,9 +1,11 @@
 package com.demoproject.demo.controller;
 
 import com.demoproject.demo.dto.UserProductivityDTO;
+import com.demoproject.demo.services.UserProductivityService;
 import com.demoproject.demo.services.UserService;
 
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -18,11 +20,14 @@ import org.slf4j.LoggerFactory;
 
 @Controller
 public class ProductivityController {
-    private final UserService userService;
     private static final Logger logger = LoggerFactory.getLogger(ProductivityController.class);
 
-    public ProductivityController(UserService userService) {
-        this.userService = userService;
+    private final UserProductivityService userProductivityService;
+    private final UserService userService;  // Add this line
+
+    public ProductivityController(UserProductivityService userProductivityService, UserService userService) {  // Update constructor
+        this.userProductivityService = userProductivityService;
+        this.userService = userService;  // Add this line
     }
 
     @GetMapping("/api/overall-productivity")
@@ -31,9 +36,14 @@ public class ProductivityController {
     @Cacheable("overallProductivity")
     public ResponseEntity<UserProductivityDTO> getOverallProductivity() {
         logger.info("Fetching overall productivity");
-        UserProductivityDTO overallProductivity = userService.getOverallProductivity();
-        logger.debug("Overall productivity: {}", overallProductivity);
-        return ResponseEntity.ok(overallProductivity);
+        try {
+            UserProductivityDTO overallProductivity = userProductivityService.getOverallProductivity();
+            logger.debug("Overall productivity: {}", overallProductivity);
+            return ResponseEntity.ok(overallProductivity);
+        } catch (Exception e) {
+            logger.error("Error fetching overall productivity", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     @GetMapping("/user-productivity")
