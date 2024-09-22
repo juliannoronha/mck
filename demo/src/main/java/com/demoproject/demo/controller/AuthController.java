@@ -150,10 +150,4 @@ public class AuthController {
         return "packmed";
     }
 
-    @GetMapping("/access-denied")
-    public String accessDenied(Authentication authentication) {
-        String username = authentication != null ? authentication.getName() : "anonymous";
-        logger.warn("Access denied for user {} attempting to access a restricted page", username);
-        return "access-denied";
-    }
 }

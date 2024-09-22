@@ -7,7 +7,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
-import com.demoproject.demo.dto.UserProductivityQueryDTO;
 
 /**
  * Repository interface for managing UserAnswer entities.

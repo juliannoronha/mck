@@ -1,6 +1,9 @@
 package com.demoproject.demo.config;
 
 import com.demoproject.demo.repository.UserRepository;
+
+import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -17,7 +20,6 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 
 /**
  * Configuration class for Spring Security settings.
@@ -84,7 +86,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/checker/**").hasRole("CHECKER")
                 .requestMatchers("/api/shipping/**").hasRole("SHIPPING")
                 .requestMatchers("/api/inventory/**").hasRole("INVENTORY")
-                .requestMatchers("/packmed").hasAnyRole("CHECKER", "ADMIN", "MODERATOR")
+                .requestMatchers("/packmed").hasAnyRole("CHECKER", "MODERATOR", "ADMIN")
+                .requestMatchers("/api/packmed/**").hasAnyRole("CHECKER", "MODERATOR", "ADMIN")
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
@@ -104,8 +107,9 @@ public class SecurityConfig {
             )
             .exceptionHandling(exceptionHandling -> exceptionHandling
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
-                    response.setStatus(HttpStatus.FORBIDDEN.value());
-                    response.sendRedirect("/access-denied");
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.getWriter().write("ACCESS_DENIED");
+                    response.getWriter().flush();
                 })
             );
 
