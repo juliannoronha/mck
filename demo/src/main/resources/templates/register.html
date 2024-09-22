@@ -139,10 +139,9 @@
                 <label for="role">Role:</label>
                 <select class="form-control" id="role" th:field="*{role}">
                     <option th:each="roleOpt : ${T(com.demoproject.demo.entity.User.Role).values()}"
-                            th:value="${roleOpt}" th:text="${roleOpt}">
+                            th:value="${roleOpt.name()}" th:text="${roleOpt.name()}">
                     </option>
                 </select>
-                <!-- Error message for role field -->
                 <div th:if="${#fields.hasErrors('role')}" class="error-message" th:errors="*{role}"></div>
             </div>
             <!-- Submit button for the form -->

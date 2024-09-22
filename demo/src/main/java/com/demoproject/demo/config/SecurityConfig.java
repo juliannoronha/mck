@@ -17,6 +17,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 
 /**
  * Configuration class for Spring Security settings.
@@ -80,6 +81,10 @@ public class SecurityConfig {
                 .requestMatchers("/view-responses").hasAnyRole("ADMIN", "MODERATOR")
                 .requestMatchers("/user-productivity").hasAnyRole("ADMIN", "MODERATOR")
                 .requestMatchers("/api/user-productivity/**").hasAnyRole("ADMIN", "MODERATOR")
+                .requestMatchers("/api/checker/**").hasRole("CHECKER")
+                .requestMatchers("/api/shipping/**").hasRole("SHIPPING")
+                .requestMatchers("/api/inventory/**").hasRole("INVENTORY")
+                .requestMatchers("/packmed").hasAnyRole("CHECKER", "ADMIN", "MODERATOR")
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
@@ -96,6 +101,12 @@ public class SecurityConfig {
             )
             .headers(headers -> headers
                 .frameOptions().sameOrigin()
+            )
+            .exceptionHandling(exceptionHandling -> exceptionHandling
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    response.sendRedirect("/access-denied");
+                })
             );
 
         return http.build();

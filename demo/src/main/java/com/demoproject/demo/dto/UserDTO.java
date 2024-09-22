@@ -1,9 +1,5 @@
 package com.demoproject.demo.dto;
-
-import com.demoproject.demo.entity.User;
-
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -29,10 +25,10 @@ public class UserDTO {
 
     /**
      * The role of the user.
-     * Must not be null.
+     * Must not be empty.
      */
-    @NotNull(message = "Role cannot be null")
-    private User.Role role;
+    @NotEmpty(message = "Role cannot be empty")
+    private String role;  // Keep this as String
 
     /**
      * No-args constructor for UserDTO.
@@ -49,7 +45,7 @@ public class UserDTO {
     public UserDTO(String username, String password, String role) {
         this.username = username;
         this.password = password;
-        this.role = User.Role.valueOf(role.toUpperCase());
+        this.role = role;
     }
 
     /**
@@ -93,8 +89,8 @@ public class UserDTO {
      *
      * @return The role
      */
-    public User.Role getRole() {
-        return role;
+    public String getRole() {
+        return this.role;
     }
 
     /**
@@ -102,7 +98,7 @@ public class UserDTO {
      *
      * @param role The role to set
      */
-    public void setRole(User.Role role) {
+    public void setRole(String role) {
         this.role = role;
     }
 }

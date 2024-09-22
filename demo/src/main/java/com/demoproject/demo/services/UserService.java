@@ -50,14 +50,31 @@ public class UserService {
      */
     @Transactional
     public void registerNewUser(UserDTO userDTO) {
-        if (userRepository.findByUsername(userDTO.getUsername()).isPresent()) {
-            throw new DataIntegrityViolationException("Username already exists");
-        }
+        logger.info("Attempting to register new user with username: {} and role: {}", userDTO.getUsername(), userDTO.getRole());
+        
         User user = new User();
         user.setUsername(userDTO.getUsername());
         user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
-        user.setRole(User.Role.valueOf(userDTO.getRole().name()));
-        userRepository.save(user);
+        
+        try {
+            User.Role role = User.Role.valueOf(userDTO.getRole().toUpperCase());
+            user.setRole(role);
+            logger.info("Role set successfully: {}", role);
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid role: {}", userDTO.getRole());
+            throw new IllegalArgumentException("Invalid role selected: " + userDTO.getRole());
+        }
+        
+        try {
+            User savedUser = userRepository.save(user);
+            logger.info("Successfully registered new user: {} with role: {}", savedUser.getUsername(), savedUser.getRole());
+        } catch (DataIntegrityViolationException e) {
+            logger.error("Failed to register user. Database error: {}", e.getMessage());
+            throw new DataIntegrityViolationException("Failed to register user: " + e.getMessage());
+        } catch (Exception e) {
+            logger.error("Unexpected error while registering user: {}", e.getMessage());
+            throw new RuntimeException("Failed to register user", e);
+        }
     }
 
     /**

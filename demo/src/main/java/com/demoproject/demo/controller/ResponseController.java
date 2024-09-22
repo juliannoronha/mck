@@ -84,15 +84,6 @@ public class ResponseController {
     }
 
     /**
-     * Displays the packmed page.
-     * @return The name of the packmed view
-     */
-    @GetMapping("/packmed")
-    public String packmed() {
-        return "packmed";
-    }
-
-    /**
      * Handles deletion of a user response.
      * @param id The ID of the response to be deleted
      * @param redirectAttributes RedirectAttributes for adding flash attributes

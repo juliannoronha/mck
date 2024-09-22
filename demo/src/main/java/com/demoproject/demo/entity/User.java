@@ -27,7 +27,7 @@ public class User {
     private Role role;
 
     public enum Role {
-        USER, MODERATOR, ADMIN  // Added MODERATOR role
+        ADMIN, MODERATOR, USER, CHECKER, SHIPPING, INVENTORY
     }
 
     // Constructor with fields
@@ -38,4 +38,11 @@ public class User {
     }
 
     // Getters and setters are handled by Lombok's @Data annotation
+    public Role getRole() {
+        return this.role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
 }

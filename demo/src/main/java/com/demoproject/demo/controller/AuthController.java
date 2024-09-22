@@ -17,8 +17,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Controller
 public class AuthController {
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+
     private final UserService userService;
 
     public AuthController(UserService userService) {
@@ -85,18 +90,29 @@ public class AuthController {
     @PostMapping("/register")
     @PreAuthorize("hasRole('ADMIN')")
     public String registerUser(@ModelAttribute("user") @Valid UserDTO user, BindingResult result, Model model, RedirectAttributes redirectAttributes) {
+        logger.info("Received registration request for user: {} with role: {}", user.getUsername(), user.getRole());
+        
         if (result.hasErrors()) {
+            logger.warn("Validation errors in registration form");
             return "register";
         }
+        
         try {
             userService.registerNewUser(user);
+            logger.info("User registered successfully: {} with role: {}", user.getUsername(), user.getRole());
             redirectAttributes.addFlashAttribute("successMessage", "User registered successfully!");
             return "redirect:/users";
         } catch (DataIntegrityViolationException e) {
+            logger.error("Username already exists: {}", user.getUsername());
             result.rejectValue("username", "error.user", "Username already exists");
             return "register";
         } catch (IllegalArgumentException e) {
-            result.rejectValue("role", "error.user", "Invalid role selected");
+            logger.error("Invalid role selected: {}", user.getRole());
+            result.rejectValue("role", "error.user", e.getMessage());
+            return "register";
+        } catch (Exception e) {
+            logger.error("Unexpected error during user registration", e);
+            model.addAttribute("errorMessage", "An unexpected error occurred. Please try again.");
             return "register";
         }
     }
@@ -123,5 +139,21 @@ public class AuthController {
     public ResponseEntity<?> deleteUser(@RequestParam String username) {
         userService.deleteUser(username);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/packmed")
+    @PreAuthorize("hasAnyRole('CHECKER', 'ADMIN', 'MODERATOR')")
+    public String packmed(Model model, Authentication authentication) {
+        String username = authentication.getName();
+        logger.info("User {} accessed packmed page", username);
+        model.addAttribute("username", username);
+        return "packmed";
+    }
+
+    @GetMapping("/access-denied")
+    public String accessDenied(Authentication authentication) {
+        String username = authentication != null ? authentication.getName() : "anonymous";
+        logger.warn("Access denied for user {} attempting to access a restricted page", username);
+        return "access-denied";
     }
 }
