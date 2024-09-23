@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import com.demoproject.demo.entity.User;
 import java.util.Optional;
+import java.util.List;
 
 /**
  * Repository interface for managing User entities.
@@ -19,4 +20,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return An Optional containing the User if found, or an empty Optional if not found
      */
     Optional<User> findByUsername(String username);
+    
+    /**
+     * Finds all users.
+     * 
+     * @return A List of all User objects
+     */
+    List<User> findAll();
 }

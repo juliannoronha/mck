@@ -215,5 +215,27 @@
         /*]]>*/
     </script>
     <script th:src="@{/js/users.js}"></script>
+    <script>
+    function deleteUser(username) {
+        var token = $("meta[name='_csrf']").attr("content");
+        var header = $("meta[name='_csrf_header']").attr("content");
+
+        $.ajax({
+            url: '/users/delete',
+            type: 'POST',
+            data: { username: username },
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader(header, token);
+            },
+            success: function(response) {
+                location.reload();
+            },
+            error: function(xhr, status, error) {
+                var errorMessage = xhr.responseText || "An error occurred while deleting the user.";
+                alert(errorMessage);
+            }
+        });
+    }
+    </script>
 </body>
 </html>

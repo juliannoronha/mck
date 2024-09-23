@@ -30,14 +30,12 @@ public class User {
         ADMIN, MODERATOR, USER, CHECKER, SHIPPING, INVENTORY
     }
 
-    // Constructor with fields
-    public User(String username, String password, String role) {
+    public User(String username, String password, Role role) {
         this.username = username;
         this.password = password;
-        this.role = Role.valueOf(role.toUpperCase());
+        this.role = role;
     }
 
-    // Getters and setters are handled by Lombok's @Data annotation
     public Role getRole() {
         return this.role;
     }

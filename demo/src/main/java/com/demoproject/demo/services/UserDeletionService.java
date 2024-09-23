@@ -22,7 +22,7 @@ public class UserDeletionService {
             User user = userOptional.get();
             
             // Check if the user is an admin
-            if ("ADMIN".equals(user.getRole())) {
+            if (User.Role.ADMIN == user.getRole()) {  // Change this line
                 throw new IllegalStateException("Admin users cannot be deleted");
             }
             

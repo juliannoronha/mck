@@ -1,6 +1,7 @@
 package com.demoproject.demo.dto;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
+import com.demoproject.demo.entity.User;
 
 /**
  * Data Transfer Object for User entities.
@@ -28,7 +29,7 @@ public class UserDTO {
      * Must not be empty.
      */
     @NotEmpty(message = "Role cannot be empty")
-    private String role;  // Keep this as String
+    private User.Role role;
 
     /**
      * No-args constructor for UserDTO.
@@ -42,7 +43,7 @@ public class UserDTO {
      * @param password The password of the user
      * @param role The role of the user as a string (will be converted to User.Role enum)
      */
-    public UserDTO(String username, String password, String role) {
+    public UserDTO(String username, String password, User.Role role) {
         this.username = username;
         this.password = password;
         this.role = role;
@@ -89,7 +90,7 @@ public class UserDTO {
      *
      * @return The role
      */
-    public String getRole() {
+    public User.Role getRole() {
         return this.role;
     }
 
@@ -98,7 +99,7 @@ public class UserDTO {
      *
      * @param role The role to set
      */
-    public void setRole(String role) {
+    public void setRole(User.Role role) {
         this.role = role;
     }
 }

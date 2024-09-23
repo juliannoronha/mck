@@ -32,7 +32,7 @@ public class UserRegistrationService {
         User newUser = new User();
         newUser.setUsername(userDTO.getUsername());
         newUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
-        newUser.setRole(convertStringToRole(userDTO.getRole()));
+        newUser.setRole(userDTO.getRole()); // Change this line
 
         // Save the new user
         return userRepository.save(newUser);
@@ -45,17 +45,9 @@ public class UserRegistrationService {
         if (userDTO.getPassword() == null || userDTO.getPassword().trim().isEmpty()) {
             throw new IllegalArgumentException("Password cannot be empty");
         }
-        if (userDTO.getRole() == null || userDTO.getRole().trim().isEmpty()) {
+        if (userDTO.getRole() == null) {  // Change this line
             throw new IllegalArgumentException("Role cannot be empty");
         }
         // Add more validation as needed (e.g., password strength)
-    }
-
-    private User.Role convertStringToRole(String roleString) {
-        try {
-            return User.Role.valueOf(roleString.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid role: " + roleString);
-        }
     }
 }

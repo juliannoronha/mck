@@ -145,8 +145,14 @@ public class AuthController {
     @PostMapping("/users/delete")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteUser(@RequestParam String username) {
-        userService.deleteUser(username);
-        return ResponseEntity.ok().build();
+        try {
+            userService.deleteUser(username);
+            return ResponseEntity.ok().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
     @GetMapping("/packmed")

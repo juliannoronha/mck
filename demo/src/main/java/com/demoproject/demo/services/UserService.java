@@ -18,13 +18,13 @@ import com.demoproject.demo.entity.User;
 @Service
 public class UserService {
 
-    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+    private final UserRepository userRepository;
+    private final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     private final UserRegistrationService registrationService;
     private final UserDeletionService deletionService;
     private final UserProductivityService productivityService;
     private final PasswordManagementService passwordService;
-    private final UserRepository userRepository;
 
     public UserService(UserRegistrationService registrationService,
                        UserDeletionService deletionService,
@@ -102,5 +102,12 @@ public class UserService {
     public Page<User> getAllUsers(Pageable pageable) {
         logger.info("Retrieving all users. Pageable: {}", pageable);
         return userRepository.findAll(pageable);
+    }
+
+    public List<User> getAllUsers() {
+        List<User> users = userRepository.findAll();
+        logger.info("Retrieved {} users from the database", users.size());
+        users.forEach(user -> logger.info("User: {}", user));
+        return users;
     }
 }

@@ -1,6 +1,7 @@
 package com.demoproject.demo.controller;
 
 import com.demoproject.demo.dto.UserProductivityDTO;
+import com.demoproject.demo.entity.User;
 import com.demoproject.demo.services.UserProductivityService;
 import com.demoproject.demo.services.UserService;
 
@@ -90,5 +91,11 @@ public class ProductivityController {
         List<UserProductivityDTO> productivityData = userProductivityService.getAllUserProductivity(0, Integer.MAX_VALUE);
         logger.debug("Retrieved {} user productivity records", productivityData.size());
         return ResponseEntity.ok(productivityData);
+    }
+
+    @GetMapping("/api/users")
+    @ResponseBody
+    public List<User> getUsers() {
+        return userService.getAllUsers();
     }
 }
