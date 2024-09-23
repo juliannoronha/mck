@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.cache.annotation.EnableCaching;
 
 /**
  * Main application class for the Demo project.
@@ -14,6 +15,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @ComponentScan(basePackages = {"com.demoproject.demo"})
 @EntityScan("com.demoproject.demo.entity")
 @EnableJpaRepositories("com.demoproject.demo.repository")
+@EnableCaching
 public class DemoApplication {
 
     /**

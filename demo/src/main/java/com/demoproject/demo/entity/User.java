@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.util.List;
 
 @Entity
 @Table(name = "users") // Specify the table name, "user" is often a reserved keyword
@@ -25,6 +26,9 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<UserAnswer> userAnswers;
 
     public enum Role {
         ADMIN, MODERATOR, USER, CHECKER, SHIPPING, INVENTORY

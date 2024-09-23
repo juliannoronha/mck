@@ -2,35 +2,20 @@ package com.demoproject.demo.dto;
 
 public class UserProductivityDTO {
     private String username;
-    private int totalSubmissions;
+    private Long totalSubmissions;
     private String avgTimeDuration;
     private Double avgPouchesPerHour;
-    private int totalPouchesChecked;
-    private Double avgPouchesChecked;  // Add this line
+    private Long totalPouchesChecked;
+    private Double avgPouchesChecked;
 
-    // Update the constructor
-    public UserProductivityDTO(String username, int totalSubmissions, String avgTimeDuration, 
-                               Double avgPouchesPerHour, int totalPouchesChecked, Double avgPouchesChecked) {
+    public UserProductivityDTO(String username, Long totalSubmissions, String avgTimeDuration, 
+                               Double avgPouchesPerHour, Long totalPouchesChecked, Double avgPouchesChecked) {
         this.username = username;
         this.totalSubmissions = totalSubmissions;
         this.avgTimeDuration = avgTimeDuration;
         this.avgPouchesPerHour = avgPouchesPerHour;
         this.totalPouchesChecked = totalPouchesChecked;
-        this.avgPouchesChecked = avgPouchesChecked;  // Add this line
-    }
-
-    // Add getter and setter for the new field
-    public int getTotalPouchesChecked() {
-        return totalPouchesChecked;
-    }
-
-    public void setTotalPouchesChecked(int totalPouchesChecked) {
-        this.totalPouchesChecked = totalPouchesChecked;
-    }
-
-    // Add getter for avgPouchesChecked
-    public Double getAvgPouchesChecked() {
-        return avgPouchesChecked;
+        this.avgPouchesChecked = avgPouchesChecked;
     }
 
     // Getters and setters
@@ -42,11 +27,11 @@ public class UserProductivityDTO {
         this.username = username;
     }
 
-    public int getTotalSubmissions() {
+    public Long getTotalSubmissions() {
         return totalSubmissions;
     }
 
-    public void setTotalSubmissions(int totalSubmissions) {
+    public void setTotalSubmissions(Long totalSubmissions) {
         this.totalSubmissions = totalSubmissions;
     }
 
@@ -58,11 +43,27 @@ public class UserProductivityDTO {
         this.avgTimeDuration = avgTimeDuration;
     }
 
-    public double getAvgPouchesPerHour() {
+    public Double getAvgPouchesPerHour() {
         return avgPouchesPerHour;
     }
 
-    public void setAvgPouchesPerHour(double avgPouchesPerHour) {
+    public void setAvgPouchesPerHour(Double avgPouchesPerHour) {
         this.avgPouchesPerHour = avgPouchesPerHour;
+    }
+
+    public Long getTotalPouchesChecked() {
+        return totalPouchesChecked;
+    }
+
+    public void setTotalPouchesChecked(Long totalPouchesChecked) {
+        this.totalPouchesChecked = totalPouchesChecked;
+    }
+
+    public Double getAvgPouchesChecked() {
+        return avgPouchesChecked;
+    }
+
+    public void setAvgPouchesChecked(Double avgPouchesChecked) {
+        this.avgPouchesChecked = avgPouchesChecked;
     }
 }

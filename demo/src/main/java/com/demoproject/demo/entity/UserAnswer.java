@@ -1,18 +1,29 @@
 package com.demoproject.demo.entity;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Column;
+import jakarta.persistence.Table;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
 import java.time.LocalTime;
 import java.time.LocalDate;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 /**
  * Entity class representing a user's answer in the system.
  * This class is mapped to a database table using JPA annotations.
  */
 @Entity
+@Table(name = "user_answers")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserAnswer {
     /**
      * Unique identifier for the user answer.
@@ -55,6 +66,10 @@ public class UserAnswer {
      * The date of submission.
      */
     private LocalDate submissionDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     // Getters and setters
     /**

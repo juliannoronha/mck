@@ -2,6 +2,7 @@ package com.demoproject.demo.services;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.cache.annotation.Cacheable;
 
 import com.demoproject.demo.dto.UserProductivityDTO;
 import com.demoproject.demo.entity.UserAnswer;
@@ -55,41 +56,10 @@ public class UserProductivityService {
         return productivity;
     }
 
+    @Cacheable("allUserProductivity")
     public List<UserProductivityDTO> getAllUserProductivity(int page, int size) {
         logger.info("Fetching all user productivity data");
-        List<UserAnswer> allAnswers = userAnswerRepository.findAll();
-
-        Map<String, List<UserAnswer>> userAnswersMap = allAnswers.stream()
-            .collect(Collectors.groupingBy(UserAnswer::getName));
-
-        List<UserProductivityDTO> productivityList = userAnswersMap.entrySet().stream()
-            .map(entry -> {
-                String username = entry.getKey();
-                List<UserAnswer> userAnswers = entry.getValue();
-                
-                int totalPouches = userAnswers.stream().mapToInt(UserAnswer::getPouchesChecked).sum();
-                long totalMinutes = userAnswers.stream()
-                    .mapToLong(answer -> Duration.between(answer.getStartTime(), answer.getEndTime()).toMinutes())
-                    .sum();
-
-                double avgPouchesPerHour = totalMinutes > 0 ? (totalPouches * 60.0) / totalMinutes : 0;
-                String avgTimeDuration = String.format("%d:%02d", totalMinutes / userAnswers.size() / 60, 
-                                                   totalMinutes / userAnswers.size() % 60);
-                double avgPouchesChecked = (double) totalPouches / userAnswers.size();
-
-                return new UserProductivityDTO(
-                    username,
-                    userAnswers.size(),
-                    avgTimeDuration,
-                    avgPouchesPerHour,
-                    totalPouches,
-                    avgPouchesChecked
-                );
-            })
-            .collect(Collectors.toList());
-
-        logger.debug("Retrieved {} user productivity records", productivityList.size());
-        return productivityList;
+        return userAnswerRepository.getUserProductivityData();
     }
 
     public UserProductivityDTO getOverallProductivity() {
@@ -108,10 +78,10 @@ public class UserProductivityService {
 
         return new UserProductivityDTO(
             "Overall",
-            totalSubmissions,
+            (long) totalSubmissions,  // Cast to Long
             avgTimeDuration,
             avgPouchesPerHour,
-            totalPouchesChecked,
+            (long) totalPouchesChecked,  // Cast to Long
             avgPouchesChecked
         );
     }
@@ -137,5 +107,11 @@ public class UserProductivityService {
                 emitters.remove(emitter);
             }
         });
+    }
+
+    public void analyzeUserProductivityQuery() {
+        // This method might need to be updated or removed if it's no longer applicable
+        logger.info("Analyzing user productivity query");
+        // Implement appropriate logic here if needed
     }
 }
