@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.protocol !== 'https:') {
+        console.warn('This page is not being served over HTTPS. Some features may not work correctly.');
+        // Optionally, you could redirect to HTTPS:
+        // window.location.href = 'https:' + window.location.href.substring(window.location.protocol.length);
+    }
+
     const nameFilter = document.getElementById('nameFilter');
     const storeFilter = document.getElementById('storeFilter');
     const monthFilter = document.getElementById('monthFilter');

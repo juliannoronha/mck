@@ -77,7 +77,11 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error:', error);
-            successMessage.innerHTML = 'An error occurred while submitting the form.';
+            let errorMessage = 'An error occurred while submitting the form.';
+            if (error instanceof TypeError && error.message.includes('NetworkError')) {
+                errorMessage += ' This might be due to a secure connection issue. Please ensure you\'re using HTTPS.';
+            }
+            successMessage.innerHTML = errorMessage;
             successMessage.style.display = 'block';
         });
     });

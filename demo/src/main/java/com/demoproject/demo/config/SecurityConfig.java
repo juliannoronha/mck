@@ -112,7 +112,10 @@ public class SecurityConfig {
                     response.getWriter().write("ACCESS_DENIED");
                     response.getWriter().flush();
                 })
-            );
+            )
+            .requiresChannel(channel -> channel
+                .anyRequest().requiresSecure())
+        ;
 
         return http.build();
     }
