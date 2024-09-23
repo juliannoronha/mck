@@ -9,12 +9,12 @@ import com.demoproject.demo.entity.UserAnswer;
 import com.demoproject.demo.repository.UserAnswerRepository;
 
 import java.util.*;
-import java.util.stream.Collectors;
 import java.time.Duration;
 import java.time.LocalTime;
 import java.io.IOException;
 
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +59,7 @@ public class UserProductivityService {
     @Cacheable("allUserProductivity")
     public List<UserProductivityDTO> getAllUserProductivity(int page, int size) {
         logger.info("Fetching all user productivity data");
-        return userAnswerRepository.getUserProductivityData();
+        return getUserProductivityData(); // Changed this line
     }
 
     public UserProductivityDTO getOverallProductivity() {
@@ -113,5 +113,21 @@ public class UserProductivityService {
         // This method might need to be updated or removed if it's no longer applicable
         logger.info("Analyzing user productivity query");
         // Implement appropriate logic here if needed
+    }
+
+    public List<UserProductivityDTO> getUserProductivityData() {
+        List<Object[]> results = userAnswerRepository.getUserProductivityData();
+        return results.stream().map(this::mapToUserProductivityDTO).collect(Collectors.toList());
+    }
+
+    private UserProductivityDTO mapToUserProductivityDTO(Object[] result) {
+        return new UserProductivityDTO(
+            (String) result[0],
+            ((Number) result[1]).longValue(),
+            (String) result[2],
+            ((Number) result[3]).doubleValue(),
+            ((Number) result[4]).longValue(),
+            ((Number) result[5]).doubleValue()
+        );
     }
 }

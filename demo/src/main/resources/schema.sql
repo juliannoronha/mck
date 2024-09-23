@@ -1,3 +1,4 @@
+-- Create users table if not exists
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -5,11 +6,17 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(255) NOT NULL
 );
 
-ALTER TABLE users 
-ADD CONSTRAINT users_role_check 
-CHECK (role IN ('ADMIN', 'MODERATOR', 'USER', 'CHECKER', 'SHIPPING', 'INVENTORY'));
-
+-- Create sequence for user_id if not exists
 CREATE SEQUENCE IF NOT EXISTS user_id_seq START WITH 1 INCREMENT BY 1;
 
+-- Create user_answer table if not exists
+CREATE TABLE IF NOT EXISTS user_answer (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    submission_date TIMESTAMP NOT NULL,
+    user_id BIGINT REFERENCES users(id)
+);
+
+-- Create indexes on user_answer table if not exist
 CREATE INDEX IF NOT EXISTS idx_user_answer_name ON user_answer(name);
 CREATE INDEX IF NOT EXISTS idx_user_answer_submission_date ON user_answer(submission_date);
