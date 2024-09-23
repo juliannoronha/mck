@@ -1,4 +1,4 @@
-package com.demoproject.demo.controller;
+/* package com.demoproject.demo.controller;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -61,3 +61,4 @@ public class NewRolesController {
         return ResponseEntity.badRequest().body("An error occurred: " + e.getMessage());
     }
 }
+    */

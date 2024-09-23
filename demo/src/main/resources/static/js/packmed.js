@@ -1,9 +1,47 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('questionForm');
     const successMessage = document.getElementById('successMessage');
+    const startTime = document.getElementById('startTime');
+    const endTime = document.getElementById('endTime');
 
+    // New time input validation functions
+    function validateTimeInput(input) {
+        const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+        return timeRegex.test(input.value);
+    }
+
+    function updateEndTimeMin() {
+        if (startTime.value) {
+            endTime.min = startTime.value;
+        }
+    }
+
+    startTime.addEventListener('change', function() {
+        if (!validateTimeInput(this)) {
+            document.getElementById('startTimeError').textContent = 'Please enter a valid time';
+        } else {
+            document.getElementById('startTimeError').textContent = '';
+            updateEndTimeMin();
+        }
+    });
+
+    endTime.addEventListener('change', function() {
+        if (!validateTimeInput(this)) {
+            document.getElementById('endTimeError').textContent = 'Please enter a valid time';
+        } else if (this.value <= startTime.value) {
+            document.getElementById('endTimeError').textContent = 'End time must be after start time';
+        } else {
+            document.getElementById('endTimeError').textContent = '';
+        }
+    });
+
+    // Existing form submission code
     form.addEventListener('submit', function(e) {
         e.preventDefault();
+
+        if (!validateForm()) {
+            return;
+        }
 
         const formData = new FormData(form);
         
@@ -46,25 +84,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function validateForm() {
         let isValid = true;
-        const startTime = document.getElementsByName('startTime')[0].value;
-        const endTime = document.getElementsByName('endTime')[0].value;
         const pouches = document.getElementsByName('pouchesChecked')[0].value;
 
-        // Validate start time
-        if (!startTime.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
-            document.getElementById('startTimeError').textContent = 'Please enter a valid time';
-            isValid = false;
-        } else {
-            document.getElementById('startTimeError').textContent = '';
-        }
-
-        // Validate end time
-        if (!endTime.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
-            document.getElementById('endTimeError').textContent = 'Please enter a valid time';
-            isValid = false;
-        } else {
-            document.getElementById('endTimeError').textContent = '';
-        }
+        // Time validation is now handled by the change event listeners
 
         // Validate pouches checked
         if (isNaN(pouches) || pouches < 0) {

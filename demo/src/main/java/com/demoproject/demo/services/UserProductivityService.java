@@ -1,9 +1,7 @@
 package com.demoproject.demo.services;
 
 import org.springframework.stereotype.Service;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.demoproject.demo.dto.UserProductivityDTO;
 import com.demoproject.demo.entity.UserAnswer;
@@ -13,10 +11,17 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.time.Duration;
 import java.time.LocalTime;
+import java.io.IOException;
+
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class UserProductivityService {
     private final UserAnswerRepository userAnswerRepository;
+    private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
 
     public UserProductivityService(UserAnswerRepository userAnswerRepository) {
         this.userAnswerRepository = userAnswerRepository;
@@ -51,28 +56,26 @@ public class UserProductivityService {
     }
 
     public List<UserProductivityDTO> getAllUserProductivity(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<UserAnswer> userAnswersPage = userAnswerRepository.findAll(pageable);
+        logger.info("Fetching all user productivity data");
+        List<UserAnswer> allAnswers = userAnswerRepository.findAll();
 
-        return userAnswersPage.getContent().stream()
-            .collect(Collectors.groupingBy(UserAnswer::getName))
-            .entrySet().stream()
+        Map<String, List<UserAnswer>> userAnswersMap = allAnswers.stream()
+            .collect(Collectors.groupingBy(UserAnswer::getName));
+
+        List<UserProductivityDTO> productivityList = userAnswersMap.entrySet().stream()
             .map(entry -> {
                 String username = entry.getKey();
                 List<UserAnswer> userAnswers = entry.getValue();
                 
                 int totalPouches = userAnswers.stream().mapToInt(UserAnswer::getPouchesChecked).sum();
                 long totalMinutes = userAnswers.stream()
-                    .mapToLong(answer -> {
-                        LocalTime startTime = answer.getStartTime();
-                        LocalTime endTime = answer.getEndTime();
-                        return Duration.between(startTime, endTime).toMinutes();
-                    })
+                    .mapToLong(answer -> Duration.between(answer.getStartTime(), answer.getEndTime()).toMinutes())
                     .sum();
 
                 double avgPouchesPerHour = totalMinutes > 0 ? (totalPouches * 60.0) / totalMinutes : 0;
-                String avgTimeDuration = String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60);
-                double avgPouchesChecked = userAnswers.size() > 0 ? (double) totalPouches / userAnswers.size() : 0;
+                String avgTimeDuration = String.format("%d:%02d", totalMinutes / userAnswers.size() / 60, 
+                                                   totalMinutes / userAnswers.size() % 60);
+                double avgPouchesChecked = (double) totalPouches / userAnswers.size();
 
                 return new UserProductivityDTO(
                     username,
@@ -84,6 +87,9 @@ public class UserProductivityService {
                 );
             })
             .collect(Collectors.toList());
+
+        logger.debug("Retrieved {} user productivity records", productivityList.size());
+        return productivityList;
     }
 
     public UserProductivityDTO getOverallProductivity() {
@@ -108,5 +114,28 @@ public class UserProductivityService {
             totalPouchesChecked,
             avgPouchesChecked
         );
+    }
+
+    private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
+
+    public void addEmitter(SseEmitter emitter) {
+        emitters.add(emitter);
+        emitter.onCompletion(() -> emitters.remove(emitter));
+        emitter.onTimeout(() -> emitters.remove(emitter));
+    }
+
+    public void notifyProductivityUpdate() {
+        logger.info("Notifying productivity update to {} emitters", emitters.size());
+        List<UserProductivityDTO> updatedData = getAllUserProductivity(0, Integer.MAX_VALUE);
+        logger.info("Updated data: {}", updatedData); // Add this line
+        emitters.forEach(emitter -> {
+            try {
+                emitter.send(SseEmitter.event().data(updatedData));
+                logger.debug("Sent update to emitter");
+            } catch (IOException e) {
+                logger.error("Error sending SSE update", e);
+                emitters.remove(emitter);
+            }
+        });
     }
 }

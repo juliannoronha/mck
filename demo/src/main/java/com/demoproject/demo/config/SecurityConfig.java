@@ -88,6 +88,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/inventory/**").hasRole("INVENTORY")
                 .requestMatchers("/packmed").hasAnyRole("CHECKER", "MODERATOR", "ADMIN")
                 .requestMatchers("/api/packmed/**").hasAnyRole("CHECKER", "MODERATOR", "ADMIN")
+                .requestMatchers("/api/user-productivity-stream").hasAnyRole("ADMIN", "MODERATOR")
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
