@@ -9,7 +9,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.time.LocalDate;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,7 +20,7 @@ import lombok.AllArgsConstructor;
  * This class is mapped to a database table using JPA annotations.
  */
 @Entity
-@Table(name = "user_answers")
+@Table(name = "user_answer")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -35,20 +35,19 @@ public class UserAnswer {
     /**
      * The name associated with this user answer.
      */
-    @Column(nullable = false, length = 50)
     private String name;
 
     /**
      * The time when the user started their task.
      */
-    @Column(nullable = false)
-    private LocalTime startTime;
+    @Column(name = "start_time")
+    private LocalDateTime startTime;
 
     /**
      * The time when the user finished their task.
      */
-    @Column(nullable = false)
-    private LocalTime endTime;
+    @Column(name = "end_time")
+    private LocalDateTime endTime;
 
     /**
      * The store associated with this user answer.
@@ -59,8 +58,8 @@ public class UserAnswer {
     /**
      * The number of pouches checked by the user.
      */
-    @Column(nullable = false)
-    private int pouchesChecked;
+    @Column(name = "pouches_checked")
+    private Integer pouchesChecked;
 
     /**
      * The date of submission.
@@ -70,117 +69,4 @@ public class UserAnswer {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
-
-    // Getters and setters
-    /**
-     * Gets the unique identifier of the user answer.
-     * @return The ID of the user answer.
-     */
-    public Long getId() {
-        return id;
-    }
-
-    /**
-     * Sets the unique identifier of the user answer.
-     * @param id The ID to set.
-     */
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    /**
-     * Gets the name associated with this user answer.
-     * @return The name.
-     */
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * Sets the name associated with this user answer.
-     * @param name The name to set.
-     */
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    /**
-     * Gets the start time of the task.
-     * @return The start time.
-     */
-    public LocalTime getStartTime() {
-        return startTime;
-    }
-
-    /**
-     * Sets the start time of the task.
-     * @param startTime The start time to set.
-     */
-    public void setStartTime(LocalTime startTime) {
-        this.startTime = startTime;
-    }
-
-    /**
-     * Gets the end time of the task.
-     * @return The end time.
-     */
-    public LocalTime getEndTime() {
-        return endTime;
-    }
-
-    /**
-     * Sets the end time of the task.
-     * @param endTime The end time to set.
-     */
-    public void setEndTime(LocalTime endTime) {
-        this.endTime = endTime;
-    }
-
-    /**
-     * Gets the store associated with this user answer.
-     * @return The store.
-     */
-    public String getStore() {
-        return store;
-    }
-
-    /**
-     * Sets the store associated with this user answer.
-     * @param store The store to set.
-     */
-    public void setStore(String store) {
-        this.store = store;
-    }
-
-    /**
-     * Gets the number of pouches checked.
-     * @return The number of pouches checked.
-     */
-    public int getPouchesChecked() {
-        return pouchesChecked;
-    }
-
-    /**
-     * Sets the number of pouches checked.
-     * @param pouchesChecked The number of pouches checked to set.
-     */
-    public void setPouchesChecked(int pouchesChecked) {
-        this.pouchesChecked = pouchesChecked;
-    }
-
-    /**
-     * Gets the submission date.
-     * @return The submission date.
-     */
-    public LocalDate getSubmissionDate() {
-        return submissionDate;
-    }
-
-    /**
-     * Sets the submission date.
-     * @param submissionDate The submission date to set.
-     */
-    public void setSubmissionDate(LocalDate submissionDate) {
-        this.submissionDate = submissionDate;
-    }
 }

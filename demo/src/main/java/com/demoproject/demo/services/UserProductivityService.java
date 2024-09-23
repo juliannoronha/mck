@@ -3,6 +3,9 @@ package com.demoproject.demo.services;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import com.demoproject.demo.dto.UserProductivityDTO;
 import com.demoproject.demo.entity.UserAnswer;
@@ -10,7 +13,7 @@ import com.demoproject.demo.repository.UserAnswerRepository;
 
 import java.util.*;
 import java.time.Duration;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.io.IOException;
 
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -38,8 +41,8 @@ public class UserProductivityService {
         int totalPouches = userAnswers.stream().mapToInt(UserAnswer::getPouchesChecked).sum();
         long totalMinutes = userAnswers.stream()
             .mapToLong(answer -> {
-                LocalTime startTime = answer.getStartTime();
-                LocalTime endTime = answer.getEndTime();
+                LocalDateTime startTime = answer.getStartTime();
+                LocalDateTime endTime = answer.getEndTime();
                 return Duration.between(startTime, endTime).toMinutes();
             })
             .sum();
@@ -57,9 +60,11 @@ public class UserProductivityService {
     }
 
     @Cacheable("allUserProductivity")
-    public List<UserProductivityDTO> getAllUserProductivity(int page, int size) {
-        logger.info("Fetching all user productivity data");
-        return getUserProductivityData(); // Changed this line
+    public Page<UserProductivityDTO> getAllUserProductivity(int page, int size) {
+        logger.info("Fetching all user productivity data for page {} with size {}", page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Object[]> results = userAnswerRepository.getUserProductivityDataPaginated(pageable);
+        return results.map(this::mapToUserProductivityDTO);
     }
 
     public UserProductivityDTO getOverallProductivity() {
@@ -96,11 +101,11 @@ public class UserProductivityService {
 
     public void notifyProductivityUpdate() {
         logger.info("Notifying productivity update to {} emitters", emitters.size());
-        List<UserProductivityDTO> updatedData = getAllUserProductivity(0, Integer.MAX_VALUE);
-        logger.info("Updated data: {}", updatedData); // Add this line
+        Page<UserProductivityDTO> updatedData = getAllUserProductivity(0, Integer.MAX_VALUE);
+        logger.info("Updated data: {}", updatedData.getContent());
         emitters.forEach(emitter -> {
             try {
-                emitter.send(SseEmitter.event().data(updatedData));
+                emitter.send(SseEmitter.event().data(updatedData.getContent()));
                 logger.debug("Sent update to emitter");
             } catch (IOException e) {
                 logger.error("Error sending SSE update", e);

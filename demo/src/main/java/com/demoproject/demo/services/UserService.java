@@ -71,13 +71,23 @@ public class UserService {
     }
 
     /**
+     * Retrieves productivity data for all users.
+     *
+     * @return a list of UserProductivityDTO objects
+     */
+    public List<UserProductivityDTO> getAllUserProductivity() {
+        logger.info("Retrieving productivity data for all users.");
+        return productivityService.getAllUserProductivity(0, Integer.MAX_VALUE).getContent();
+    }
+
+    /**
      * Retrieves productivity data for all users, paginated.
      *
      * @param page the page number
      * @param size the size of each page
-     * @return a list of UserProductivityDTO objects
+     * @return a page of UserProductivityDTO objects
      */
-    public List<UserProductivityDTO> getAllUserProductivity(int page, int size) {
+    public Page<UserProductivityDTO> getAllUserProductivity(int page, int size) {
         logger.info("Retrieving productivity data for all users. Page: {}, Size: {}", page, size);
         return productivityService.getAllUserProductivity(page, size);
     }

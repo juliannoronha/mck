@@ -49,6 +49,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
         const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
 
+        const startDate = document.getElementById('startDate').value;
+        const startTimeValue = document.getElementById('startTime').value;
+        const endDate = document.getElementById('endDate').value;
+        const endTimeValue = document.getElementById('endTime').value;
+
+        const startDateTime = `${startDate}T${startTimeValue}:00`;
+        const endDateTime = `${endDate}T${endTimeValue}:00`;
+
         fetch('/submit-questions', {
             method: 'POST',
             body: formData,

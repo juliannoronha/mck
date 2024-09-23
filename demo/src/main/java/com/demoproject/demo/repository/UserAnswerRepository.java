@@ -1,9 +1,10 @@
 package com.demoproject.demo.repository;
 
 import com.demoproject.demo.entity.UserAnswer;
-import com.demoproject.demo.dto.UserProductivityDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 /**
@@ -24,4 +25,17 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
            "JOIN users u ON ua.user_id = u.id " +
            "GROUP BY u.username", nativeQuery = true)
     List<Object[]> getUserProductivityData();
+
+    @Query(value = "SELECT u.username, " +
+           "COUNT(ua.id) as totalSubmissions, " +
+           "TO_CHAR(AVG(EXTRACT(EPOCH FROM (ua.end_time - ua.start_time))) / 3600, 'FM999990.00') as avgTimeDuration, " +
+           "AVG(CAST(ua.pouches_checked AS DOUBLE PRECISION) / (EXTRACT(EPOCH FROM (ua.end_time - ua.start_time)) / 3600)) as avgPouchesPerHour, " +
+           "SUM(ua.pouches_checked) as totalPouchesChecked, " +
+           "AVG(CAST(ua.pouches_checked AS DOUBLE PRECISION)) as avgPouchesChecked " +
+           "FROM user_answer ua " +
+           "JOIN users u ON ua.user_id = u.id " +
+           "GROUP BY u.username",
+           countQuery = "SELECT COUNT(DISTINCT u.username) FROM user_answer ua JOIN users u ON ua.user_id = u.id",
+           nativeQuery = true)
+    Page<Object[]> getUserProductivityDataPaginated(Pageable pageable);
 }

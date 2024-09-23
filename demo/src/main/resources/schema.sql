@@ -10,10 +10,16 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE SEQUENCE IF NOT EXISTS user_id_seq START WITH 1 INCREMENT BY 1;
 
 -- Create user_answer table if not exists
-CREATE TABLE IF NOT EXISTS user_answer (
+DROP TABLE IF EXISTS user_answer;
+
+CREATE TABLE user_answer (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
-    submission_date TIMESTAMP NOT NULL,
+    start_time TIMESTAMP,
+    end_time TIMESTAMP,
+    store VARCHAR(20) NOT NULL,
+    pouches_checked INTEGER,
+    submission_date DATE NOT NULL,
     user_id BIGINT REFERENCES users(id)
 );
 

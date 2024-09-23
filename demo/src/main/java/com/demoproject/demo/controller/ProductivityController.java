@@ -13,10 +13,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.MediaType;
+import org.springframework.data.domain.Page;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,12 +53,10 @@ public class ProductivityController {
     public String userProductivity(Model model, 
                                    @RequestParam(defaultValue = "0") int page, 
                                    @RequestParam(defaultValue = "10") int size) {
-        logger.info("Fetching user productivity for all users");
-        List<UserProductivityDTO> users = userService.getAllUserProductivity(page, size);
-        logger.debug("Retrieved {} user productivity records", users.size());
-        model.addAttribute("users", users);
-        model.addAttribute("currentPage", page);
-        model.addAttribute("pageSize", size);
+        logger.info("Fetching user productivity for all users. Page: {}, Size: {}", page, size);
+        Page<UserProductivityDTO> usersPage = userProductivityService.getAllUserProductivity(page, size);
+        logger.debug("Retrieved {} user productivity records", usersPage.getContent().size());
+        model.addAttribute("usersPage", usersPage);
         return "user-productivity";
     }
 
@@ -85,10 +83,12 @@ public class ProductivityController {
     @GetMapping("/api/all-user-productivity")
     @ResponseBody
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
-    public ResponseEntity<List<UserProductivityDTO>> getAllUserProductivity() {
-        logger.info("Fetching all user productivity data");
-        List<UserProductivityDTO> productivityData = userProductivityService.getAllUserProductivity(0, Integer.MAX_VALUE);
-        logger.debug("Retrieved {} user productivity records", productivityData.size());
+    public ResponseEntity<Page<UserProductivityDTO>> getAllUserProductivity(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        logger.info("Fetching all user productivity data. Page: {}, Size: {}", page, size);
+        Page<UserProductivityDTO> productivityData = userService.getAllUserProductivity(page, size);
+        logger.debug("Retrieved {} user productivity records", productivityData.getContent().size());
         return ResponseEntity.ok(productivityData);
     }
 }
