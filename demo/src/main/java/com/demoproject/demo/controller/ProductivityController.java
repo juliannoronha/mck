@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
+import java.util.List;
+import java.io.IOException;
 
 import org.springframework.http.MediaType;
 import org.springframework.data.domain.Page;
@@ -74,9 +76,25 @@ public class ProductivityController {
     public SseEmitter streamUserProductivity() {
         logger.info("New SSE connection established");
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
-        this.userProductivityService.addEmitter(emitter);
-        emitter.onCompletion(() -> logger.info("SSE connection completed"));
-        emitter.onTimeout(() -> logger.info("SSE connection timed out"));
+        userProductivityService.addEmitter(emitter);
+        
+        // Send initial data
+        try {
+            List<UserProductivityDTO> initialData = userProductivityService.getUserProductivityData();
+            emitter.send(SseEmitter.event().data(initialData));
+            logger.info("Sent initial data to new SSE connection");
+        } catch (IOException e) {
+            logger.error("Error sending initial data", e);
+        }
+        
+        emitter.onCompletion(() -> {
+            logger.info("SSE connection completed");
+            userProductivityService.removeEmitter(emitter);
+        });
+        emitter.onTimeout(() -> {
+            logger.info("SSE connection timed out");
+            userProductivityService.removeEmitter(emitter);
+        });
         return emitter;
     }
 

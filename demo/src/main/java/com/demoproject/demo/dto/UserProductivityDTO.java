@@ -2,19 +2,19 @@ package com.demoproject.demo.dto;
 
 public class UserProductivityDTO {
     private String username;
-    private Long totalSubmissions;
+    private long totalSubmissions;
+    private long totalPouchesChecked;
     private String avgTimeDuration;
-    private Double avgPouchesPerHour;
-    private Long totalPouchesChecked;
-    private Double avgPouchesChecked;
+    private double avgPouchesPerHour;
+    private double avgPouchesChecked;
 
-    public UserProductivityDTO(String username, Long totalSubmissions, String avgTimeDuration, 
-                               Double avgPouchesPerHour, Long totalPouchesChecked, Double avgPouchesChecked) {
+    public UserProductivityDTO(String username, long totalSubmissions, long totalPouchesChecked, 
+                               String avgTimeDuration, double avgPouchesPerHour, double avgPouchesChecked) {
         this.username = username;
         this.totalSubmissions = totalSubmissions;
+        this.totalPouchesChecked = totalPouchesChecked;
         this.avgTimeDuration = avgTimeDuration;
         this.avgPouchesPerHour = avgPouchesPerHour;
-        this.totalPouchesChecked = totalPouchesChecked;
         this.avgPouchesChecked = avgPouchesChecked;
     }
 
@@ -27,12 +27,20 @@ public class UserProductivityDTO {
         this.username = username;
     }
 
-    public Long getTotalSubmissions() {
+    public long getTotalSubmissions() {
         return totalSubmissions;
     }
 
-    public void setTotalSubmissions(Long totalSubmissions) {
+    public void setTotalSubmissions(long totalSubmissions) {
         this.totalSubmissions = totalSubmissions;
+    }
+
+    public long getTotalPouchesChecked() {
+        return totalPouchesChecked;
+    }
+
+    public void setTotalPouchesChecked(long totalPouchesChecked) {
+        this.totalPouchesChecked = totalPouchesChecked;
     }
 
     public String getAvgTimeDuration() {
@@ -43,27 +51,19 @@ public class UserProductivityDTO {
         this.avgTimeDuration = avgTimeDuration;
     }
 
-    public Double getAvgPouchesPerHour() {
+    public double getAvgPouchesPerHour() {
         return avgPouchesPerHour;
     }
 
-    public void setAvgPouchesPerHour(Double avgPouchesPerHour) {
+    public void setAvgPouchesPerHour(double avgPouchesPerHour) {
         this.avgPouchesPerHour = avgPouchesPerHour;
     }
 
-    public Long getTotalPouchesChecked() {
-        return totalPouchesChecked;
-    }
-
-    public void setTotalPouchesChecked(Long totalPouchesChecked) {
-        this.totalPouchesChecked = totalPouchesChecked;
-    }
-
-    public Double getAvgPouchesChecked() {
+    public double getAvgPouchesChecked() {
         return avgPouchesChecked;
     }
 
-    public void setAvgPouchesChecked(Double avgPouchesChecked) {
+    public void setAvgPouchesChecked(double avgPouchesChecked) {
         this.avgPouchesChecked = avgPouchesChecked;
     }
 }

@@ -26,3 +26,8 @@ CREATE TABLE user_answer (
 -- Create indexes on user_answer table if not exist
 CREATE INDEX IF NOT EXISTS idx_user_answer_name ON user_answer(name);
 CREATE INDEX IF NOT EXISTS idx_user_answer_submission_date ON user_answer(submission_date);
+
+-- Add these indexes
+CREATE INDEX IF NOT EXISTS idx_user_answer_user_id ON user_answer(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_answer_start_time ON user_answer(start_time);
+CREATE INDEX IF NOT EXISTS idx_user_answer_end_time ON user_answer(end_time);

@@ -24,11 +24,20 @@ import org.slf4j.LoggerFactory;
 
 @Service
 public class UserProductivityService {
-    private final UserAnswerRepository userAnswerRepository;
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
+    private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
+    private final UserAnswerRepository userAnswerRepository;
 
     public UserProductivityService(UserAnswerRepository userAnswerRepository) {
         this.userAnswerRepository = userAnswerRepository;
+    }
+
+    public void addEmitter(SseEmitter emitter) {
+        emitters.add(emitter);
+    }
+
+    public void removeEmitter(SseEmitter emitter) {
+        emitters.remove(emitter);
     }
 
     public Map<String, Object> getUserProductivity(String username) {
@@ -79,39 +88,33 @@ public class UserProductivityService {
         double avgPouchesPerHour = totalMinutes > 0 ? (totalPouchesChecked * 60.0) / totalMinutes : 0;
         String avgTimeDuration = String.format("%d:%02d", totalMinutes / (totalSubmissions > 0 ? totalSubmissions : 1) / 60, 
                                                totalMinutes / (totalSubmissions > 0 ? totalSubmissions : 1) % 60);
+        
         double avgPouchesChecked = totalSubmissions > 0 ? (double) totalPouchesChecked / totalSubmissions : 0;
 
         return new UserProductivityDTO(
             "Overall",
-            (long) totalSubmissions,  // Cast to Long
+            (long) totalSubmissions,
+            (long) totalPouchesChecked,
             avgTimeDuration,
             avgPouchesPerHour,
-            (long) totalPouchesChecked,  // Cast to Long
             avgPouchesChecked
         );
     }
 
-    private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
-
-    public void addEmitter(SseEmitter emitter) {
-        emitters.add(emitter);
-        emitter.onCompletion(() -> emitters.remove(emitter));
-        emitter.onTimeout(() -> emitters.remove(emitter));
-    }
-
     public void notifyProductivityUpdate() {
-        logger.info("Notifying productivity update to {} emitters", emitters.size());
-        Page<UserProductivityDTO> updatedData = getAllUserProductivity(0, Integer.MAX_VALUE);
-        logger.info("Updated data: {}", updatedData.getContent());
+        List<UserProductivityDTO> updatedData = getUserProductivityData();
+        logger.info("Notifying {} emitters of productivity update", emitters.size());
+        List<SseEmitter> deadEmitters = new ArrayList<>();
         emitters.forEach(emitter -> {
             try {
-                emitter.send(SseEmitter.event().data(updatedData.getContent()));
+                emitter.send(SseEmitter.event().data(updatedData));
                 logger.debug("Sent update to emitter");
             } catch (IOException e) {
                 logger.error("Error sending SSE update", e);
-                emitters.remove(emitter);
+                deadEmitters.add(emitter);
             }
         });
+        emitters.removeAll(deadEmitters);
     }
 
     public void analyzeUserProductivityQuery() {
@@ -122,17 +125,30 @@ public class UserProductivityService {
 
     public List<UserProductivityDTO> getUserProductivityData() {
         List<Object[]> results = userAnswerRepository.getUserProductivityData();
-        return results.stream().map(this::mapToUserProductivityDTO).collect(Collectors.toList());
+        logger.info("Retrieved {} user productivity records", results.size());
+        List<UserProductivityDTO> dtos = results.stream().map(this::mapToUserProductivityDTO).collect(Collectors.toList());
+        logger.info("Mapped UserProductivityDTO objects: {}", dtos);
+        return dtos;
     }
 
     private UserProductivityDTO mapToUserProductivityDTO(Object[] result) {
+        String username = (String) result[0];
+        long totalSubmissions = ((Number) result[1]).longValue();
+        String avgTimeDuration = (String) result[2];
+        double avgPouchesPerHour = result[3] instanceof Number ? ((Number) result[3]).doubleValue() : 0.0;
+        long totalPouchesChecked = ((Number) result[4]).longValue();
+        double avgPouchesChecked = result[5] instanceof Number ? ((Number) result[5]).doubleValue() : 0.0;
+
+        logger.debug("Mapping user productivity: username={}, totalSubmissions={}, avgTimeDuration={}, avgPouchesPerHour={}, totalPouchesChecked={}, avgPouchesChecked={}",
+                     username, totalSubmissions, avgTimeDuration, avgPouchesPerHour, totalPouchesChecked, avgPouchesChecked);
+
         return new UserProductivityDTO(
-            (String) result[0],
-            ((Number) result[1]).longValue(),
-            (String) result[2],
-            ((Number) result[3]).doubleValue(),
-            ((Number) result[4]).longValue(),
-            ((Number) result[5]).doubleValue()
+            username,
+            totalSubmissions,
+            totalPouchesChecked,
+            avgTimeDuration,
+            avgPouchesPerHour,
+            avgPouchesChecked
         );
     }
 }

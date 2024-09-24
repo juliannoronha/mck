@@ -51,6 +51,7 @@
 </head>
 <body>
     <div class="container">
+        <h1>User Productivity</h1>
         <table>
             <thead>
                 <tr>
@@ -59,45 +60,22 @@
                     <th>Total Pouches Checked</th>
                     <th>Average Time Duration</th>
                     <th>Average Pouches per Hour</th>
+                    <th>Average Pouches Checked</th>
                 </tr>
             </thead>
-            <tbody>
-                <tr th:each="user : ${users}">
-                    <td th:text="${user.username}"></td>
-                    <td th:text="${user.totalSubmissions}"></td>
-                    <td th:text="${user.totalPouchesChecked}"></td>
-                    <td th:text="${user.avgTimeDuration}"></td>
-                    <td th:text="${#numbers.formatDecimal(user.avgPouchesPerHour, 1, 2)}"></td>
-                </tr>
+            <tbody id="productivityTableBody">
+                <!-- Data will be populated here -->
             </tbody>
         </table>
         <a href="/view-responses" class="button">Back to Responses</a>
     </div>
 
     <script th:inline="javascript">
-        const table = document.querySelector('table tbody');
-
-        function fetchAndUpdateProductivity() {
-            console.log('Fetching all user productivity data...');
-            fetch('/api/all-user-productivity')
-                .then(response => {
-                    console.log('Response status:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(users => {
-                    console.log('Received user productivity data:', users);
-                    updateTable(users);
-                })
-                .catch(error => {
-                    console.error('Error fetching user productivity data:', error);
-                });
-        }
+        const tableBody = document.getElementById('productivityTableBody');
 
         function updateTable(users) {
-            table.innerHTML = '';
+            console.log('Updating table with users:', users);
+            tableBody.innerHTML = '';
             users.forEach(user => {
                 const row = `
                     <tr>
@@ -106,16 +84,28 @@
                         <td>${user.totalPouchesChecked}</td>
                         <td>${user.avgTimeDuration}</td>
                         <td>${user.avgPouchesPerHour.toFixed(2)}</td>
+                        <td>${user.avgPouchesChecked.toFixed(2)}</td>
                     </tr>
                 `;
-                table.innerHTML += row;
+                tableBody.innerHTML += row;
             });
-            console.log('Table updated with new data');
+            console.log('Table updated');
         }
 
-        // Fetch data immediately and then every 10 seconds
-        fetchAndUpdateProductivity();
-        setInterval(fetchAndUpdateProductivity, 10000);
+        const eventSource = new EventSource('/api/user-productivity-stream');
+        eventSource.onmessage = function(event) {
+            console.log('Received SSE event:', event);
+            const users = JSON.parse(event.data);
+            updateTable(users);
+        };
+        eventSource.onerror = function(error) {
+            console.error('Error in SSE connection:', error);
+            eventSource.close();
+            // Attempt to reconnect after a delay
+            setTimeout(() => {
+                location.reload();
+            }, 5000);
+        };
     </script>
 </body>
 </html>

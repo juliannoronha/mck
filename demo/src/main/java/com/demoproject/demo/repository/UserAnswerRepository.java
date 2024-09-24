@@ -18,9 +18,9 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
     @Query(value = "SELECT u.username, " +
            "COUNT(ua.id) as totalSubmissions, " +
            "TO_CHAR(AVG(EXTRACT(EPOCH FROM (ua.end_time - ua.start_time))) / 3600, 'FM999990.00') as avgTimeDuration, " +
-           "AVG(CAST(ua.pouches_checked AS DOUBLE PRECISION) / (EXTRACT(EPOCH FROM (ua.end_time - ua.start_time)) / 3600)) as avgPouchesPerHour, " +
-           "SUM(ua.pouches_checked) as totalPouchesChecked, " +
-           "AVG(CAST(ua.pouches_checked AS DOUBLE PRECISION)) as avgPouchesChecked " +
+           "COALESCE(AVG(CAST(ua.pouches_checked AS DOUBLE PRECISION) / NULLIF(EXTRACT(EPOCH FROM (ua.end_time - ua.start_time)) / 3600, 0)), 0) as avgPouchesPerHour, " +
+           "COALESCE(SUM(ua.pouches_checked), 0) as totalPouchesChecked, " +
+           "COALESCE(AVG(CAST(ua.pouches_checked AS DOUBLE PRECISION)), 0) as avgPouchesChecked " +
            "FROM user_answer ua " +
            "JOIN users u ON ua.user_id = u.id " +
            "GROUP BY u.username", nativeQuery = true)
