@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.validation.BindingResult;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -49,16 +50,22 @@ public class ResponseController {
     /**
      * Handles submission of user answers.
      * @param userAnswer The UserAnswer object containing the user's responses
+     * @param bindingResult BindingResult for validation
      * @param authentication Authentication object for checking access
      * @return Redirects to the packmed page
      */
     @PostMapping("/submit-questions")
     @RequiresAuthentication
     @ResponseBody
-    public ResponseEntity<String> submitQuestions(@ModelAttribute UserAnswer userAnswer, Authentication authentication) {
+    public ResponseEntity<String> submitQuestions(@ModelAttribute UserAnswer userAnswer, BindingResult bindingResult, Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Sorry, you don't have access to that!");
         }
+        
+        if (bindingResult.hasErrors()) {
+            return ResponseEntity.badRequest().body("Validation error: " + bindingResult.getAllErrors());
+        }
+        
         try {
             String username = authentication.getName();
             responseService.submitUserAnswer(userAnswer, username);

@@ -49,13 +49,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
         const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
 
-        const startDate = document.getElementById('startDate').value;
         const startTimeValue = document.getElementById('startTime').value;
-        const endDate = document.getElementById('endDate').value;
         const endTimeValue = document.getElementById('endTime').value;
 
-        const startDateTime = `${startDate}T${startTimeValue}:00`;
-        const endDateTime = `${endDate}T${endTimeValue}:00`;
+        // Use current date for both start and end times
+        const currentDate = new Date().toISOString().split('T')[0];
+        const startDateTime = `${currentDate}T${startTimeValue}:00`;
+        const endDateTime = `${currentDate}T${endTimeValue}:00`;
+
+        // Replace the time inputs with the full date-time strings
+        formData.set('startTime', startDateTime);
+        formData.set('endTime', endDateTime);
 
         fetch('/submit-questions', {
             method: 'POST',

@@ -75,6 +75,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            .requiresChannel(channel -> channel.anyRequest().requiresSecure())
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers(HttpMethod.POST, "/submit-questions").authenticated()
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/*.png", "/*.ico", "/h2-console/**").permitAll()
@@ -108,8 +109,6 @@ public class SecurityConfig {
                     response.getWriter().flush();
                 })
             )
-            .requiresChannel(channel -> channel
-                .anyRequest().requiresSecure())
         ;
 
         return http.build();

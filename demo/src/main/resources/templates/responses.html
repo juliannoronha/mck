@@ -65,8 +65,8 @@
                 <!-- Iterate over responses and display each in a row -->
                 <tr th:each="response : ${responses}">
                     <td th:text="${response.name}"></td>
-                    <td th:text="${response.startTime}"></td>
-                    <td th:text="${response.endTime}"></td>
+                    <td th:text="${#temporals.format(response.startTime, 'HH:mm')}"></td>
+                    <td th:text="${#temporals.format(response.endTime, 'HH:mm')}"></td>
                     <td th:text="${response.store}"></td>
                     <td th:text="${response.pouchesChecked}"></td>
                     <td th:text="${#temporals.format(response.submissionDate, 'MMMM d, yyyy')}"

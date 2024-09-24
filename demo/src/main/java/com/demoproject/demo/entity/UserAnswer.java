@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -69,4 +70,21 @@ public class UserAnswer {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+
+    // Add these setter methods
+    public void setStartDateTime(String startDateTime) {
+        this.startTime = LocalDateTime.parse(startDateTime);
+    }
+
+    public void setEndDateTime(String endDateTime) {
+        this.endTime = LocalDateTime.parse(endDateTime);
+    }
+
+    public void setStartTime(String startTime) {
+        this.startTime = LocalDateTime.parse(startTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+    }
+
+    public void setEndTime(String endTime) {
+        this.endTime = LocalDateTime.parse(endTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+    }
 }
