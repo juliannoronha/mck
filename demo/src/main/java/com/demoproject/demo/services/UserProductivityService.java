@@ -9,7 +9,9 @@ import org.springframework.data.domain.Pageable;
 
 import com.demoproject.demo.dto.UserProductivityDTO;
 import com.demoproject.demo.entity.UserAnswer;
+import com.demoproject.demo.entity.Pac;
 import com.demoproject.demo.repository.UserAnswerRepository;
+import com.demoproject.demo.repository.PacRepository;
 
 import java.util.*;
 import java.time.Duration;
@@ -27,9 +29,11 @@ public class UserProductivityService {
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
     private final UserAnswerRepository userAnswerRepository;
+    private final PacRepository pacRepository;
 
-    public UserProductivityService(UserAnswerRepository userAnswerRepository) {
+    public UserProductivityService(UserAnswerRepository userAnswerRepository, PacRepository pacRepository) {
         this.userAnswerRepository = userAnswerRepository;
+        this.pacRepository = pacRepository;
     }
 
     public void addEmitter(SseEmitter emitter) {
@@ -41,19 +45,20 @@ public class UserProductivityService {
     }
 
     public Map<String, Object> getUserProductivity(String username) {
-        List<UserAnswer> userAnswers = userAnswerRepository.findByName(username);
+        List<UserAnswer> userAnswers = userAnswerRepository.findByUser_Username(username);
         
         if (userAnswers.isEmpty()) {
             return Collections.emptyMap();
         }
 
-        int totalPouches = userAnswers.stream().mapToInt(UserAnswer::getPouchesChecked).sum();
-        long totalMinutes = userAnswers.stream()
-            .mapToLong(answer -> {
-                LocalDateTime startTime = answer.getStartTime();
-                LocalDateTime endTime = answer.getEndTime();
-                return Duration.between(startTime, endTime).toMinutes();
-            })
+        List<Pac> pacs = userAnswers.stream()
+            .map(UserAnswer::getPac)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+
+        int totalPouches = pacs.stream().mapToInt(Pac::getPouchesChecked).sum();
+        long totalMinutes = pacs.stream()
+            .mapToLong(pac -> Duration.between(pac.getStartTime(), pac.getEndTime()).toMinutes())
             .sum();
 
         double avgPouchesPerHour = totalMinutes > 0 ? (totalPouches * 60.0) / totalMinutes : 0;
@@ -77,12 +82,12 @@ public class UserProductivityService {
     }
 
     public UserProductivityDTO getOverallProductivity() {
-        List<UserAnswer> allAnswers = userAnswerRepository.findAll();
+        List<Pac> allPacs = pacRepository.findAll();
         
-        int totalSubmissions = allAnswers.size();
-        int totalPouchesChecked = allAnswers.stream().mapToInt(UserAnswer::getPouchesChecked).sum();
-        long totalMinutes = allAnswers.stream()
-            .mapToLong(answer -> Duration.between(answer.getStartTime(), answer.getEndTime()).toMinutes())
+        int totalSubmissions = allPacs.size();
+        int totalPouchesChecked = allPacs.stream().mapToInt(Pac::getPouchesChecked).sum();
+        long totalMinutes = allPacs.stream()
+            .mapToLong(pac -> Duration.between(pac.getStartTime(), pac.getEndTime()).toMinutes())
             .sum();
 
         double avgPouchesPerHour = totalMinutes > 0 ? (totalPouchesChecked * 60.0) / totalMinutes : 0;
@@ -113,12 +118,6 @@ public class UserProductivityService {
             }
         });
         emitters.removeAll(deadEmitters);
-    }
-
-    public void analyzeUserProductivityQuery() {
-        // This method might need to be updated or removed if it's no longer applicable
-        logger.info("Analyzing user productivity query");
-        // Implement appropriate logic here if needed
     }
 
     public List<UserProductivityDTO> getUserProductivityData() {

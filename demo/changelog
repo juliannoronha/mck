@@ -1,0 +1,13 @@
+## Version 1.4.23
+
+
+Removed "Average Pouches Checked" feature
+
+- Fully implemented over to H2 Database to PostgreSQL
+- Updated UserProductivityDTO to remove avgPouchesChecked field
+- Modified UserProductivityService to remove avgPouchesChecked calculations
+- Updated UserAnswerRepository queries to exclude avgPouchesChecked
+- Removed "Average Pouches Checked" column from user-productivity.html template
+- Adjusted related backend logic to no longer process or return this data
+
+This change streamlines the user productivity reporting by focusing on more relevant metrics.

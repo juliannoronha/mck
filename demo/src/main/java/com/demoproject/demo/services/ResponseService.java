@@ -2,8 +2,10 @@ package com.demoproject.demo.services;
 
 import com.demoproject.demo.entity.UserAnswer;
 import com.demoproject.demo.entity.User;
+import com.demoproject.demo.entity.Pac;
 import com.demoproject.demo.repository.UserAnswerRepository;
-import com.demoproject.demo.repository.UserRepository; // Add this
+import com.demoproject.demo.repository.UserRepository;
+import com.demoproject.demo.repository.PacRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
@@ -17,29 +19,35 @@ import java.time.LocalDate;
 public class ResponseService {
 
     private final UserAnswerRepository userAnswerRepository;
+    private final PacRepository pacRepository;
     private final UserProductivityService userProductivityService;
-    private final UserRepository userRepository; // Add this
+    private final UserRepository userRepository;
     private static final Logger logger = LoggerFactory.getLogger(ResponseService.class);
 
-    public ResponseService(UserAnswerRepository userAnswerRepository, UserProductivityService userProductivityService, UserRepository userRepository) {
+    public ResponseService(UserAnswerRepository userAnswerRepository, PacRepository pacRepository,
+                           UserProductivityService userProductivityService, UserRepository userRepository) {
         this.userAnswerRepository = userAnswerRepository;
+        this.pacRepository = pacRepository;
         this.userProductivityService = userProductivityService;
-        this.userRepository = userRepository; // Add this
+        this.userRepository = userRepository;
     }
 
     @Transactional
-    public void submitUserAnswer(UserAnswer userAnswer, String username) {
+    public void submitUserAnswer(UserAnswer userAnswer, Pac pac, String username) {
         User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        userAnswer.setName(username);
-        userAnswer.setUser(user); // Set the user
+        userAnswer.setUser(user);
         userAnswer.setSubmissionDate(LocalDate.now());
         
-        logger.info("Submitting user answer: username={}, store={}, pouchesChecked={}, startTime={}, endTime={}",
-                    username, userAnswer.getStore(), userAnswer.getPouchesChecked(), userAnswer.getStartTime(), userAnswer.getEndTime());
+        UserAnswer savedUserAnswer = userAnswerRepository.save(userAnswer);
         
-        userAnswerRepository.save(userAnswer);
+        pac.setUserAnswer(savedUserAnswer);
+        pacRepository.save(pac);
+        
+        logger.info("Submitting user answer: username={}, store={}, pouchesChecked={}, startTime={}, endTime={}",
+                    username, pac.getStoreId(), pac.getPouchesChecked(), pac.getStartTime(), pac.getEndTime());
+        
         userProductivityService.notifyProductivityUpdate();
     }
 
@@ -51,5 +59,9 @@ public class ResponseService {
 
     public Page<UserAnswer> getAllResponses(Pageable pageable) {
         return userAnswerRepository.findAll(pageable);
+    }
+
+    public Page<UserAnswer> getAllResponsesWithPac(Pageable pageable) {
+        return userAnswerRepository.findAllWithPac(pageable);
     }
 }

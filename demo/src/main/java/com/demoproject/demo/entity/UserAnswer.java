@@ -9,9 +9,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
-import java.time.LocalDateTime;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.CascadeType;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -39,18 +39,6 @@ public class UserAnswer {
     private String name;
 
     /**
-     * The time when the user started their task.
-     */
-    @Column(name = "start_time")
-    private LocalDateTime startTime;
-
-    /**
-     * The time when the user finished their task.
-     */
-    @Column(name = "end_time")
-    private LocalDateTime endTime;
-
-    /**
      * The store associated with this user answer.
      */
     @Column(nullable = false, length = 20)
@@ -71,20 +59,6 @@ public class UserAnswer {
     @JoinColumn(name = "user_id")
     private User user;
 
-    // Add these setter methods
-    public void setStartDateTime(String startDateTime) {
-        this.startTime = LocalDateTime.parse(startDateTime);
-    }
-
-    public void setEndDateTime(String endDateTime) {
-        this.endTime = LocalDateTime.parse(endDateTime);
-    }
-
-    public void setStartTime(String startTime) {
-        this.startTime = LocalDateTime.parse(startTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-    }
-
-    public void setEndTime(String endTime) {
-        this.endTime = LocalDateTime.parse(endTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-    }
+    @OneToOne(mappedBy = "userAnswer", fetch = FetchType.LAZY)
+    private Pac pac;
 }
