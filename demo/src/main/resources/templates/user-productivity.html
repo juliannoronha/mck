@@ -63,7 +63,9 @@
                 </tr>
             </thead>
             <tbody id="productivityTableBody">
-                <!-- Data will be populated here -->
+                <tr id="noDataRow" style="display: none;">
+                    <td colspan="5">No data available</td>
+                </tr>
             </tbody>
         </table>
         <a href="/view-responses" class="button">Back to Responses</a>
@@ -74,9 +76,15 @@
 
         function updateTable(users) {
             console.log('Updating table with users:', users);
-            tableBody.innerHTML = '';
-            users.forEach(user => {
-                const row = `
+            const tableBody = document.getElementById('productivityTableBody');
+            const noDataRow = document.getElementById('noDataRow');
+
+            if (users.length === 0) {
+                tableBody.innerHTML = '';
+                noDataRow.style.display = 'table-row';
+            } else {
+                noDataRow.style.display = 'none';
+                tableBody.innerHTML = users.map(user => `
                     <tr>
                         <td>${user.username}</td>
                         <td>${user.totalSubmissions}</td>
@@ -84,9 +92,8 @@
                         <td>${user.avgTimeDuration}</td>
                         <td>${user.avgPouchesPerHour.toFixed(2)}</td>
                     </tr>
-                `;
-                tableBody.innerHTML += row;
-            });
+                `).join('');
+            }
             console.log('Table updated');
         }
 

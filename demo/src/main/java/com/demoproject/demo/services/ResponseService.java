@@ -53,8 +53,11 @@ public class ResponseService {
 
     @Transactional
     public void deleteResponse(Long id) {
-        userAnswerRepository.deleteById(id);
-        userProductivityService.notifyProductivityUpdate();
+        UserAnswer userAnswer = userAnswerRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Response not found with id: " + id));
+        
+        // The cascading delete will take care of deleting the related Pac entity
+        userAnswerRepository.delete(userAnswer);
     }
 
     public Page<UserAnswer> getAllResponses(Pageable pageable) {

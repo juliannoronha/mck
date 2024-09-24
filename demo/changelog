@@ -1,5 +1,27 @@
-## Version 1.4.23
+## [V1.4.52] - [September 24th, 2024]
 
+### Added
+- Implemented Server-Sent Events (SSE) for real-time updates on the packmed.html dashboard
+- Added initial data send in ProductivityController to ensure immediate dashboard population
+
+### Changed
+- Updated UserProductivityService to handle SSE emitters more efficiently
+- Modified packmed.js to use EventSource for live updates
+- Improved error handling and reconnection logic in SSE setup
+
+### Fixed
+- Resolved HttpMediaTypeNotAcceptableException in ProductivityController
+- Addressed SSE connection timeout issues
+- Improved handling of AsyncRequestTimeoutException
+
+### Performance
+- Optimized dashboard update mechanism for better real-time performance
+
+### Security
+- Ensured SSE implementation adheres to existing security protocols
+
+
+## Version 1.4.23
 
 Removed "Average Pouches Checked" feature
 

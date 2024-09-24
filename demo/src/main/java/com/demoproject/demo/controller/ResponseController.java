@@ -14,7 +14,6 @@ import com.demoproject.demo.services.ResponseService;
 import org.springframework.ui.Model;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class ResponseController {
@@ -55,14 +54,15 @@ public class ResponseController {
 
     @PostMapping("/delete-response")
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
-    public String deleteResponse(@RequestParam Long id, RedirectAttributes redirectAttributes) {
+    public ResponseEntity<String> deleteResponse(@RequestParam Long id) {
         try {
             responseService.deleteResponse(id);
-            redirectAttributes.addFlashAttribute("successMessage", "Response deleted successfully.");
+            return ResponseEntity.ok("Response deleted successfully.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Error deleting response: " + e.getMessage());
+            e.printStackTrace(); // This will print the stack trace to the console
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                 .body("Error deleting response: " + e.getMessage() + ". Check server logs for details.");
         }
-        return "redirect:/view-responses";
     }
 
     @GetMapping("/view-responses")

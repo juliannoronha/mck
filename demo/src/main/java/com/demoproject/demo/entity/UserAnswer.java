@@ -59,6 +59,6 @@ public class UserAnswer {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @OneToOne(mappedBy = "userAnswer", fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "userAnswer", cascade = CascadeType.ALL, orphanRemoval = true)
     private Pac pac;
 }

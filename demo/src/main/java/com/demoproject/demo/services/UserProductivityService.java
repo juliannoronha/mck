@@ -146,9 +146,9 @@ public class UserProductivityService {
 
     public List<UserProductivityDTO> getUserProductivityData() {
         List<UserProductivityDTO> productivityData = new ArrayList<>();
-        List<User> users = userRepository.findAll();
+        List<User> usersWithSubmissions = userRepository.findUsersWithSubmissions();
 
-        for (User user : users) {
+        for (User user : usersWithSubmissions) {
             List<Pac> userPacs = pacRepository.findByUserAnswer_User_Username(user.getUsername());
             
             int totalSubmissions = userPacs.size();
@@ -158,8 +158,8 @@ public class UserProductivityService {
                 .sum();
 
             double avgPouchesPerHour = totalMinutes > 0 ? (totalPouchesChecked * 60.0) / totalMinutes : 0;
-            String avgTimeDuration = String.format("%d:%02d", totalMinutes / (totalSubmissions > 0 ? totalSubmissions : 1) / 60, 
-                                                   totalMinutes / (totalSubmissions > 0 ? totalSubmissions : 1) % 60);
+            String avgTimeDuration = String.format("%d:%02d", totalMinutes / totalSubmissions / 60, 
+                                                   totalMinutes / totalSubmissions % 60);
 
             productivityData.add(new UserProductivityDTO(
                 user.getUsername(),
