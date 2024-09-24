@@ -9,13 +9,14 @@ import org.springframework.data.domain.Pageable;
 
 import com.demoproject.demo.dto.UserProductivityDTO;
 import com.demoproject.demo.entity.UserAnswer;
+import com.demoproject.demo.repository.UserRepository;
 import com.demoproject.demo.entity.Pac;
+import com.demoproject.demo.entity.User;
 import com.demoproject.demo.repository.UserAnswerRepository;
 import com.demoproject.demo.repository.PacRepository;
 
 import java.util.*;
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.io.IOException;
 
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -24,12 +25,22 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 public class UserProductivityService {
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PacRepository pacRepository;
+
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
     private final UserAnswerRepository userAnswerRepository;
-    private final PacRepository pacRepository;
 
     public UserProductivityService(UserAnswerRepository userAnswerRepository, PacRepository pacRepository) {
         this.userAnswerRepository = userAnswerRepository;
@@ -120,12 +131,46 @@ public class UserProductivityService {
         emitters.removeAll(deadEmitters);
     }
 
+    public void sendOverallProductivityUpdate() {
+        UserProductivityDTO overallProductivity = getOverallProductivity();
+        List<SseEmitter> deadEmitters = new ArrayList<>();
+        this.emitters.forEach(emitter -> {
+            try {
+                emitter.send(SseEmitter.event().data(overallProductivity));
+            } catch (IOException e) {
+                deadEmitters.add(emitter);
+            }
+        });
+        this.emitters.removeAll(deadEmitters);
+    }
+
     public List<UserProductivityDTO> getUserProductivityData() {
-        List<Object[]> results = userAnswerRepository.getUserProductivityData();
-        logger.info("Retrieved {} user productivity records", results.size());
-        List<UserProductivityDTO> dtos = results.stream().map(this::mapToUserProductivityDTO).collect(Collectors.toList());
-        logger.info("Mapped UserProductivityDTO objects: {}", dtos);
-        return dtos;
+        List<UserProductivityDTO> productivityData = new ArrayList<>();
+        List<User> users = userRepository.findAll();
+
+        for (User user : users) {
+            List<Pac> userPacs = pacRepository.findByUserAnswer_User_Username(user.getUsername());
+            
+            int totalSubmissions = userPacs.size();
+            int totalPouchesChecked = userPacs.stream().mapToInt(Pac::getPouchesChecked).sum();
+            long totalMinutes = userPacs.stream()
+                .mapToLong(pac -> Duration.between(pac.getStartTime(), pac.getEndTime()).toMinutes())
+                .sum();
+
+            double avgPouchesPerHour = totalMinutes > 0 ? (totalPouchesChecked * 60.0) / totalMinutes : 0;
+            String avgTimeDuration = String.format("%d:%02d", totalMinutes / (totalSubmissions > 0 ? totalSubmissions : 1) / 60, 
+                                                   totalMinutes / (totalSubmissions > 0 ? totalSubmissions : 1) % 60);
+
+            productivityData.add(new UserProductivityDTO(
+                user.getUsername(),
+                (long) totalSubmissions,
+                (long) totalPouchesChecked,
+                avgTimeDuration,
+                avgPouchesPerHour
+            ));
+        }
+
+        return productivityData;
     }
 
     private UserProductivityDTO mapToUserProductivityDTO(Object[] result) {
@@ -145,5 +190,10 @@ public class UserProductivityService {
             avgTimeDuration,
             avgPouchesPerHour
         );
+    }
+
+    // Call this method whenever the productivity data changes
+    public void updateProductivity() {
+        sendOverallProductivityUpdate();
     }
 }

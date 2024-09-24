@@ -44,8 +44,10 @@ public class ResponseController {
         }
 
         try {
+            // Set the storeId for the Pac entity
+            pac.setStoreId(userAnswer.getStore());
             responseService.submitUserAnswer(userAnswer, pac, authentication.getName());
-            return ResponseEntity.ok("Questions submitted successfully");
+            return ResponseEntity.ok("Response submitted successfully!");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error submitting questions: " + e.getMessage());
         }

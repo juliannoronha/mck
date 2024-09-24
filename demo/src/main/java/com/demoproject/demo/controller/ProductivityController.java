@@ -109,4 +109,20 @@ public class ProductivityController {
         logger.debug("Retrieved {} user productivity records", productivityData.getContent().size());
         return ResponseEntity.ok(productivityData);
     }
+
+    @GetMapping(value = "/api/overall-productivity-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamOverallProductivity() {
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        this.userProductivityService.addEmitter(emitter);
+        emitter.onCompletion(() -> this.userProductivityService.removeEmitter(emitter));
+        emitter.onTimeout(() -> this.userProductivityService.removeEmitter(emitter));
+
+        // Send initial data
+        try {
+            emitter.send(SseEmitter.event().data(userProductivityService.getOverallProductivity()));
+        } catch (IOException e) {
+            emitter.completeWithError(e);
+        }
+        return emitter;
+    }
 }

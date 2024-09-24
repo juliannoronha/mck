@@ -143,6 +143,29 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    function updateDashboard(data) {
+        document.getElementById('totalSubmissions').textContent = data.totalSubmissions ?? 'N/A';
+        document.getElementById('avgTimeDuration').textContent = data.avgTimeDuration ?? 'N/A';
+        document.getElementById('avgPouchesPerHour').textContent = 
+            data.avgPouchesPerHour != null ? data.avgPouchesPerHour.toFixed(2) : 'N/A';
+        document.getElementById('totalPouchesChecked').textContent = data.totalPouchesChecked ?? 'N/A';
+    }
+
+    function setupSSEConnection() {
+        const eventSource = new EventSource('/api/overall-productivity-stream');
+        eventSource.onmessage = function(event) {
+            console.log('Received SSE event:', event);
+            const data = JSON.parse(event.data);
+            updateDashboard(data);
+        };
+        eventSource.onerror = function(error) {
+            console.error('Error in SSE connection:', error);
+            eventSource.close();
+            // Attempt to reconnect after a delay
+            setTimeout(setupSSEConnection, 5000);
+        };
+    }
+
     // Call this function when the page loads
-    fetchOverallProductivity();
+    setupSSEConnection();
 });
