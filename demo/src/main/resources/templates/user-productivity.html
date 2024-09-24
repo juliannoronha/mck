@@ -60,7 +60,6 @@
                     <th>Total Pouches Checked</th>
                     <th>Average Time Duration</th>
                     <th>Average Pouches per Hour</th>
-                    <th>Average Pouches Checked</th>
                 </tr>
             </thead>
             <tbody id="productivityTableBody">
@@ -84,7 +83,6 @@
                         <td>${user.totalPouchesChecked}</td>
                         <td>${user.avgTimeDuration}</td>
                         <td>${user.avgPouchesPerHour.toFixed(2)}</td>
-                        <td>${user.avgPouchesChecked.toFixed(2)}</td>
                     </tr>
                 `;
                 tableBody.innerHTML += row;

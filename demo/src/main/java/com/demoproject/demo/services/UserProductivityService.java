@@ -89,15 +89,13 @@ public class UserProductivityService {
         String avgTimeDuration = String.format("%d:%02d", totalMinutes / (totalSubmissions > 0 ? totalSubmissions : 1) / 60, 
                                                totalMinutes / (totalSubmissions > 0 ? totalSubmissions : 1) % 60);
         
-        double avgPouchesChecked = totalSubmissions > 0 ? (double) totalPouchesChecked / totalSubmissions : 0;
 
         return new UserProductivityDTO(
             "Overall",
             (long) totalSubmissions,
             (long) totalPouchesChecked,
             avgTimeDuration,
-            avgPouchesPerHour,
-            avgPouchesChecked
+            avgPouchesPerHour
         );
     }
 
@@ -137,18 +135,16 @@ public class UserProductivityService {
         String avgTimeDuration = (String) result[2];
         double avgPouchesPerHour = result[3] instanceof Number ? ((Number) result[3]).doubleValue() : 0.0;
         long totalPouchesChecked = ((Number) result[4]).longValue();
-        double avgPouchesChecked = result[5] instanceof Number ? ((Number) result[5]).doubleValue() : 0.0;
 
-        logger.debug("Mapping user productivity: username={}, totalSubmissions={}, avgTimeDuration={}, avgPouchesPerHour={}, totalPouchesChecked={}, avgPouchesChecked={}",
-                     username, totalSubmissions, avgTimeDuration, avgPouchesPerHour, totalPouchesChecked, avgPouchesChecked);
+        logger.debug("Mapping user productivity: username={}, totalSubmissions={}, avgTimeDuration={}, avgPouchesPerHour={}, totalPouchesChecked={}",
+                     username, totalSubmissions, avgTimeDuration, avgPouchesPerHour, totalPouchesChecked);
 
         return new UserProductivityDTO(
             username,
             totalSubmissions,
             totalPouchesChecked,
             avgTimeDuration,
-            avgPouchesPerHour,
-            avgPouchesChecked
+            avgPouchesPerHour
         );
     }
 }

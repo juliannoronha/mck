@@ -6,16 +6,14 @@ public class UserProductivityDTO {
     private long totalPouchesChecked;
     private String avgTimeDuration;
     private double avgPouchesPerHour;
-    private double avgPouchesChecked;
 
     public UserProductivityDTO(String username, long totalSubmissions, long totalPouchesChecked, 
-                               String avgTimeDuration, double avgPouchesPerHour, double avgPouchesChecked) {
+                               String avgTimeDuration, double avgPouchesPerHour) {
         this.username = username;
         this.totalSubmissions = totalSubmissions;
         this.totalPouchesChecked = totalPouchesChecked;
         this.avgTimeDuration = avgTimeDuration;
         this.avgPouchesPerHour = avgPouchesPerHour;
-        this.avgPouchesChecked = avgPouchesChecked;
     }
 
     // Getters and setters
@@ -57,13 +55,5 @@ public class UserProductivityDTO {
 
     public void setAvgPouchesPerHour(double avgPouchesPerHour) {
         this.avgPouchesPerHour = avgPouchesPerHour;
-    }
-
-    public double getAvgPouchesChecked() {
-        return avgPouchesChecked;
-    }
-
-    public void setAvgPouchesChecked(double avgPouchesChecked) {
-        this.avgPouchesChecked = avgPouchesChecked;
     }
 }
