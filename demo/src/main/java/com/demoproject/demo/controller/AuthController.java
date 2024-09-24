@@ -145,8 +145,13 @@ public class AuthController {
     @PostMapping("/users/delete")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteUser(@RequestParam String username) {
-        userService.deleteUser(username);
-        return ResponseEntity.ok().build();
+        try {
+            userService.deleteUser(username);
+            return ResponseEntity.ok().body("User deleted successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error deleting user: " + e.getMessage());
+        }
     }
 
     @GetMapping("/packmed")

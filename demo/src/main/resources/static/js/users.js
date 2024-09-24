@@ -58,4 +58,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+function deleteUser(username) {
+    const token = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+    const header = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+    fetch('/users/delete?username=' + encodeURIComponent(username), {
+        method: 'POST',
+        headers: {
+            [header]: token
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.text();
+    })
+    .then(data => {
+        alert(data);
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error deleting user: ' + error.message);
+    });
+}
+
 /*]]>*/

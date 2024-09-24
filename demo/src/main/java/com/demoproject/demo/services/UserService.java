@@ -11,6 +11,7 @@ import com.demoproject.demo.dto.UserProductivityDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.demoproject.demo.entity.User;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service class for managing user-related operations.
@@ -54,9 +55,11 @@ public class UserService {
      *
      * @param username the username of the user to delete
      */
+    @Transactional
     public void deleteUser(String username) {
-        logger.info("Deleting user: {}", username);
-        deletionService.deleteUser(username);
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        userRepository.delete(user);
     }
 
     /**
