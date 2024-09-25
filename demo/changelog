@@ -1,3 +1,80 @@
+## [Version 2] - [September 25th 2024]
+
+
+
+### Server-Sent Events (SSE) Implementation
+= Real-time updates for the dashboard on packmed.html
+- Automatic reconnection logic for SSE in case of connection loss
+
+### Enhanced User Interface
+- Responsive design with flexbox layout
+- Dark theme implementation
+- Custom styled form inputs and buttons
+- Dashboard card for ADMIN and MODERATOR roles
+
+### Improved Form Validation
+- Client-side validation for time inputs and pouches checked
+= Real-time error messaging for invalid inputs
+
+### Role-Based Access Control
+- Different views and functionalities for CHECKER, ADMIN, and MODERATOR roles
+- Secure endpoints with @PreAuthorize annotations
+
+### CSRF Protection
+- Implementation of CSRF tokens for form submissions
+
+### Productivity Tracking - PacMed
+= Calculation and display for total submissions, total pouches checked, average time duration, and average pouches per hour
+- Caching of overall productivity data for improved performance
+
+### Error Handling and Logging
+- Global exception handling for various scenarios (AccessDeniedException, DataIntegrityViolationException, etc.)
+- Detailed logging throughout the application for easier debugging and monitoring
+
+### Database Integration
+= Use of JPA repositories for data persistence
+= Support for both H2 and PostgreSQL databases
+
+### RESTful API Endpoints
+- Endpoints for fetching user productivity, overall productivity, and streaming real-time updates
+
+### Thymeleaf Template Integration
+- Server-side rendering of HTML pages with dynamic content
+
+### Asynchronous Form Submission
+- AJAX-based form submission for improved user experience
+
+### Time Input Handling:
+- Custom time input fields with validation and min/max time constraints
+
+### Modular Service Architecture:
+- Separation of concerns with dedicated services for user registration, productivity tracking, and data migration.
+
+### Caching
+- Implementation of caching for frequently accessed data to improve performance
+
+### Pagination
+- Support for paginated results in user productivity data retrieval
+
+### Security Features
+- Password encoding for user registration
+- Logout functionality with CSRF protection
+
+### Internationalization Support
+- Use of Thymeleaf for potential easy integration of multi-language support
+
+### Responsive Dashboard
+- Real-time updating dashboard for admins and moderators
+
+### Custom CSS Styling:
+- Comprehensive custom styling for a cohesive look and feel across the application
+
+### Data Migration Service
+- A service in place for potential data migration tasks
+
+
+
+
 ## [V1.4.52] - [September 24th, 2024]
 
 ### Added
@@ -21,7 +98,9 @@
 - Ensured SSE implementation adheres to existing security protocols
 
 
-## Version 1.4.23
+
+
+## Version [V1.4.23]
 
 Removed "Average Pouches Checked" feature
 
