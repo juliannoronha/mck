@@ -83,9 +83,3 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 ## License
 
 This software was developed for McKesson. All rights to this software belong to McKesson. For licensing inquiries, please contact McKesson's legal department.
-
-## Acknowledgments
-
-- Hat tip to anyone whose code was used
-- Inspiration
-- etc.
