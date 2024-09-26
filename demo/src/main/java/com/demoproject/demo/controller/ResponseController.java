@@ -4,7 +4,6 @@ import com.demoproject.demo.entity.UserAnswer;
 import com.demoproject.demo.entity.Pac;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.validation.BindingResult;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,7 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;  // Add this import
+import java.util.Map;  
+import java.time.format.DateTimeParseException;
 
 @Controller
 public class ResponseController {
@@ -41,6 +41,7 @@ public class ResponseController {
     @ResponseBody
     public ResponseEntity<String> submitQuestions(@RequestBody Map<String, String> pacData, Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
+            logger.warn("Unauthorized access attempt to submit questions");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
         }
 
@@ -54,10 +55,17 @@ public class ResponseController {
 
             UserAnswer userAnswer = new UserAnswer();
             responseService.submitUserAnswer(userAnswer, pac, authentication.getName());
+            logger.info("User {} successfully submitted a response", authentication.getName());
             return ResponseEntity.ok("Response submitted successfully!");
+        } catch (DateTimeParseException e) {
+            logger.error("Error parsing time input: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid time format provided");
+        } catch (NumberFormatException e) {
+            logger.error("Error parsing pouches checked: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid number format for pouches checked");
         } catch (Exception e) {
             logger.error("Error submitting questions", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error submitting questions: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred while submitting questions");
         }
     }
 
