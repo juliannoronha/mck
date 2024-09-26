@@ -71,6 +71,10 @@ public class ResponseService {
     }
 
     public Page<UserAnswer> getAllResponsesWithPac(Pageable pageable) {
-        return userAnswerRepository.findAllWithPac(pageable);
+        return userAnswerRepository.findAllWithPacOrderBySubmissionDateAsc(pageable);
+    }
+
+    public Page<UserAnswer> getAllResponsesWithPacSortedByDateDesc(Pageable pageable) {
+        return userAnswerRepository.findAllWithPacOrderBySubmissionDateAsc(pageable);
     }
 }

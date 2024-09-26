@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.dao.DataIntegrityViolationException;
 
@@ -57,5 +58,14 @@ public class GlobalExceptionHandler {
         logger.error("Database error occurred", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("An error occurred while processing your request. Please try again later.");
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<String> handleNoResourceFoundException(NoResourceFoundException ex) {
+        if (ex.getMessage().contains("favicon.ico")) {
+            return ResponseEntity.ok().build(); // Return empty OK response for favicon
+        }
+        // Handle other resource not found exceptions
+        return ResponseEntity.notFound().build();
     }
 }
