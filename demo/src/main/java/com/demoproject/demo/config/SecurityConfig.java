@@ -20,6 +20,8 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.http.HttpMethod;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Configuration class for Spring Security settings.
@@ -32,6 +34,7 @@ import org.springframework.http.HttpMethod;
 @EnableAspectJAutoProxy
 public class SecurityConfig {
     private final UserRepository userRepository;
+    private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
 
     /**
      * Constructor for SecurityConfig.
@@ -95,19 +98,29 @@ public class SecurityConfig {
             .formLogin(form -> form
                 .loginPage("/login")
                 .defaultSuccessUrl("/home", true)
+                .failureHandler((request, response, exception) -> {
+                    logger.warn("Failed login attempt: {}", exception.getMessage());
+                    response.sendRedirect("/login?error");
+                })
                 .permitAll()
             )
             .logout(logout -> logout
                 .logoutSuccessUrl("/login?logout")
                 .permitAll()
             )
-
             .exceptionHandling(exceptionHandling -> exceptionHandling
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    logger.warn("Access denied: {}", accessDeniedException.getMessage());
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    response.getWriter().write("ACCESS_DENIED");
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"ACCESS_DENIED\", \"message\": \"You do not have permission to access this resource\"}");
                     response.getWriter().flush();
                 })
+            )
+            .sessionManagement(session -> session
+                .sessionFixation().migrateSession()
+                .maximumSessions(1)
+                .expiredUrl("/login?expired")
             )
         ;
 

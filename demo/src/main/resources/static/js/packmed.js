@@ -35,9 +35,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Existing form submission code
     form.addEventListener('submit', function(e) {
         e.preventDefault();
+        
+        // Clear previous error messages
+        document.querySelectorAll('.error').forEach(el => el.textContent = '');
+
+        // Validate form inputs
+        let isValid = true;
+        if (!validateTimeInput(startTime)) {
+            document.getElementById('startTimeError').textContent = 'Please enter a valid time';
+            isValid = false;
+        }
+        if (!validateTimeInput(endTime)) {
+            document.getElementById('endTimeError').textContent = 'Please enter a valid time';
+            isValid = false;
+        } else if (endTime.value <= startTime.value) {
+            document.getElementById('endTimeError').textContent = 'End time must be after start time';
+            isValid = false;
+        }
+
+        if (!isValid) {
+            return;
+        }
 
         const formData = new FormData(form);
         const currentDate = new Date().toISOString().split('T')[0]; // Get current date in YYYY-MM-DD format
@@ -54,32 +74,29 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                [csrfHeader]: csrfToken
+                'X-CSRF-TOKEN': csrfToken
             },
             body: JSON.stringify(pacData)
         })
         .then(response => {
             if (!response.ok) {
-                return response.text().then(text => { throw new Error(text) });
+                throw new Error('Network response was not ok');
             }
             return response.text();
         })
-        .then(message => {
-            successMessage.textContent = message;
+        .then(data => {
+            successMessage.textContent = data;
             successMessage.style.display = 'block';
             form.reset();
             setTimeout(() => {
-                successMessage.classList.add('fade-out');
-            }, 3000);
-            setTimeout(() => {
                 successMessage.style.display = 'none';
-                successMessage.classList.remove('fade-out');
-            }, 4000);
+            }, 5000);
         })
         .catch(error => {
             console.error('Error:', error);
-            successMessage.textContent = 'An error occurred while submitting the form: ' + error.message;
+            successMessage.textContent = 'An error occurred. Please try again.';
             successMessage.style.display = 'block';
+            successMessage.style.color = 'red';
         });
     });
 
@@ -100,7 +117,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return isValid;
     }
 
-    // Existing fetchOverallProductivity function
     function fetchOverallProductivity() {
         console.log('Fetching productivity data...');
         fetch('/api/overall-productivity')
@@ -139,18 +155,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupSSEConnection() {
         const eventSource = new EventSource('/api/overall-productivity-stream');
         eventSource.onmessage = function(event) {
-            console.log('Received SSE event:', event);
-            const data = JSON.parse(event.data);
-            updateDashboard(data);
+            try {
+                const data = JSON.parse(event.data);
+                updateDashboard(data);
+            } catch (error) {
+                console.error('Error parsing SSE data:', error);
+            }
         };
         eventSource.onerror = function(error) {
             console.error('Error in SSE connection:', error);
             eventSource.close();
-            // Attempt to reconnect after a delay
             setTimeout(setupSSEConnection, 5000);
         };
     }
 
-    // Call this function when the page loads
     setupSSEConnection();
 });
