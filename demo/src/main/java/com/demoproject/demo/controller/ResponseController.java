@@ -85,9 +85,37 @@ public class ResponseController {
 
     @GetMapping("/view-responses")
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
-    public String viewResponses(Model model, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
-        Page<UserAnswer> responses = responseService.getAllResponsesWithPacSortedByDateDesc(PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "submissionDate")));
+    public String viewResponses(Model model, 
+                            @RequestParam(required = false) String page, 
+                            @RequestParam(defaultValue = "10") int size,
+                            @RequestParam(required = false) String nameFilter,
+                            @RequestParam(required = false) String store,
+                            @RequestParam(required = false) String month) {
+        int pageNumber = 0;
+        if (page != null && !page.isEmpty()) {
+            try {
+                pageNumber = Integer.parseInt(page);
+            } catch (NumberFormatException e) {
+                // Log the error or handle it as needed
+            }
+        }
+
+        Integer monthValue = null;
+        if (month != null && !month.isEmpty() && !month.equals("null")) {
+            try {
+                monthValue = Integer.parseInt(month);
+            } catch (NumberFormatException e) {
+                // Log the error or handle it as needed
+            }
+        }
+        
+        Page<UserAnswer> responses = responseService.getAllResponsesWithFilters(
+            PageRequest.of(pageNumber, size, Sort.by(Sort.Direction.DESC, "submissionDate")), 
+            nameFilter, store, monthValue);
         model.addAttribute("responses", responses);
+        model.addAttribute("nameFilter", nameFilter);
+        model.addAttribute("selectedStore", store);
+        model.addAttribute("selectedMonth", month);
         return "responses";
     }
 }

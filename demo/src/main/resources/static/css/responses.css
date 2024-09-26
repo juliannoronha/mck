@@ -164,3 +164,7 @@ select:invalid {
         order: 1;
     }
 }
+
+.submit-button {
+    margin-right: 10px; /* Adjust this value to increase or decrease the space */
+}

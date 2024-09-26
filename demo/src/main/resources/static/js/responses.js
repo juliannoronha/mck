@@ -1,69 +1,114 @@
 document.addEventListener('DOMContentLoaded', function() {
     if (window.location.protocol !== 'https:') {
         console.warn('This page is not being served over HTTPS. Some features may not work correctly.');
-        // Optionally, you could redirect to HTTPS:
-        // window.location.href = 'https:' + window.location.href.substring(window.location.protocol.length);
     }
 
     const nameFilter = document.getElementById('nameFilter');
+    const submitNameFilterBtn = document.getElementById('submitNameFilter');
     const storeFilter = document.getElementById('storeFilter');
     const monthFilter = document.getElementById('monthFilter');
     const resetFilterBtn = document.getElementById('resetFilter');
     const table = document.getElementById('responsesTable');
-    const rows = table.getElementsByTagName('tr');
 
-    // Function to apply filters and sort
-    function applyFiltersAndSort() {
-        const nameValue = nameFilter.value.toLowerCase();
-        const storeValue = storeFilter.value;
-        const monthValue = monthFilter.value;
-
-        let visibleRows = [];
-
-        for (let i = 1; i < rows.length; i++) {
-            const name = rows[i].cells[0].textContent.toLowerCase();
-            const store = rows[i].cells[3].textContent.trim();
-            const dateStr = rows[i].cells[5].getAttribute('data-sort');
-            const date = new Date(dateStr);
-            const month = date.getMonth() + 1; // getMonth() returns 0-11
-
-            const nameMatch = name.includes(nameValue);
-            const storeMatch = storeValue === '' || store === storeValue;
-            const monthMatch = monthValue === '' || month === parseInt(monthValue);
-
-            if (nameMatch && storeMatch && monthMatch) {
-                rows[i].style.display = '';
-                visibleRows.push(rows[i]);
-            } else {
-                rows[i].style.display = 'none';
-            }
-        }
-
-        // Sort visible rows (most recent first)
-        visibleRows.sort((a, b) => {
-            const dateA = new Date(a.cells[5].getAttribute('data-sort'));
-            const dateB = new Date(b.cells[5].getAttribute('data-sort'));
-            return dateB - dateA;
-        });
-
-        // Reorder the table
+    function updateTable(data) {
         const tbody = table.querySelector('tbody');
-        visibleRows.forEach(row => tbody.appendChild(row));
+        tbody.innerHTML = '';
+        data.content.forEach(response => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${response.user.username}</td>
+                <td>${response.pac.startTime}</td>
+                <td>${response.pac.endTime}</td>
+                <td>${response.pac.store}</td>
+                <td>${response.pac.pouchesChecked}</td>
+                <td data-sort="${response.submissionDate}">${formatDate(response.submissionDate)}</td>
+                <td><button class="delete-btn" data-id="${response.id}">Delete</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+        updatePagination(data);
     }
 
-    // Add event listeners for live filtering
-    nameFilter.addEventListener('input', applyFiltersAndSort);
-    storeFilter.addEventListener('change', applyFiltersAndSort);
-    monthFilter.addEventListener('change', applyFiltersAndSort);
+    function updatePagination(data) {
+        const paginationContainer = document.querySelector('.pagination-container');
+        if (paginationContainer) {
+            paginationContainer.innerHTML = createPaginationHTML(data);
+        }
+    }
 
-    // Reset filter
+    function createPaginationHTML(data) {
+        let html = '<ul class="pagination">';
+        for (let i = 0; i < data.totalPages; i++) {
+            if (i === data.number) {
+                html += `<li class="active"><span>${i + 1}</span></li>`;
+            } else {
+                html += `<li><a href="#" data-page="${i}">${i + 1}</a></li>`;
+            }
+        }
+        html += '</ul>';
+        return html;
+    }
+
+    function formatDate(dateString) {
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString(undefined, options);
+    }
+
+    function fetchFilteredResults(page = 0) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('nameFilter', nameFilter.value);
+        url.searchParams.set('store', storeFilter.value);
+        url.searchParams.set('month', monthFilter.value || '');
+        url.searchParams.set('page', page);
+
+        fetch(url)
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newTable = doc.getElementById('responsesTable');
+                const newPagination = doc.querySelector('.pagination-container');
+
+                if (newTable) {
+                    document.getElementById('responsesTable').innerHTML = newTable.innerHTML;
+                }
+                if (newPagination) {
+                    document.querySelector('.pagination-container').innerHTML = newPagination.innerHTML;
+                }
+                attachPaginationListeners();
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    function attachPaginationListeners() {
+        document.querySelectorAll('.pagination a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = this.getAttribute('data-page');
+                fetchFilteredResults(page);
+            });
+        });
+    }
+
+    submitNameFilterBtn.addEventListener('click', function() {
+        fetchFilteredResults();
+    });
+
+    storeFilter.addEventListener('change', function() {
+        fetchFilteredResults();
+    });
+
+    monthFilter.addEventListener('change', function() {
+        fetchFilteredResults();
+    });
+
     resetFilterBtn.addEventListener('click', function() {
         nameFilter.value = '';
         storeFilter.value = '';
         monthFilter.value = '';
-        applyFiltersAndSort();
+        fetchFilteredResults();
     });
 
-    // Initial sort
-    applyFiltersAndSort();
+    // Initial load
+    attachPaginationListeners();
 });
