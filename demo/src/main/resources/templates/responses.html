@@ -67,7 +67,7 @@
                     <td th:text="${response.user != null ? response.user.username : ''}"></td>
                     <td th:text="${response.pac != null ? #temporals.format(response.pac.startTime, 'HH:mm') : ''}"></td>
                     <td th:text="${response.pac != null ? #temporals.format(response.pac.endTime, 'HH:mm') : ''}"></td>
-                    <td th:text="${response.pac != null ? response.pac.storeId : ''}"></td>
+                    <td th:text="${response.pac != null ? response.pac.store : ''}"></td>
                     <td th:text="${response.pac != null ? response.pac.pouchesChecked : ''}"></td>
                     <td th:text="${#temporals.format(response.submissionDate, 'MMMM d, yyyy')}"
                         th:attr="data-sort=${response.submissionDate}"></td>

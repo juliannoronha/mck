@@ -14,11 +14,17 @@ import com.demoproject.demo.services.ResponseService;
 import org.springframework.ui.Model;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;  // Add this import
 
 @Controller
 public class ResponseController {
 
     private final ResponseService responseService;
+    private static final Logger logger = LoggerFactory.getLogger(ResponseController.class);
 
     public ResponseController(ResponseService responseService) {
         this.responseService = responseService;
@@ -33,21 +39,24 @@ public class ResponseController {
     @PostMapping("/submit-questions")
     @RequiresAuthentication
     @ResponseBody
-    public ResponseEntity<String> submitQuestions(@ModelAttribute UserAnswer userAnswer, @ModelAttribute Pac pac, BindingResult bindingResult, Authentication authentication) {
+    public ResponseEntity<String> submitQuestions(@RequestBody Map<String, String> pacData, Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
         }
 
-        if (bindingResult.hasErrors()) {
-            return ResponseEntity.badRequest().body("Invalid input");
-        }
-
         try {
-            // Set the storeId for the Pac entity
-            pac.setStoreId(userAnswer.getStore());
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+            Pac pac = new Pac();
+            pac.setStore(pacData.get("store"));
+            pac.setStartTime(LocalTime.parse(pacData.get("startTime").split("T")[1], formatter));
+            pac.setEndTime(LocalTime.parse(pacData.get("endTime").split("T")[1], formatter));
+            pac.setPouchesChecked(Integer.parseInt(pacData.get("pouchesChecked")));
+
+            UserAnswer userAnswer = new UserAnswer();
             responseService.submitUserAnswer(userAnswer, pac, authentication.getName());
             return ResponseEntity.ok("Response submitted successfully!");
         } catch (Exception e) {
+            logger.error("Error submitting questions", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error submitting questions: " + e.getMessage());
         }
     }

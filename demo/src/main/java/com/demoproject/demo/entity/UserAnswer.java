@@ -39,18 +39,6 @@ public class UserAnswer {
     private String name;
 
     /**
-     * The store associated with this user answer.
-     */
-    @Column(nullable = false, length = 20)
-    private String store;
-
-    /**
-     * The number of pouches checked by the user.
-     */
-    @Column(name = "pouches_checked")
-    private Integer pouchesChecked;
-
-    /**
      * The date of submission.
      */
     private LocalDate submissionDate;
