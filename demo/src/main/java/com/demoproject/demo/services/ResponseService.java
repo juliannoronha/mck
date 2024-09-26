@@ -74,7 +74,17 @@ public class ResponseService {
         return userAnswerRepository.findAllWithPac(pageable);
     }
 
-    public Page<UserAnswer> getAllResponsesWithPacSortedByDateDesc(Pageable pageable) {
+    public Page<UserAnswer> getAllResponsesWithPacSortedByDateDesc(Pageable pageable, String nameFilter) {
+        if (nameFilter != null && !nameFilter.isEmpty()) {
+            return userAnswerRepository.findAllWithPacAndNameFilter(pageable, nameFilter.toLowerCase());
+        }
         return userAnswerRepository.findAllWithPac(pageable);
+    }
+
+    public Page<UserAnswer> getAllResponsesWithFilters(Pageable pageable, String nameFilter, String store, Integer month) {
+        return userAnswerRepository.findAllWithFilters(pageable, 
+            nameFilter != null && !nameFilter.isEmpty() ? nameFilter.toLowerCase() : null, 
+            store != null && !store.isEmpty() ? store : null, 
+            month);
     }
 }

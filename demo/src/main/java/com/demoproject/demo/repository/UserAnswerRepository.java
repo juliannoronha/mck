@@ -3,6 +3,7 @@ package com.demoproject.demo.repository;
 import com.demoproject.demo.entity.UserAnswer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
@@ -37,4 +38,17 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
 
     @Query("SELECT ua FROM UserAnswer ua LEFT JOIN FETCH ua.pac LEFT JOIN FETCH ua.user")
     Page<UserAnswer> findAllWithPac(Pageable pageable);
+
+    @Query("SELECT ua FROM UserAnswer ua LEFT JOIN FETCH ua.pac LEFT JOIN FETCH ua.user " +
+           "WHERE LOWER(ua.user.username) LIKE %:nameFilter%")
+    Page<UserAnswer> findAllWithPacAndNameFilter(Pageable pageable, String nameFilter);
+
+    @Query("SELECT ua FROM UserAnswer ua LEFT JOIN FETCH ua.pac LEFT JOIN FETCH ua.user " +
+           "WHERE (:nameFilter IS NULL OR LOWER(ua.user.username) LIKE %:nameFilter%) " +
+           "AND (:store IS NULL OR ua.pac.store = :store) " +
+           "AND (:month IS NULL OR MONTH(ua.submissionDate) = :month)")
+    Page<UserAnswer> findAllWithFilters(Pageable pageable, 
+                                    @Param("nameFilter") String nameFilter,
+                                    @Param("store") String store,
+                                    @Param("month") Integer month);
 }

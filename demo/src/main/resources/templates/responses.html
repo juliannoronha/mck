@@ -21,7 +21,7 @@
         <!-- Remove the style="display: none;" attribute -->
         <div class="filter-panel" id="filterPanel">
             <div class="filter-row">
-                <input type="text" id="nameFilter" placeholder="Filter by Name">
+                <input type="text" id="nameFilter" placeholder="Filter by Name" th:value="${nameFilter}">
                 <select id="storeFilter">
                     <option value="" disabled selected>All Stores</option>
                     <option value="Vanier">Vanier</option>
@@ -44,7 +44,8 @@
                 </select>
             </div>
             <div class="button-row">
-                <button id="resetFilter" button = "button filter-button">Reset Filters</button>
+                <button id="submitNameFilter" class="button">Submit</button>
+                <button id="resetFilter" class="button">Reset Filters</button>
             </div>
         </div>
 
@@ -91,18 +92,18 @@
     <div th:if="${responses.totalPages > 1}" class="pagination-container">
         <ul class="pagination">
             <li th:class="${responses.first ? 'disabled' : ''}">
-                <a th:if="${not responses.first}" th:href="@{/view-responses(page=${responses.number-1},size=${responses.size})}">Previous</a>
+                <a th:if="${not responses.first}" th:href="@{/view-responses(page=${responses.number-1},size=${responses.size},nameFilter=${nameFilter},store=${selectedStore},month=${selectedMonth})}" th:attr="data-page=${responses.number-1}">Previous</a>
                 <span th:if="${responses.first}">Previous</span>
             </li>
 
             <li th:each="pageNo : ${#numbers.sequence(0, responses.totalPages - 1)}"
                 th:class="${pageNo == responses.number ? 'active' : ''}">
-                <a th:if="${pageNo != responses.number}" th:href="@{/view-responses(page=${pageNo},size=${responses.size})}" th:text="${pageNo + 1}"></a>
+                <a th:if="${pageNo != responses.number}" th:href="@{/view-responses(page=${pageNo},size=${responses.size},nameFilter=${nameFilter},store=${selectedStore},month=${selectedMonth})}" th:text="${pageNo + 1}" th:attr="data-page=${pageNo}"></a>
                 <span th:if="${pageNo == responses.number}" th:text="${pageNo + 1}"></span>
             </li>
 
             <li th:class="${responses.last ? 'disabled' : ''}">
-                <a th:if="${not responses.last}" th:href="@{/view-responses(page=${responses.number+1},size=${responses.size})}">Next</a>
+                <a th:if="${not responses.last}" th:href="@{/view-responses(page=${responses.number+1},size=${responses.size},nameFilter=${nameFilter},store=${selectedStore},month=${selectedMonth})}" th:attr="data-page=${responses.number+1}">Next</a>
                 <span th:if="${responses.last}">Next</span>
             </li>
         </ul>
