@@ -35,6 +35,6 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
            nativeQuery = true)
     Page<Object[]> getUserProductivityDataPaginated(Pageable pageable);
 
-    @Query("SELECT ua FROM UserAnswer ua LEFT JOIN FETCH ua.pac LEFT JOIN FETCH ua.user")
-    Page<UserAnswer> findAllWithPac(Pageable pageable);
+    @Query("SELECT ua FROM UserAnswer ua LEFT JOIN FETCH ua.pac LEFT JOIN FETCH ua.user ORDER BY ua.submissionDate ASC")
+    Page<UserAnswer> findAllWithPacOrderBySubmissionDateAsc(Pageable pageable);
 }

@@ -77,7 +77,7 @@ public class ResponseController {
     @GetMapping("/view-responses")
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
     public String viewResponses(Model model, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
-        Page<UserAnswer> responses = responseService.getAllResponsesWithPac(PageRequest.of(page, size));
+        Page<UserAnswer> responses = responseService.getAllResponsesWithPacSortedByDateDesc(PageRequest.of(page, size));
         model.addAttribute("responses", responses);
         return "responses";
     }

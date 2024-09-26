@@ -39,12 +39,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Sort visible rows
+        // Sort visible rows in ascending order (most recent last)
         visibleRows.sort((a, b) => {
             const dateA = new Date(a.cells[5].getAttribute('data-sort'));
             const dateB = new Date(b.cells[5].getAttribute('data-sort'));
-            return dateA - dateB;
+            return dateA - dateB; // Changed to dateA - dateB for ascending order
         });
+
+        // Reverse the order of visibleRows to display most recent at the top
+        visibleRows.reverse();
 
         // Reorder the table
         const tbody = table.querySelector('tbody');
