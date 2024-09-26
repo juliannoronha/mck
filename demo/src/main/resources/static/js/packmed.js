@@ -39,61 +39,46 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', function(e) {
         e.preventDefault();
 
-        if (!validateForm()) {
-            return;
-        }
-
         const formData = new FormData(form);
-        
-        // Add CSRF token if it's enabled
-        const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
-        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+        const currentDate = new Date().toISOString().split('T')[0]; // Get current date in YYYY-MM-DD format
+        const pacData = {
+            store: formData.get('store'),
+            startTime: `${currentDate}T${formData.get('startTime')}:00`,
+            endTime: `${currentDate}T${formData.get('endTime')}:00`,
+            pouchesChecked: parseInt(formData.get('pouchesChecked'))
+        };
 
-        const startTimeValue = document.getElementById('startTime').value;
-        const endTimeValue = document.getElementById('endTime').value;
-
-        // Use current date for both start and end times
-        const currentDate = new Date().toISOString().split('T')[0];
-        const startDateTime = `${currentDate}T${startTimeValue}:00`;
-        const endDateTime = `${currentDate}T${endTimeValue}:00`;
-
-        // Replace the time inputs with the full date-time strings
-        formData.set('startTime', startDateTime);
-        formData.set('endTime', endDateTime);
+        console.log('Submitting data:', pacData); // Log the data being sent
 
         fetch('/submit-questions', {
             method: 'POST',
-            body: formData,
-            headers: csrfHeader ? {
+            headers: {
+                'Content-Type': 'application/json',
                 [csrfHeader]: csrfToken
-            } : {},
-            credentials: 'same-origin'
+            },
+            body: JSON.stringify(pacData)
         })
         .then(response => {
-            console.log('Response status:', response.status);
+            if (!response.ok) {
+                return response.text().then(text => { throw new Error(text) });
+            }
             return response.text();
         })
-        .then(data => {
-            console.log('Response data:', data);
-            successMessage.innerHTML = data;
+        .then(message => {
+            successMessage.textContent = message;
             successMessage.style.display = 'block';
             form.reset();
-
-            // Hide the success message after 3 seconds
+            setTimeout(() => {
+                successMessage.classList.add('fade-out');
+            }, 3000);
             setTimeout(() => {
                 successMessage.style.display = 'none';
-            }, 3000);
-
-            // Refresh the dashboard data
-            fetchOverallProductivity();
+                successMessage.classList.remove('fade-out');
+            }, 4000);
         })
         .catch(error => {
             console.error('Error:', error);
-            let errorMessage = 'An error occurred while submitting the form.';
-            if (error instanceof TypeError && error.message.includes('NetworkError')) {
-                errorMessage += ' This might be due to a secure connection issue. Please ensure you\'re using HTTPS.';
-            }
-            successMessage.innerHTML = errorMessage;
+            successMessage.textContent = 'An error occurred while submitting the form: ' + error.message;
             successMessage.style.display = 'block';
         });
     });

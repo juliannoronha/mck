@@ -2,7 +2,7 @@
 CREATE TABLE pac (
     id BIGSERIAL PRIMARY KEY,
     user_answer_id BIGINT NOT NULL,
-    store_id VARCHAR(255) NOT NULL,
+    store VARCHAR(255) NOT NULL,
     start_time TIMESTAMP,
     end_time TIMESTAMP,
     pouches_checked INTEGER,
@@ -10,9 +10,16 @@ CREATE TABLE pac (
 );
 
 -- Transfer data from user_answer to pac
-INSERT INTO pac (user_answer_id, store_id, start_time, end_time, pouches_checked)
+INSERT INTO pac (user_answer_id, store, start_time, end_time, pouches_checked)
 SELECT id, store, start_time, end_time, pouches_checked
 FROM user_answer;
+
+-- Modify pac table
+ALTER TABLE pac
+ADD COLUMN store VARCHAR(255) NOT NULL,
+ADD COLUMN start_time TIMESTAMP,
+ADD COLUMN end_time TIMESTAMP,
+ADD COLUMN pouches_checked INTEGER;
 
 -- Modify user_answer table
 ALTER TABLE user_answer
@@ -30,3 +37,8 @@ UPDATE user_answer ua
 SET submission_date = DATE(p.start_time)
 FROM pac p
 WHERE ua.id = p.user_answer_id;
+
+-- Update pac table to use TIME instead of TIMESTAMP
+ALTER TABLE pac
+ALTER COLUMN start_time TYPE TIME,
+ALTER COLUMN end_time TYPE TIME;

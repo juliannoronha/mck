@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "pac")
@@ -21,14 +21,14 @@ public class Pac {
     @JoinColumn(name = "user_answer_id")
     private UserAnswer userAnswer;
 
-    @Column(name = "store_id", nullable = false)
-    private String storeId;
+    @Column(name = "store", nullable = false)
+    private String store;
 
     @Column(name = "start_time")
-    private LocalDateTime startTime;
+    private LocalTime startTime;
 
     @Column(name = "end_time")
-    private LocalDateTime endTime;
+    private LocalTime endTime;
 
     @Column(name = "pouches_checked")
     private Integer pouchesChecked;

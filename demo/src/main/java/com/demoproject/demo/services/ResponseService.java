@@ -43,10 +43,16 @@ public class ResponseService {
         UserAnswer savedUserAnswer = userAnswerRepository.save(userAnswer);
         
         pac.setUserAnswer(savedUserAnswer);
+        
+        // Ensure all required fields are set
+        if (pac.getStore() == null || pac.getStartTime() == null || pac.getEndTime() == null || pac.getPouchesChecked() == null) {
+            throw new IllegalArgumentException("All required fields must be set for Pac");
+        }
+        
         pacRepository.save(pac);
         
         logger.info("Submitting user answer: username={}, store={}, pouchesChecked={}, startTime={}, endTime={}",
-                    username, pac.getStoreId(), pac.getPouchesChecked(), pac.getStartTime(), pac.getEndTime());
+                    username, pac.getStore(), pac.getPouchesChecked(), pac.getStartTime(), pac.getEndTime());
         
         userProductivityService.notifyProductivityUpdate();
     }
