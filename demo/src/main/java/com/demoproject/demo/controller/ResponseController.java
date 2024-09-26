@@ -13,6 +13,7 @@ import com.demoproject.demo.services.ResponseService;
 import org.springframework.ui.Model;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.time.LocalTime;
@@ -85,7 +86,7 @@ public class ResponseController {
     @GetMapping("/view-responses")
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
     public String viewResponses(Model model, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
-        Page<UserAnswer> responses = responseService.getAllResponsesWithPacSortedByDateDesc(PageRequest.of(page, size));
+        Page<UserAnswer> responses = responseService.getAllResponsesWithPacSortedByDateDesc(PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "submissionDate")));
         model.addAttribute("responses", responses);
         return "responses";
     }
