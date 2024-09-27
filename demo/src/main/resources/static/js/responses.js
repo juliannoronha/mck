@@ -19,8 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function updateTable(data) {
-        const tbody = table.querySelector('tbody');
-        tbody.innerHTML = '';
+        const fragment = document.createDocumentFragment();
         data.content.forEach(response => {
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -32,8 +31,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td data-sort="${response.submissionDate}">${formatDate(response.submissionDate)}</td>
                 <td><button class="delete-btn" data-id="${response.id}">Delete</button></td>
             `;
-            tbody.appendChild(row);
+            fragment.appendChild(row);
         });
+        const tbody = table.querySelector('tbody');
+        tbody.innerHTML = '';
+        tbody.appendChild(fragment);
         updatePagination(data);
     }
 
@@ -66,6 +68,24 @@ document.addEventListener('DOMContentLoaded', function() {
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         return new Date(dateString).toLocaleDateString(undefined, options);
     }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    const debouncedFetchFilteredResults = debounce(fetchFilteredResults, 300);
+
+    nameFilter.addEventListener('input', debouncedFetchFilteredResults);
+    storeFilter.addEventListener('change', debouncedFetchFilteredResults);
+    monthFilter.addEventListener('change', debouncedFetchFilteredResults);
 
     function fetchFilteredResults(page = 0) {
         const url = new URL(window.location.href);
@@ -100,14 +120,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.fetchFilteredResults = fetchFilteredResults;
 
     submitNameFilterBtn.addEventListener('click', function() {
-        fetchFilteredResults();
-    });
-
-    storeFilter.addEventListener('change', function() {
-        fetchFilteredResults();
-    });
-
-    monthFilter.addEventListener('change', function() {
         fetchFilteredResults();
     });
 

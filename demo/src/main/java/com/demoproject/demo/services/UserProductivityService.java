@@ -33,7 +33,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.cache.interceptor.KeyGenerator;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import jakarta.persistence.EntityManager;
+
 @Service
+@Configuration
 public class UserProductivityService {
     @Autowired
     private UserRepository userRepository;
@@ -58,41 +65,51 @@ public class UserProductivityService {
         emitters.remove(emitter);
     }
 
+    @Autowired
+    private EntityManager entityManager;
+
     public Map<String, Object> getUserProductivity(String username) {
-        List<UserAnswer> userAnswers = userAnswerRepository.findByUser_Username(username);
+        String jpql = "SELECT COUNT(ua) as totalSubmissions, " +
+                      "SUM(p.pouchesChecked) as totalPouchesChecked, " +
+                      "SUM(FUNCTION('TIMESTAMPDIFF', MINUTE, p.startTime, p.endTime)) as totalMinutes " +
+                      "FROM UserAnswer ua JOIN ua.pac p WHERE ua.user.username = :username";
         
-        if (userAnswers.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
-        List<Pac> pacs = userAnswers.stream()
-            .map(UserAnswer::getPac)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-
-        int totalPouches = pacs.stream().mapToInt(Pac::getPouchesChecked).sum();
-        long totalMinutes = pacs.stream()
-            .mapToLong(pac -> Duration.between(pac.getStartTime(), pac.getEndTime()).toMinutes())
-            .sum();
-
-        double avgPouchesPerHour = totalMinutes > 0 ? (totalPouches * 60.0) / totalMinutes : 0;
-
-        Map<String, Object> productivity = new HashMap<>();
-        productivity.put("username", username);
-        productivity.put("totalSubmissions", userAnswers.size());
-        productivity.put("totalPouchesChecked", totalPouches);
-        productivity.put("totalMinutesWorked", totalMinutes);
-        productivity.put("avgPouchesPerHour", avgPouchesPerHour);
-
-        return productivity;
+        Object[] result = (Object[]) entityManager.createQuery(jpql)
+                .setParameter("username", username)
+                .getSingleResult();
+        
+        Map<String, Object> productivityMap = new HashMap<>();
+        productivityMap.put("totalSubmissions", ((Number) result[0]).longValue());
+        productivityMap.put("totalPouchesChecked", ((Number) result[1]).longValue());
+        long totalMinutes = ((Number) result[2]).longValue();
+        
+        double avgPouchesPerHour = totalMinutes > 0 ? (((Number) result[1]).doubleValue() * 60.0) / totalMinutes : 0;
+        
+        productivityMap.put("avgPouchesPerHour", avgPouchesPerHour);
+        productivityMap.put("avgTimeDuration", String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60));
+        
+        return productivityMap;
     }
 
-    @Cacheable("allUserProductivity")
+    @Cacheable(value = "allUserProductivity", keyGenerator = "customKeyGenerator")
     public Page<UserProductivityDTO> getAllUserProductivity(int page, int size) {
         logger.info("Fetching all user productivity data for page {} with size {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
         Page<Object[]> results = userAnswerRepository.getUserProductivityDataPaginated(pageable);
         return results.map(this::mapToUserProductivityDTO);
+    }
+
+    @Bean
+    public KeyGenerator customKeyGenerator() {
+        return (target, method, params) -> {
+            StringBuilder sb = new StringBuilder();
+            sb.append(target.getClass().getName());
+            sb.append(method.getName());
+            for (Object param : params) {
+                sb.append(param.toString());
+            }
+            return sb.toString();
+        };
     }
 
     @Transactional
@@ -136,17 +153,15 @@ public class UserProductivityService {
     public void notifyProductivityUpdate() {
         List<UserProductivityDTO> updatedData = getUserProductivityData();
         logger.info("Notifying {} emitters of productivity update", emitters.size());
-        List<SseEmitter> deadEmitters = new ArrayList<>();
-        emitters.forEach(emitter -> {
+        emitters.removeIf(emitter -> {
             try {
                 emitter.send(SseEmitter.event().data(updatedData));
-                logger.debug("Sent update to emitter");
+                return false;
             } catch (IOException e) {
                 logger.error("Error sending SSE update", e);
-                deadEmitters.add(emitter);
+                return true;
             }
         });
-        emitters.removeAll(deadEmitters);
     }
 
     public void sendOverallProductivityUpdate() {
