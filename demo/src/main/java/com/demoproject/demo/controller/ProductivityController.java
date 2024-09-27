@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
-import java.util.List;
-import java.io.IOException;
 
 import org.springframework.http.MediaType;
 import org.springframework.data.domain.Page;
@@ -74,28 +72,8 @@ public class ProductivityController {
 
     @GetMapping(value = "/api/user-productivity-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamUserProductivity() {
-        logger.info("New SSE connection established");
-        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
-        userProductivityService.addEmitter(emitter);
-        
-        // Send initial data
-        try {
-            List<UserProductivityDTO> initialData = userProductivityService.getUserProductivityData();
-            emitter.send(SseEmitter.event().data(initialData));
-            logger.info("Sent initial data to new SSE connection");
-        } catch (IOException e) {
-            logger.error("Error sending initial data", e);
-        }
-        
-        emitter.onCompletion(() -> {
-            logger.info("SSE connection completed");
-            userProductivityService.removeEmitter(emitter);
-        });
-        emitter.onTimeout(() -> {
-            logger.info("SSE connection timed out");
-            userProductivityService.removeEmitter(emitter);
-        });
-        return emitter;
+        logger.info("New SSE connection established for user productivity");
+        return userProductivityService.subscribeToProductivityUpdates();
     }
 
     @GetMapping("/api/all-user-productivity")
@@ -112,22 +90,7 @@ public class ProductivityController {
 
     @GetMapping(value = "/api/overall-productivity-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamOverallProductivity() {
-        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
-        this.userProductivityService.addEmitter(emitter);
-        emitter.onCompletion(() -> this.userProductivityService.removeEmitter(emitter));
-        emitter.onTimeout(() -> this.userProductivityService.removeEmitter(emitter));
-
-        // Send initial data
-        try {
-            UserProductivityDTO overallProductivity = userProductivityService.getOverallProductivity();
-            emitter.send(SseEmitter.event().data(overallProductivity));
-        } catch (IOException e) {
-            logger.error("Error sending initial data for overall productivity", e);
-            emitter.completeWithError(e);
-        } catch (Exception e) {
-            logger.error("Error calculating overall productivity", e);
-            emitter.completeWithError(e);
-        }
-        return emitter;
+        logger.info("New SSE connection established for overall productivity");
+        return userProductivityService.subscribeToProductivityUpdates();
     }
 }

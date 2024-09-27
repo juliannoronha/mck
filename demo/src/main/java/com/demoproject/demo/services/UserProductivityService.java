@@ -3,14 +3,13 @@ package com.demoproject.demo.services;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import com.demoproject.demo.dto.UserProductivityDTO;
 import com.demoproject.demo.entity.Pac;
-import com.demoproject.demo.entity.User;
-import com.demoproject.demo.repository.UserRepository;
 import com.demoproject.demo.repository.PacRepository;
 
 import jakarta.transaction.Transactional;
@@ -31,12 +30,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 @Service
 @Configuration
 public class UserProductivityService {
-    @Autowired
-    private UserRepository userRepository;
 
     @Autowired
     private PacRepository pacRepository;
@@ -44,22 +42,49 @@ public class UserProductivityService {
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
-    @Autowired
+    @PersistenceContext
     private EntityManager entityManager;
 
     public UserProductivityService(PacRepository pacRepository) {
         this.pacRepository = pacRepository;
     }
 
-    public void addEmitter(SseEmitter emitter) {
-        emitters.add(emitter);
+    public SseEmitter subscribeToProductivityUpdates() {
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        
+        emitter.onCompletion(() -> {
+            synchronized (emitters) {
+                emitters.remove(emitter);
+            }
+            logger.info("SSE connection closed");
+        });
+
+        emitter.onTimeout(() -> {
+            synchronized (emitters) {
+                emitters.remove(emitter);
+            }
+            logger.info("SSE connection timed out");
+        });
+
+        synchronized (emitters) {
+            emitters.add(emitter);
+        }
+
+        logger.info("New SSE connection established");
+
+        // Send initial data
+        try {
+            emitter.send(SseEmitter.event().data(getOverallProductivity()));
+        } catch (IOException e) {
+            logger.error("Error sending initial data", e);
+            emitter.completeWithError(e);
+        }
+
+        return emitter;
     }
 
-    public void removeEmitter(SseEmitter emitter) {
-        emitters.remove(emitter);
-    }
-
-    @Cacheable(value = "allUserProductivity", keyGenerator = "customKeyGenerator")
+    @Cacheable(value = "allUserProductivity", key = "#page + '-' + #size")
+    @Transactional
     public Page<UserProductivityDTO> getAllUserProductivity(int page, int size) {
         logger.info("Fetching all user productivity data for page {} with size {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
@@ -147,17 +172,21 @@ public class UserProductivityService {
     }
 
     public void notifyProductivityUpdate() {
-        List<UserProductivityDTO> updatedData = getUserProductivityData();
-        logger.info("Notifying {} emitters of productivity update", emitters.size());
-        emitters.removeIf(emitter -> {
+        UserProductivityDTO overallProductivity = getOverallProductivity();
+        List<SseEmitter> deadEmitters = new ArrayList<>();
+
+        emitters.forEach(emitter -> {
             try {
-                emitter.send(SseEmitter.event().data(updatedData));
-                return false;
+                emitter.send(SseEmitter.event().data(overallProductivity));
             } catch (IOException e) {
-                logger.error("Error sending SSE update", e);
-                return true;
+                logger.warn("Error sending SSE update", e);
+                deadEmitters.add(emitter);
             }
         });
+
+        synchronized (emitters) {
+            emitters.removeAll(deadEmitters);
+        }
     }
 
     public void sendOverallProductivityUpdate() {
@@ -250,5 +279,13 @@ public class UserProductivityService {
         productivityMap.put("avgTimeDuration", String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60));
         
         return productivityMap;
+    }
+
+    @CacheEvict(value = "allUserProductivity", allEntries = true)
+    @Transactional
+    public void updateUserProductivity() {
+        // Method to be called when productivity data is updated
+        logger.info("Updating user productivity and evicting cache");
+        // Add any necessary update logic here
     }
 }
