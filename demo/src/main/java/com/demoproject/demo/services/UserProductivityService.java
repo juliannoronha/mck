@@ -8,15 +8,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import com.demoproject.demo.dto.UserProductivityDTO;
-import com.demoproject.demo.entity.UserAnswer;
-import com.demoproject.demo.repository.UserRepository;
-
-import jakarta.transaction.Transactional;
-
 import com.demoproject.demo.entity.Pac;
 import com.demoproject.demo.entity.User;
-import com.demoproject.demo.repository.UserAnswerRepository;
+import com.demoproject.demo.repository.UserRepository;
 import com.demoproject.demo.repository.PacRepository;
+
+import jakarta.transaction.Transactional;
 
 import java.util.*;
 import java.time.Duration;
@@ -29,10 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import org.springframework.cache.interceptor.KeyGenerator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -50,10 +43,11 @@ public class UserProductivityService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
-    private final UserAnswerRepository userAnswerRepository;
 
-    public UserProductivityService(UserAnswerRepository userAnswerRepository, PacRepository pacRepository) {
-        this.userAnswerRepository = userAnswerRepository;
+    @Autowired
+    private EntityManager entityManager;
+
+    public UserProductivityService(PacRepository pacRepository) {
         this.pacRepository = pacRepository;
     }
 
@@ -65,37 +59,11 @@ public class UserProductivityService {
         emitters.remove(emitter);
     }
 
-    @Autowired
-    private EntityManager entityManager;
-
-    public Map<String, Object> getUserProductivity(String username) {
-        String jpql = "SELECT COUNT(ua) as totalSubmissions, " +
-                      "SUM(p.pouchesChecked) as totalPouchesChecked, " +
-                      "SUM(FUNCTION('TIMESTAMPDIFF', MINUTE, p.startTime, p.endTime)) as totalMinutes " +
-                      "FROM UserAnswer ua JOIN ua.pac p WHERE ua.user.username = :username";
-        
-        Object[] result = (Object[]) entityManager.createQuery(jpql)
-                .setParameter("username", username)
-                .getSingleResult();
-        
-        Map<String, Object> productivityMap = new HashMap<>();
-        productivityMap.put("totalSubmissions", ((Number) result[0]).longValue());
-        productivityMap.put("totalPouchesChecked", ((Number) result[1]).longValue());
-        long totalMinutes = ((Number) result[2]).longValue();
-        
-        double avgPouchesPerHour = totalMinutes > 0 ? (((Number) result[1]).doubleValue() * 60.0) / totalMinutes : 0;
-        
-        productivityMap.put("avgPouchesPerHour", avgPouchesPerHour);
-        productivityMap.put("avgTimeDuration", String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60));
-        
-        return productivityMap;
-    }
-
     @Cacheable(value = "allUserProductivity", keyGenerator = "customKeyGenerator")
     public Page<UserProductivityDTO> getAllUserProductivity(int page, int size) {
         logger.info("Fetching all user productivity data for page {} with size {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
-        Page<Object[]> results = userAnswerRepository.getUserProductivityDataPaginated(pageable);
+        Page<Object[]> results = pacRepository.getUserProductivityDataPaginated(pageable);
         return results.map(this::mapToUserProductivityDTO);
     }
 
@@ -114,12 +82,40 @@ public class UserProductivityService {
 
     @Transactional
     public UserProductivityDTO getOverallProductivity() {
-        List<UserAnswer> allUserAnswers = userAnswerRepository.findAll();
-        List<UserProductivityDTO> allProductivity = allUserAnswers.stream()
+        List<Pac> allPacs = pacRepository.findAll();
+        List<UserProductivityDTO> allProductivity = allPacs.stream()
+            .collect(Collectors.groupingBy(pac -> pac.getUser().getUsername()))
+            .entrySet().stream()
             .map(this::mapToUserProductivityDTO)
             .collect(Collectors.toList());
 
         return calculateOverallProductivity(allProductivity);
+    }
+
+    private UserProductivityDTO mapToUserProductivityDTO(Map.Entry<String, List<Pac>> entry) {
+        String username = entry.getKey();
+        List<Pac> userPacs = entry.getValue();
+        
+        long totalSubmissions = userPacs.size();
+        long totalPouchesChecked = userPacs.stream().mapToLong(Pac::getPouchesChecked).sum();
+        long totalMinutes = userPacs.stream()
+            .mapToLong(pac -> Duration.between(pac.getStartTime(), pac.getEndTime()).toMinutes())
+            .sum();
+
+        // Add a check to prevent division by zero
+        double avgPouchesPerHour = totalMinutes > 0 ? (totalPouchesChecked * 60.0) / totalMinutes : 0;
+        String avgTimeDuration = totalSubmissions > 0 
+            ? String.format("%d:%02d", totalMinutes / totalSubmissions / 60, 
+                            totalMinutes / totalSubmissions % 60)
+            : "0:00";
+
+        return new UserProductivityDTO(
+            username,
+            totalSubmissions,
+            totalPouchesChecked,
+            avgTimeDuration,
+            avgPouchesPerHour
+        );
     }
 
     private UserProductivityDTO calculateOverallProductivity(List<UserProductivityDTO> allProductivity) {
@@ -178,32 +174,13 @@ public class UserProductivityService {
     }
 
     public List<UserProductivityDTO> getUserProductivityData() {
-        List<UserProductivityDTO> productivityData = new ArrayList<>();
-        List<User> usersWithSubmissions = userRepository.findUsersWithSubmissions();
-
-        for (User user : usersWithSubmissions) {
-            List<Pac> userPacs = pacRepository.findByUserAnswer_User_Username(user.getUsername());
-            
-            int totalSubmissions = userPacs.size();
-            int totalPouchesChecked = userPacs.stream().mapToInt(Pac::getPouchesChecked).sum();
-            long totalMinutes = userPacs.stream()
-                .mapToLong(pac -> Duration.between(pac.getStartTime(), pac.getEndTime()).toMinutes())
-                .sum();
-
-            double avgPouchesPerHour = totalMinutes > 0 ? (totalPouchesChecked * 60.0) / totalMinutes : 0;
-            String avgTimeDuration = String.format("%d:%02d", totalMinutes / totalSubmissions / 60, 
-                                                   totalMinutes / totalSubmissions % 60);
-
-            productivityData.add(new UserProductivityDTO(
-                user.getUsername(),
-                (long) totalSubmissions,
-                (long) totalPouchesChecked,
-                avgTimeDuration,
-                avgPouchesPerHour
-            ));
-        }
-
-        return productivityData;
+        List<User> allUsers = userRepository.findAll();
+        return allUsers.stream()
+            .map(user -> {
+                List<Pac> userPacs = pacRepository.findByUser_Username(user.getUsername());
+                return mapToUserProductivityDTO(Map.entry(user.getUsername(), userPacs));
+            })
+            .collect(Collectors.toList());
     }
 
     private UserProductivityDTO mapToUserProductivityDTO(Object[] result) {
@@ -225,30 +202,31 @@ public class UserProductivityService {
         );
     }
 
-    private UserProductivityDTO mapToUserProductivityDTO(UserAnswer userAnswer) {
-        Pac pac = userAnswer.getPac();
-        if (pac == null) {
-            return new UserProductivityDTO(userAnswer.getUser().getUsername(), 1L, 0L, "0:00", 0.0);
-        }
-
-        long totalSubmissions = 1L;
-        long totalPouchesChecked = pac.getPouchesChecked();
-        Duration duration = Duration.between(pac.getStartTime(), pac.getEndTime());
-        long minutes = duration.toMinutes();
-        String avgTimeDuration = String.format("%d:%02d", minutes / 60, minutes % 60);
-        double avgPouchesPerHour = minutes > 0 ? (totalPouchesChecked * 60.0) / minutes : 0.0;
-
-        return new UserProductivityDTO(
-            userAnswer.getUser().getUsername(),
-            totalSubmissions,
-            totalPouchesChecked,
-            avgTimeDuration,
-            avgPouchesPerHour
-        );
-    }
-
     // Call this method whenever the productivity data changes
     public void updateProductivity() {
         sendOverallProductivityUpdate();
+    }
+
+    public Map<String, Object> getUserProductivity(String username) {
+        String jpql = "SELECT COUNT(p) as totalSubmissions, " +
+                      "SUM(p.pouchesChecked) as totalPouchesChecked, " +
+                      "SUM(FUNCTION('TIMESTAMPDIFF', MINUTE, p.startTime, p.endTime)) as totalMinutes " +
+                      "FROM Pac p WHERE p.user.username = :username";
+        
+        Object[] result = (Object[]) entityManager.createQuery(jpql)
+                .setParameter("username", username)
+                .getSingleResult();
+        
+        Map<String, Object> productivityMap = new HashMap<>();
+        productivityMap.put("totalSubmissions", ((Number) result[0]).longValue());
+        productivityMap.put("totalPouchesChecked", ((Number) result[1]).longValue());
+        long totalMinutes = ((Number) result[2]).longValue();
+        
+        double avgPouchesPerHour = totalMinutes > 0 ? (((Number) result[1]).doubleValue() * 60.0) / totalMinutes : 0;
+        
+        productivityMap.put("avgPouchesPerHour", avgPouchesPerHour);
+        productivityMap.put("avgTimeDuration", String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60));
+        
+        return productivityMap;
     }
 }

@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "pac")
@@ -21,12 +22,8 @@ public class Pac {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_answer_id")
-    private UserAnswer userAnswer;
-
-    @Column(name = "store", nullable = false)
-    private String store;
+    @Column(name = "pouches_checked")
+    private Integer pouchesChecked;
 
     @Column(name = "start_time")
     private LocalTime startTime;
@@ -34,6 +31,11 @@ public class Pac {
     @Column(name = "end_time")
     private LocalTime endTime;
 
-    @Column(name = "pouches_checked")
-    private Integer pouchesChecked;
+    @Column(name = "store", nullable = false)
+    private String store;
+
+    @Column(name = "submission_date")
+    private LocalDateTime submissionDate;  // Add this if it doesn't exist
+
+    // Remove the UserAnswer relationship
 }

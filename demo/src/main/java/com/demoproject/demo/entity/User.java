@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "users") // Specify the table name, "user" is often a reserved keyword
@@ -29,6 +30,9 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserAnswer> userAnswers;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Pac> pacs = new ArrayList<>();
 
     public enum Role {
         ADMIN, MODERATOR, USER, CHECKER, SHIPPING, INVENTORY
