@@ -1,14 +1,15 @@
 package com.demoproject.demo.repository;
 
-import com.demoproject.demo.entity.Pac;
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.demoproject.demo.entity.Pac;
 
 @Repository
 public interface PacRepository extends JpaRepository<Pac, Long> {
@@ -34,12 +35,12 @@ public interface PacRepository extends JpaRepository<Pac, Long> {
                              @Param("store") String store, 
                              @Param("month") Integer month);
 
-    @Query("SELECT p FROM Pac p WHERE " +
-           "(:name IS NULL OR LOWER(p.user.username) LIKE %:name%) AND " +
+    @Query("SELECT p FROM Pac p JOIN FETCH p.user u WHERE " +
+           "(:nameFilter IS NULL OR LOWER(u.username) LIKE %:nameFilter%) AND " +
            "(:store IS NULL OR p.store = :store) AND " +
-           "(:month IS NULL OR MONTH(p.startTime) = :month)")
-    List<Pac> findAllWithFilters(Pageable pageable, 
-                                 @Param("name") String name, 
+           "(:month IS NULL OR MONTH(p.submissionDate) = :month)")
+    Page<Pac> findAllWithFilters(Pageable pageable, 
+                                 @Param("nameFilter") String nameFilter, 
                                  @Param("store") String store, 
                                  @Param("month") Integer month);
 }

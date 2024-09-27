@@ -22,8 +22,8 @@ public class Pac {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "pouches_checked")
-    private Integer pouchesChecked;
+    @Column(name = "submission_date")
+    private LocalDateTime submissionDate;
 
     @Column(name = "start_time")
     private LocalTime startTime;
@@ -31,11 +31,14 @@ public class Pac {
     @Column(name = "end_time")
     private LocalTime endTime;
 
+    @Column(name = "pouches_checked")
+    private Integer pouchesChecked;
+
     @Column(name = "store", nullable = false)
     private String store;
 
-    @Column(name = "submission_date")
-    private LocalDateTime submissionDate;  // Add this if it doesn't exist
-
-    // Remove the UserAnswer relationship
+    @PrePersist
+    protected void onCreate() {
+        submissionDate = LocalDateTime.now();
+    }
 }

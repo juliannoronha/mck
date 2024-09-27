@@ -75,10 +75,6 @@ public class ResponseService {
         String lowercaseNameFilter = nameFilter != null && !nameFilter.isEmpty() ? nameFilter.toLowerCase() : null;
         String validStore = store != null && !store.isEmpty() ? store : null;
 
-        long totalCount = pacRepository.countAllWithFilters(lowercaseNameFilter, validStore, month);
-        
-        List<Pac> content = pacRepository.findAllWithFilters(pageable, lowercaseNameFilter, validStore, month);
-        
-        return new PageImpl<>(content, pageable, totalCount);
+        return pacRepository.findAllWithFilters(pageable, lowercaseNameFilter, validStore, month);
     }
 }

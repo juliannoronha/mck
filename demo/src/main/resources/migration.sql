@@ -8,7 +8,6 @@ CREATE TABLE pac (
     store VARCHAR(255) NOT NULL,
     CONSTRAINT fk_pac_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
-
 -- Transfer data from user_answer to pac
 INSERT INTO pac (user_id, store, start_time, end_time, pouches_checked)
 SELECT ua.user_id, ua.store, ua.start_time, ua.end_time, ua.pouches_checked

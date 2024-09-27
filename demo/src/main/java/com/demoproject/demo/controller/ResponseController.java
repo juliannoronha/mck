@@ -92,7 +92,7 @@ public class ResponseController {
             Integer monthValue = (month != null && !month.isEmpty() && !month.equals("null")) 
                 ? Integer.parseInt(month) : null;
 
-            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startTime"));
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "submissionDate"));
             Page<Pac> responsesPage = responseService.getAllResponsesWithFilters(
                 pageable, nameFilter, store, monthValue);
             
