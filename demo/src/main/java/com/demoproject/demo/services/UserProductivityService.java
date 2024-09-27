@@ -174,24 +174,20 @@ public class UserProductivityService {
     }
 
     public List<UserProductivityDTO> getUserProductivityData() {
-        List<User> allUsers = userRepository.findAll();
-        return allUsers.stream()
-            .map(user -> {
-                List<Pac> userPacs = pacRepository.findByUser_Username(user.getUsername());
-                return mapToUserProductivityDTO(Map.entry(user.getUsername(), userPacs));
-            })
+        List<Object[]> results = pacRepository.getUserProductivityData();
+        return results.stream()
+            .map(this::mapToUserProductivityDTO)
             .collect(Collectors.toList());
     }
 
     private UserProductivityDTO mapToUserProductivityDTO(Object[] result) {
         String username = (String) result[0];
-        long totalSubmissions = ((Number) result[1]).longValue();
-        String avgTimeDuration = (String) result[2];
-        double avgPouchesPerHour = result[3] instanceof Number ? ((Number) result[3]).doubleValue() : 0.0;
-        long totalPouchesChecked = ((Number) result[4]).longValue();
+        long totalSubmissions = parseLong(result[1]);
+        long totalPouchesChecked = parseLong(result[2]);
+        long totalMinutes = parseLong(result[3]);
+        double avgPouchesPerHour = parseDouble(result[4]);
 
-        logger.debug("Mapping user productivity: username={}, totalSubmissions={}, avgTimeDuration={}, avgPouchesPerHour={}, totalPouchesChecked={}",
-                     username, totalSubmissions, avgTimeDuration, avgPouchesPerHour, totalPouchesChecked);
+        String avgTimeDuration = String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60);
 
         return new UserProductivityDTO(
             username,
@@ -200,6 +196,32 @@ public class UserProductivityService {
             avgTimeDuration,
             avgPouchesPerHour
         );
+    }
+
+    private long parseLong(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        } else if (value instanceof String) {
+            try {
+                return Long.parseLong((String) value);
+            } catch (NumberFormatException e) {
+                return 0L;
+            }
+        }
+        return 0L;
+    }
+
+    private double parseDouble(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        } else if (value instanceof String) {
+            try {
+                return Double.parseDouble((String) value);
+            } catch (NumberFormatException e) {
+                return 0.0;
+            }
+        }
+        return 0.0;
     }
 
     // Call this method whenever the productivity data changes

@@ -22,8 +22,9 @@ public interface PacRepository extends JpaRepository<Pac, Long> {
            "SUM(p.pouches_checked) as totalPouchesChecked " +
            "FROM pac p " +
            "JOIN users u ON p.user_id = u.id " +
-           "GROUP BY u.username",
-           countQuery = "SELECT COUNT(DISTINCT u.username) FROM pac p JOIN users u ON p.user_id = u.id",
+           "GROUP BY u.username " +
+           "HAVING COUNT(p.id) > 0",
+           countQuery = "SELECT COUNT(DISTINCT u.username) FROM pac p JOIN users u ON p.user_id = u.id WHERE EXISTS (SELECT 1 FROM pac WHERE user_id = u.id)",
            nativeQuery = true)
     Page<Object[]> getUserProductivityDataPaginated(Pageable pageable);
 
@@ -43,4 +44,15 @@ public interface PacRepository extends JpaRepository<Pac, Long> {
                                  @Param("nameFilter") String nameFilter, 
                                  @Param("store") String store, 
                                  @Param("month") Integer month);
+
+    @Query("SELECT p.user.username, " +
+           "COUNT(p), " +
+           "COALESCE(SUM(p.pouchesChecked), 0), " +
+           "COALESCE(SUM(FUNCTION('TIMESTAMPDIFF', MINUTE, p.startTime, p.endTime)), 0), " +
+           "CASE WHEN SUM(FUNCTION('TIMESTAMPDIFF', MINUTE, p.startTime, p.endTime)) > 0 " +
+           "     THEN CAST(SUM(p.pouchesChecked) AS double) / (SUM(FUNCTION('TIMESTAMPDIFF', MINUTE, p.startTime, p.endTime)) / 60.0) " +
+           "     ELSE 0.0 END " +
+           "FROM Pac p " +
+           "GROUP BY p.user.username")
+    List<Object[]> getUserProductivityData();
 }
