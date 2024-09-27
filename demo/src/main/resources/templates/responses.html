@@ -59,25 +59,26 @@
         <table id="responsesTable">
             <thead>
                 <tr>
+                    <th>ID</th>
                     <th>Name</th>
-                    <th>Start</th>
-                    <th>End</th>
-                    <th>Store</th>
+                    <th>Submission Date</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
                     <th>Pouches Checked</th>
-                    <th>Date</th>
+                    <th>Store</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 <!-- Iterate over responses and display each in a row -->
-                <tr th:each="response : ${responses}">
-                    <td th:text="${response.user != null ? response.user.username : ''}"></td>
-                    <td th:text="${response.pac != null ? #temporals.format(response.pac.startTime, 'HH:mm') : ''}"></td>
-                    <td th:text="${response.pac != null ? #temporals.format(response.pac.endTime, 'HH:mm') : ''}"></td>
-                    <td th:text="${response.pac != null ? response.pac.store : ''}"></td>
-                    <td th:text="${response.pac != null ? response.pac.pouchesChecked : ''}"></td>
-                    <td th:text="${#temporals.format(response.submissionDate, 'MMMM d, yyyy')}"
-                        th:attr="data-sort=${response.submissionDate}"></td>
+                <tr th:each="response : ${responses.content}">
+                    <td th:text="${response.id}"></td>
+                    <td th:text="${response.user.username}"></td>
+                    <td th:text="${#temporals.format(response.submissionDate, 'yyyy-MM-dd HH:mm')}"></td>
+                    <td th:text="${#temporals.format(response.startTime, 'HH:mm')}"></td>
+                    <td th:text="${#temporals.format(response.endTime, 'HH:mm')}"></td>
+                    <td th:text="${response.pouchesChecked}"></td>
+                    <td th:text="${response.store}"></td>
                     <td>
                         <!-- Form to delete a response -->
                         <button class="delete-btn" th:data-id="${response.id}">Delete</button>

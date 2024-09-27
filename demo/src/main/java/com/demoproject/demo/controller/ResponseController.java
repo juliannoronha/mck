@@ -1,7 +1,7 @@
 package com.demoproject.demo.controller;
 
-import com.demoproject.demo.entity.UserAnswer;
 import com.demoproject.demo.entity.Pac;
+import com.demoproject.demo.services.ResponseService;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import com.demoproject.demo.annotation.RequiresAuthentication;
-import com.demoproject.demo.services.ResponseService;
 import org.springframework.ui.Model;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,8 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;  
-import java.time.format.DateTimeParseException;
+import java.util.Map;
 
 @Controller
 public class ResponseController {
@@ -55,19 +53,12 @@ public class ResponseController {
             pac.setEndTime(LocalTime.parse(pacData.get("endTime").split("T")[1], formatter));
             pac.setPouchesChecked(Integer.parseInt(pacData.get("pouchesChecked")));
 
-            UserAnswer userAnswer = new UserAnswer();
-            responseService.submitUserAnswer(userAnswer, pac, authentication.getName());
-            logger.info("User {} successfully submitted a response", authentication.getName());
-            return ResponseEntity.ok("Response submitted successfully!");
-        } catch (DateTimeParseException e) {
-            logger.error("Error parsing time input: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid time format provided");
-        } catch (NumberFormatException e) {
-            logger.error("Error parsing pouches checked: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid number format for pouches checked");
+            responseService.submitUserAnswer(pac, authentication.getName());
+
+            return ResponseEntity.ok("Questions submitted successfully");
         } catch (Exception e) {
             logger.error("Error submitting questions", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred while submitting questions");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error submitting questions: " + e.getMessage());
         }
     }
 
@@ -102,16 +93,16 @@ public class ResponseController {
                 ? Integer.parseInt(month) : null;
 
             Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "submissionDate"));
-            Page<UserAnswer> responses = responseService.getAllResponsesWithFilters(
+            Page<Pac> responsesPage = responseService.getAllResponsesWithFilters(
                 pageable, nameFilter, store, monthValue);
             
-            model.addAttribute("responses", responses);
+            model.addAttribute("responses", responsesPage); // Change this line
             model.addAttribute("nameFilter", nameFilter);
             model.addAttribute("selectedStore", store);
             model.addAttribute("selectedMonth", month);
             model.addAttribute("currentPage", page);
-            model.addAttribute("totalPages", responses.getTotalPages());
-            model.addAttribute("totalItems", responses.getTotalElements());
+            model.addAttribute("totalPages", responsesPage.getTotalPages());
+            model.addAttribute("totalItems", responsesPage.getTotalElements());
             
             return "responses";
         } catch (NumberFormatException e) {
