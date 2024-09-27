@@ -119,8 +119,13 @@ public class ProductivityController {
 
         // Send initial data
         try {
-            emitter.send(SseEmitter.event().data(userProductivityService.getOverallProductivity()));
+            UserProductivityDTO overallProductivity = userProductivityService.getOverallProductivity();
+            emitter.send(SseEmitter.event().data(overallProductivity));
         } catch (IOException e) {
+            logger.error("Error sending initial data for overall productivity", e);
+            emitter.completeWithError(e);
+        } catch (Exception e) {
+            logger.error("Error calculating overall productivity", e);
             emitter.completeWithError(e);
         }
         return emitter;

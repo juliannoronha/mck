@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
     
@@ -59,5 +60,9 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
     long countAllWithFilters(@Param("nameFilter") String nameFilter, 
                              @Param("store") String store, 
                              @Param("month") Integer month);
+
+    @Transactional(readOnly = true)
+    @Query("SELECT ua FROM UserAnswer ua")
+    List<UserAnswer> findAllReadOnly();
 }
 

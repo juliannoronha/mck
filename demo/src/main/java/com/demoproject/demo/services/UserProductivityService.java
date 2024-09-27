@@ -10,6 +10,9 @@ import org.springframework.data.domain.Pageable;
 import com.demoproject.demo.dto.UserProductivityDTO;
 import com.demoproject.demo.entity.UserAnswer;
 import com.demoproject.demo.repository.UserRepository;
+
+import jakarta.transaction.Transactional;
+
 import com.demoproject.demo.entity.Pac;
 import com.demoproject.demo.entity.User;
 import com.demoproject.demo.repository.UserAnswerRepository;
@@ -92,27 +95,42 @@ public class UserProductivityService {
         return results.map(this::mapToUserProductivityDTO);
     }
 
+    @Transactional
     public UserProductivityDTO getOverallProductivity() {
-        List<Pac> allPacs = pacRepository.findAll();
-        
-        int totalSubmissions = allPacs.size();
-        int totalPouchesChecked = allPacs.stream().mapToInt(Pac::getPouchesChecked).sum();
-        long totalMinutes = allPacs.stream()
-            .mapToLong(pac -> Duration.between(pac.getStartTime(), pac.getEndTime()).toMinutes())
-            .sum();
+        List<UserAnswer> allUserAnswers = userAnswerRepository.findAll();
+        List<UserProductivityDTO> allProductivity = allUserAnswers.stream()
+            .map(this::mapToUserProductivityDTO)
+            .collect(Collectors.toList());
 
-        double avgPouchesPerHour = totalMinutes > 0 ? (totalPouchesChecked * 60.0) / totalMinutes : 0;
-        String avgTimeDuration = String.format("%d:%02d", totalMinutes / (totalSubmissions > 0 ? totalSubmissions : 1) / 60, 
-                                               totalMinutes / (totalSubmissions > 0 ? totalSubmissions : 1) % 60);
+        return calculateOverallProductivity(allProductivity);
+    }
+
+    private UserProductivityDTO calculateOverallProductivity(List<UserProductivityDTO> allProductivity) {
+        long totalSubmissions = allProductivity.stream().mapToLong(UserProductivityDTO::getTotalSubmissions).sum();
+        long totalPouchesChecked = allProductivity.stream().mapToLong(UserProductivityDTO::getTotalPouchesChecked).sum();
+        double avgPouchesPerHour = allProductivity.stream().mapToDouble(UserProductivityDTO::getAvgPouchesPerHour).average().orElse(0.0);
         
+        String avgTimeDuration = calculateAverageTimeDuration(allProductivity);
 
         return new UserProductivityDTO(
             "Overall",
-            (long) totalSubmissions,
-            (long) totalPouchesChecked,
+            totalSubmissions,
+            totalPouchesChecked,
             avgTimeDuration,
             avgPouchesPerHour
         );
+    }
+
+    private String calculateAverageTimeDuration(List<UserProductivityDTO> allProductivity) {
+        long totalMinutes = allProductivity.stream()
+            .mapToLong(dto -> {
+                String[] parts = dto.getAvgTimeDuration().split(":");
+                return Long.parseLong(parts[0]) * 60 + Long.parseLong(parts[1]);
+            })
+            .sum();
+
+        long avgMinutes = allProductivity.isEmpty() ? 0 : totalMinutes / allProductivity.size();
+        return String.format("%d:%02d", avgMinutes / 60, avgMinutes % 60);
     }
 
     public void notifyProductivityUpdate() {
@@ -185,6 +203,28 @@ public class UserProductivityService {
 
         return new UserProductivityDTO(
             username,
+            totalSubmissions,
+            totalPouchesChecked,
+            avgTimeDuration,
+            avgPouchesPerHour
+        );
+    }
+
+    private UserProductivityDTO mapToUserProductivityDTO(UserAnswer userAnswer) {
+        Pac pac = userAnswer.getPac();
+        if (pac == null) {
+            return new UserProductivityDTO(userAnswer.getUser().getUsername(), 1L, 0L, "0:00", 0.0);
+        }
+
+        long totalSubmissions = 1L;
+        long totalPouchesChecked = pac.getPouchesChecked();
+        Duration duration = Duration.between(pac.getStartTime(), pac.getEndTime());
+        long minutes = duration.toMinutes();
+        String avgTimeDuration = String.format("%d:%02d", minutes / 60, minutes % 60);
+        double avgPouchesPerHour = minutes > 0 ? (totalPouchesChecked * 60.0) / minutes : 0.0;
+
+        return new UserProductivityDTO(
+            userAnswer.getUser().getUsername(),
             totalSubmissions,
             totalPouchesChecked,
             avgTimeDuration,
