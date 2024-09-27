@@ -17,14 +17,13 @@ public interface PacRepository extends JpaRepository<Pac, Long> {
 
     @Query(value = "SELECT u.username, " +
            "COUNT(p.id) as totalSubmissions, " +
-           "TO_CHAR(AVG(EXTRACT(EPOCH FROM (p.end_time - p.start_time))) / 3600, 'FM999990.00') as avgTimeDuration, " +
+           "AVG(EXTRACT(EPOCH FROM (p.end_time - p.start_time))) / 3600 as avgTimeDuration, " +
            "AVG(CAST(p.pouches_checked AS DOUBLE PRECISION) / (EXTRACT(EPOCH FROM (p.end_time - p.start_time)) / 3600)) as avgPouchesPerHour, " +
            "SUM(p.pouches_checked) as totalPouchesChecked " +
            "FROM pac p " +
            "JOIN users u ON p.user_id = u.id " +
-           "GROUP BY u.username " +
-           "HAVING COUNT(p.id) > 0",
-           countQuery = "SELECT COUNT(DISTINCT u.username) FROM pac p JOIN users u ON p.user_id = u.id WHERE EXISTS (SELECT 1 FROM pac WHERE user_id = u.id)",
+           "GROUP BY u.username",
+           countQuery = "SELECT COUNT(DISTINCT u.username) FROM pac p JOIN users u ON p.user_id = u.id",
            nativeQuery = true)
     Page<Object[]> getUserProductivityDataPaginated(Pageable pageable);
 

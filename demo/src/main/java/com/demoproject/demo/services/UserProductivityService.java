@@ -25,8 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.interceptor.KeyGenerator;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import jakarta.persistence.EntityManager;
@@ -114,19 +112,6 @@ public class UserProductivityService {
         Pageable pageable = PageRequest.of(page, size);
         Page<Object[]> results = pacRepository.getUserProductivityDataPaginated(pageable);
         return results.map(this::mapToUserProductivityDTO);
-    }
-
-    @Bean
-    public KeyGenerator customKeyGenerator() {
-        return (target, method, params) -> {
-            StringBuilder sb = new StringBuilder();
-            sb.append(target.getClass().getName());
-            sb.append(method.getName());
-            for (Object param : params) {
-                sb.append(param.toString());
-            }
-            return sb.toString();
-        };
     }
 
     @Transactional
