@@ -17,7 +17,11 @@ public class Pac {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_answer_id")
     private UserAnswer userAnswer;
 
