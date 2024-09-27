@@ -10,10 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.time.LocalDate;
+import java.util.List; // Change this import
 
 @Service
 public class ResponseService {
@@ -82,9 +83,13 @@ public class ResponseService {
     }
 
     public Page<UserAnswer> getAllResponsesWithFilters(Pageable pageable, String nameFilter, String store, Integer month) {
-        return userAnswerRepository.findAllWithFilters(pageable, 
-            nameFilter != null && !nameFilter.isEmpty() ? nameFilter.toLowerCase() : null, 
-            store != null && !store.isEmpty() ? store : null, 
-            month);
+        String lowercaseNameFilter = nameFilter != null && !nameFilter.isEmpty() ? nameFilter.toLowerCase() : null;
+        String validStore = store != null && !store.isEmpty() ? store : null;
+
+        long totalCount = userAnswerRepository.countAllWithFilters(lowercaseNameFilter, validStore, month);
+        
+        List<UserAnswer> content = userAnswerRepository.findAllWithFilters(pageable, lowercaseNameFilter, validStore, month);
+        
+        return new PageImpl<>(content, pageable, totalCount);
     }
 }

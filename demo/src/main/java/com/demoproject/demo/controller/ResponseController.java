@@ -96,7 +96,7 @@ public class ResponseController {
             try {
                 pageNumber = Integer.parseInt(page);
             } catch (NumberFormatException e) {
-                // Log the error or handle it as needed
+                logger.warn("Invalid page number provided: {}", page);
             }
         }
 
@@ -105,17 +105,20 @@ public class ResponseController {
             try {
                 monthValue = Integer.parseInt(month);
             } catch (NumberFormatException e) {
-                // Log the error or handle it as needed
+                logger.warn("Invalid month value provided: {}", month);
             }
         }
         
         Page<UserAnswer> responses = responseService.getAllResponsesWithFilters(
             PageRequest.of(pageNumber, size, Sort.by(Sort.Direction.DESC, "submissionDate")), 
             nameFilter, store, monthValue);
+        
         model.addAttribute("responses", responses);
         model.addAttribute("nameFilter", nameFilter);
         model.addAttribute("selectedStore", store);
         model.addAttribute("selectedMonth", month);
+        model.addAttribute("totalPages", responses.getTotalPages());
+        model.addAttribute("totalItems", responses.getTotalElements());
         return "responses";
     }
 }

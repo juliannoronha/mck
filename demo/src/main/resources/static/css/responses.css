@@ -168,3 +168,10 @@ select:invalid {
 .submit-button {
     margin-right: 10px; /* Adjust this value to increase or decrease the space */
 }
+
+.bottom-buttons-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px; /* This adds space between the buttons */
+    margin-top: 20px; /* Adjust this value to control the vertical position */
+}

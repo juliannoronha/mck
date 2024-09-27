@@ -47,8 +47,17 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
            "WHERE (:nameFilter IS NULL OR LOWER(ua.user.username) LIKE %:nameFilter%) " +
            "AND (:store IS NULL OR ua.pac.store = :store) " +
            "AND (:month IS NULL OR MONTH(ua.submissionDate) = :month)")
-    Page<UserAnswer> findAllWithFilters(Pageable pageable, 
-                                    @Param("nameFilter") String nameFilter,
-                                    @Param("store") String store,
-                                    @Param("month") Integer month);
+    List<UserAnswer> findAllWithFilters(Pageable pageable, 
+                                        @Param("nameFilter") String nameFilter,
+                                        @Param("store") String store,
+                                        @Param("month") Integer month);
+    
+    @Query("SELECT COUNT(ua) FROM UserAnswer ua JOIN ua.user u JOIN ua.pac p " +
+           "WHERE (:nameFilter IS NULL OR LOWER(u.username) LIKE %:nameFilter%) " +
+           "AND (:store IS NULL OR p.store = :store) " +
+           "AND (:month IS NULL OR MONTH(ua.submissionDate) = :month)")
+    long countAllWithFilters(@Param("nameFilter") String nameFilter, 
+                             @Param("store") String store, 
+                             @Param("month") Integer month);
 }
+

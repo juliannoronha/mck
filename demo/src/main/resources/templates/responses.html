@@ -83,9 +83,10 @@
                 </tr>
             </tbody>
         </table>
-        <!-- Link to return to the questions page -->
-        <a th:href="@{/packmed}" class="button">Back to Questions</a>
-        <a href="/user-productivity" class="button">Individual Productivity</a>
+        <div class="bottom-buttons-container">
+            <button class="button" onclick="location.href='/questions'">Back to Questions</button>
+            <button class="button" onclick="location.href='/user-productivity'">Individual Productivity</button>
+        </div>
     </div>
 
     <!-- Pagination -->

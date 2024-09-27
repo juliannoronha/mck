@@ -32,7 +32,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function updatePagination(data) {
         const paginationContainer = document.querySelector('.pagination-container');
         if (paginationContainer) {
-            paginationContainer.innerHTML = createPaginationHTML(data);
+            if (data.totalPages > 1) {
+                paginationContainer.innerHTML = createPaginationHTML(data);
+                paginationContainer.style.display = 'block';
+            } else {
+                paginationContainer.style.display = 'none';
+            }
         }
     }
 
