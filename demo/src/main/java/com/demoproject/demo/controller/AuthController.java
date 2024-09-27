@@ -92,30 +92,17 @@ public class AuthController {
      */
     @PostMapping("/register")
     @PreAuthorize("hasRole('ADMIN')")
-    public String registerUser(@ModelAttribute("user") @Valid UserDTO user, BindingResult result, Model model, RedirectAttributes redirectAttributes) {
-        logger.info("Received registration request for user: {} with role: {}", user.getUsername(), user.getRole());
-        
+    public String registerUser(@ModelAttribute("user") @Valid UserDTO user, BindingResult result, RedirectAttributes redirectAttributes) {
         if (result.hasErrors()) {
-            logger.warn("Validation errors in registration form");
             return "register";
         }
         
         try {
             userService.registerNewUser(user);
-            logger.info("User registered successfully: {} with role: {}", user.getUsername(), user.getRole());
             redirectAttributes.addFlashAttribute("successMessage", "User registered successfully!");
             return "redirect:/users";
-        } catch (DataIntegrityViolationException e) {
-            logger.error("Username already exists: {}", user.getUsername());
-            result.rejectValue("username", "error.user", "Username already exists");
-            return "register";
-        } catch (IllegalArgumentException e) {
-            logger.error("Invalid role selected: {}", user.getRole());
-            result.rejectValue("role", "error.user", e.getMessage());
-            return "register";
         } catch (Exception e) {
-            logger.error("Unexpected error during user registration", e);
-            model.addAttribute("errorMessage", "An unexpected error occurred. Please try again.");
+            result.rejectValue("username", "error.user", e.getMessage());
             return "register";
         }
     }
