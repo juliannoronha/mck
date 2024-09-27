@@ -175,3 +175,22 @@ select:invalid {
     gap: 10px; /* This adds space between the buttons */
     margin-top: 20px; /* Adjust this value to control the vertical position */
 }
+
+.message-bubble {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    z-index: 1000;
+}
+
+.message-bubble.success {
+    background-color: #28a745;
+}
+
+.message-bubble.error {
+    background-color: #dc3545;
+}

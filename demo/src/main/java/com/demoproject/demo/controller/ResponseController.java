@@ -74,12 +74,17 @@ public class ResponseController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
     public ResponseEntity<String> deleteResponse(@RequestParam Long id) {
         try {
-            responseService.deleteResponse(id);
-            return ResponseEntity.ok("Response deleted successfully.");
+            boolean deleted = responseService.deleteResponse(id);
+            if (deleted) {
+                return ResponseEntity.ok("Response deleted successfully.");
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                     .body("Response not found with id: " + id);
+            }
         } catch (Exception e) {
-            e.printStackTrace(); // This will print the stack trace to the console
+            logger.error("Error deleting response", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                 .body("Error deleting response: " + e.getMessage() + ". Check server logs for details.");
+                                 .body("Error deleting response: " + e.getMessage());
         }
     }
 

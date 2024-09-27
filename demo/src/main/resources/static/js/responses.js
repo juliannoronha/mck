@@ -3,12 +3,20 @@ document.addEventListener('DOMContentLoaded', function() {
         console.warn('This page is not being served over HTTPS. Some features may not work correctly.');
     }
 
+    const table = document.getElementById('responsesTable');
     const nameFilter = document.getElementById('nameFilter');
     const submitNameFilterBtn = document.getElementById('submitNameFilter');
     const storeFilter = document.getElementById('storeFilter');
     const monthFilter = document.getElementById('monthFilter');
     const resetFilterBtn = document.getElementById('resetFilter');
-    const table = document.getElementById('responsesTable');
+
+    table.addEventListener('click', function(e) {
+        if (e.target.classList.contains('delete-btn')) {
+            if (confirm('Are you sure you want to delete this response?')) {
+                deleteResponse(e.target.dataset.id);
+            }
+        }
+    });
 
     function updateTable(data) {
         const tbody = table.querySelector('tbody');
@@ -82,18 +90,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 attachPaginationListeners();
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error fetching results: ' + error.message, true);
+            });
     }
 
-    function attachPaginationListeners() {
-        document.querySelectorAll('.pagination a').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const page = this.getAttribute('data-page');
-                fetchFilteredResults(page);
-            });
-        });
-    }
+    // Make fetchFilteredResults accessible globally
+    window.fetchFilteredResults = fetchFilteredResults;
 
     submitNameFilterBtn.addEventListener('click', function() {
         fetchFilteredResults();
@@ -114,6 +118,57 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchFilteredResults();
     });
 
+    function attachPaginationListeners() {
+        const paginationContainer = document.querySelector('.pagination-container');
+        if (paginationContainer) {
+            paginationContainer.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A' && e.target.dataset.page) {
+                    e.preventDefault();
+                    fetchFilteredResults(parseInt(e.target.dataset.page));
+                }
+            });
+        }
+    }
+
     // Initial load
     attachPaginationListeners();
 });
+
+function showMessage(message, isError = false) {
+    const messageBubble = document.getElementById('messageBubble');
+    const messageText = document.getElementById('messageText');
+    messageText.textContent = message;
+    messageBubble.className = isError ? 'message-bubble error' : 'message-bubble success';
+    messageBubble.style.display = 'block';
+    setTimeout(() => {
+        messageBubble.style.display = 'none';
+    }, 5000);
+}
+
+function deleteResponse(id) {
+    const csrfToken = document.querySelector('meta[name="_csrf"]');
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]');
+
+    let headers = {
+        'Content-Type': 'application/x-www-form-urlencoded'
+    };
+
+    if (csrfToken && csrfHeader) {
+        headers[csrfHeader.getAttribute('content')] = csrfToken.getAttribute('content');
+    }
+
+    fetch('/delete-response', {
+        method: 'POST',
+        headers: headers,
+        body: `id=${id}`
+    })
+    .then(response => response.text())
+    .then(data => {
+        showMessage(data);
+        window.fetchFilteredResults(); // Use the global function
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('Error deleting response: ' + error.message, true);
+    });
+}

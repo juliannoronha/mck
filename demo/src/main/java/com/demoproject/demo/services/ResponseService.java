@@ -15,6 +15,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.util.List; // Change this import
+import java.util.Optional; // Add this import
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.dao.TransientDataAccessException;
 
 @Service
 public class ResponseService {
@@ -33,6 +37,11 @@ public class ResponseService {
         this.userRepository = userRepository;
     }
 
+    @Retryable(
+        value = {TransientDataAccessException.class},
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 1000)
+    )
     @Transactional
     public void submitUserAnswer(UserAnswer userAnswer, Pac pac, String username) {
         User user = userRepository.findByUsername(username)
@@ -59,12 +68,13 @@ public class ResponseService {
     }
 
     @Transactional
-    public void deleteResponse(Long id) {
-        UserAnswer userAnswer = userAnswerRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Response not found with id: " + id));
-        
-        // The cascading delete will take care of deleting the related Pac entity
-        userAnswerRepository.delete(userAnswer);
+    public boolean deleteResponse(Long id) {
+        Optional<UserAnswer> userAnswerOpt = userAnswerRepository.findById(id);
+        if (userAnswerOpt.isPresent()) {
+            userAnswerRepository.delete(userAnswerOpt.get());
+            return true;
+        }
+        return false;
     }
 
     public Page<UserAnswer> getAllResponses(Pageable pageable) {
