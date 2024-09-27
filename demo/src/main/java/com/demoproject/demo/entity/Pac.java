@@ -1,11 +1,14 @@
 package com.demoproject.demo.entity;
 
+import com.demoproject.demo.config.TruncatedDateTimeConverter;
+
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Entity
 @Table(name = "pac")
@@ -23,6 +26,7 @@ public class Pac {
     private User user;
 
     @Column(name = "submission_date")
+    @Convert(converter = TruncatedDateTimeConverter.class)
     private LocalDateTime submissionDate;
 
     @Column(name = "start_time")
@@ -39,6 +43,6 @@ public class Pac {
 
     @PrePersist
     protected void onCreate() {
-        submissionDate = LocalDateTime.now();
+        submissionDate = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
     }
 }
