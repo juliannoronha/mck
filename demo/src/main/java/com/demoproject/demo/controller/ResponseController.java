@@ -13,6 +13,7 @@ import com.demoproject.demo.services.ResponseService;
 import org.springframework.ui.Model;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,39 +92,31 @@ public class ResponseController {
     @GetMapping("/view-responses")
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
     public String viewResponses(Model model, 
-                            @RequestParam(required = false) String page, 
+                            @RequestParam(defaultValue = "0") int page, 
                             @RequestParam(defaultValue = "10") int size,
                             @RequestParam(required = false) String nameFilter,
                             @RequestParam(required = false) String store,
                             @RequestParam(required = false) String month) {
-        int pageNumber = 0;
-        if (page != null && !page.isEmpty()) {
-            try {
-                pageNumber = Integer.parseInt(page);
-            } catch (NumberFormatException e) {
-                logger.warn("Invalid page number provided: {}", page);
-            }
-        }
+        try {
+            Integer monthValue = (month != null && !month.isEmpty() && !month.equals("null")) 
+                ? Integer.parseInt(month) : null;
 
-        Integer monthValue = null;
-        if (month != null && !month.isEmpty() && !month.equals("null")) {
-            try {
-                monthValue = Integer.parseInt(month);
-            } catch (NumberFormatException e) {
-                logger.warn("Invalid month value provided: {}", month);
-            }
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "submissionDate"));
+            Page<UserAnswer> responses = responseService.getAllResponsesWithFilters(
+                pageable, nameFilter, store, monthValue);
+            
+            model.addAttribute("responses", responses);
+            model.addAttribute("nameFilter", nameFilter);
+            model.addAttribute("selectedStore", store);
+            model.addAttribute("selectedMonth", month);
+            model.addAttribute("currentPage", page);
+            model.addAttribute("totalPages", responses.getTotalPages());
+            model.addAttribute("totalItems", responses.getTotalElements());
+            
+            return "responses";
+        } catch (NumberFormatException e) {
+            logger.warn("Invalid number format: {}", e.getMessage());
+            return "error";
         }
-        
-        Page<UserAnswer> responses = responseService.getAllResponsesWithFilters(
-            PageRequest.of(pageNumber, size, Sort.by(Sort.Direction.DESC, "submissionDate")), 
-            nameFilter, store, monthValue);
-        
-        model.addAttribute("responses", responses);
-        model.addAttribute("nameFilter", nameFilter);
-        model.addAttribute("selectedStore", store);
-        model.addAttribute("selectedMonth", month);
-        model.addAttribute("totalPages", responses.getTotalPages());
-        model.addAttribute("totalItems", responses.getTotalElements());
-        return "responses";
     }
 }
