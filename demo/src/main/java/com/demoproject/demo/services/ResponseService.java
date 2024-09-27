@@ -53,6 +53,7 @@ public class ResponseService {
         UserAnswer savedUserAnswer = userAnswerRepository.save(userAnswer);
         
         pac.setUserAnswer(savedUserAnswer);
+        pac.setUser(user);  // Add this line to set the user on the Pac entity
         
         // Ensure all required fields are set
         if (pac.getStore() == null || pac.getStartTime() == null || pac.getEndTime() == null || pac.getPouchesChecked() == null) {
