@@ -157,7 +157,13 @@ document.addEventListener('DOMContentLoaded', function() {
         eventSource.onmessage = function(event) {
             try {
                 const data = JSON.parse(event.data);
-                updateDashboard(data);
+                if (Array.isArray(data)) {
+                    // Handle individual user productivity updates
+                    // You can implement this if needed
+                } else {
+                    // Handle overall productivity update
+                    updateDashboard(data);
+                }
             } catch (error) {
                 console.error('Error parsing SSE data:', error);
             }

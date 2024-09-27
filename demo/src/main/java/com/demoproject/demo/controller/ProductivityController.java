@@ -91,6 +91,6 @@ public class ProductivityController {
     @GetMapping(value = "/api/overall-productivity-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamOverallProductivity() {
         logger.info("New SSE connection established for overall productivity");
-        return userProductivityService.subscribeToProductivityUpdates();
+        return userProductivityService.subscribeToOverallProductivityUpdates();
     }
 }

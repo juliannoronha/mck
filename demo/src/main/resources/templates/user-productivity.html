@@ -76,10 +76,9 @@
 
         function updateTable(users) {
             console.log('Updating table with users:', users);
-            const tableBody = document.getElementById('productivityTableBody');
             const noDataRow = document.getElementById('noDataRow');
 
-            if (users.length === 0) {
+            if (!Array.isArray(users) || users.length === 0) {
                 tableBody.innerHTML = '';
                 noDataRow.style.display = 'table-row';
             } else {
@@ -100,8 +99,13 @@
         const eventSource = new EventSource('/api/user-productivity-stream');
         eventSource.onmessage = function(event) {
             console.log('Received SSE event:', event);
-            const users = JSON.parse(event.data);
-            updateTable(users);
+            try {
+                const users = JSON.parse(event.data);
+                updateTable(users);
+            } catch (error) {
+                console.error('Error parsing SSE data:', error);
+                console.error('Raw event data:', event.data);
+            }
         };
         eventSource.onerror = function(error) {
             console.error('Error in SSE connection:', error);

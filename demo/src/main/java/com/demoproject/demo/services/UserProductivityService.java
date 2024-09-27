@@ -32,12 +32,18 @@ import org.springframework.context.annotation.Configuration;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 @Service
 @Configuration
 public class UserProductivityService {
 
     @Autowired
     private PacRepository pacRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
@@ -74,9 +80,27 @@ public class UserProductivityService {
 
         // Send initial data
         try {
-            emitter.send(SseEmitter.event().data(getOverallProductivity()));
+            List<UserProductivityDTO> userProductivity = getUserProductivityData();
+            emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(userProductivity)));
         } catch (IOException e) {
             logger.error("Error sending initial data", e);
+            emitter.completeWithError(e);
+        }
+
+        return emitter;
+    }
+
+    public SseEmitter subscribeToOverallProductivityUpdates() {
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        
+        // ... (similar setup as in subscribeToProductivityUpdates)
+
+        // Send initial overall productivity data
+        try {
+            UserProductivityDTO overallProductivity = getOverallProductivity();
+            emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(overallProductivity)));
+        } catch (IOException e) {
+            logger.error("Error sending initial overall productivity data", e);
             emitter.completeWithError(e);
         }
 
@@ -191,21 +215,26 @@ public class UserProductivityService {
 
     public void sendOverallProductivityUpdate() {
         UserProductivityDTO overallProductivity = getOverallProductivity();
-        List<SseEmitter> deadEmitters = new ArrayList<>();
-        this.emitters.forEach(emitter -> {
-            try {
-                emitter.send(SseEmitter.event().data(overallProductivity));
-            } catch (IOException e) {
-                deadEmitters.add(emitter);
+        try {
+            String jsonData = objectMapper.writeValueAsString(overallProductivity);
+            for (SseEmitter emitter : emitters) {
+                try {
+                    emitter.send(jsonData);
+                } catch (IOException e) {
+                    logger.error("Error sending SSE update", e);
+                }
             }
-        });
-        this.emitters.removeAll(deadEmitters);
+        } catch (JsonProcessingException e) {
+            logger.error("Error converting overall productivity data to JSON", e);
+        }
+        removeDeadEmitters();
     }
 
     public List<UserProductivityDTO> getUserProductivityData() {
         List<Object[]> results = pacRepository.getUserProductivityData();
         return results.stream()
             .map(this::mapToUserProductivityDTO)
+            .filter(dto -> !"Overall".equals(dto.getUsername())) // Filter out the "Overall" entry
             .collect(Collectors.toList());
     }
 
@@ -287,5 +316,34 @@ public class UserProductivityService {
         // Method to be called when productivity data is updated
         logger.info("Updating user productivity and evicting cache");
         // Add any necessary update logic here
+    }
+
+    public void sendProductivityUpdate() {
+        List<UserProductivityDTO> users = getUserProductivityData();
+        try {
+            String jsonData = objectMapper.writeValueAsString(users);
+            for (SseEmitter emitter : emitters) {
+                try {
+                    emitter.send(jsonData);
+                } catch (IOException e) {
+                    logger.error("Error sending SSE update", e);
+                }
+            }
+        } catch (JsonProcessingException e) {
+            logger.error("Error converting productivity data to JSON", e);
+        }
+        removeDeadEmitters();
+    }
+
+    private void removeDeadEmitters() {
+        List<SseEmitter> deadEmitters = new ArrayList<>();
+        emitters.forEach(emitter -> {
+            try {
+                emitter.send(SseEmitter.event().data(null));
+            } catch (IOException e) {
+                deadEmitters.add(emitter);
+            }
+        });
+        emitters.removeAll(deadEmitters);
     }
 }
