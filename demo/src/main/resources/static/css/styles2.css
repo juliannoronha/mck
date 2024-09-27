@@ -9,10 +9,39 @@
     font-family: "Poppins", sans-serif;
 }
 
+:root {
+    --bg-color: #1a1a1a;
+    --nav-bg-color: #2a2a2a;
+    --text-color: #ffffff;
+    --hover-bg-color: #3a3a3a;
+    --border-color: #444;
+    --success-color: #28a745;
+    --error-color: #ff6b6b;
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+}
+
 body {
-    background-color: #1a1a1a;
-    color: #ffffff;
+    background-color: var(--bg-color);
+    color: var(--text-color);
     display: flex;
+}
+
+/* Common styles */
+.container, .main-top, .welcome-message, .button, .submit-button, .admin-button, .home-button,
+.form-group input, .form-group select, .success-message, .logout-message, .access-denied-message {
+    border-radius: 5px;
+}
+
+.container, .main-top, .welcome-message, .success-message, .logout-message, .access-denied-message {
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+.button, .submit-button, .admin-button, .home-button, .form-group input, .form-group select {
+    padding: 10px 15px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
 }
 
 /* Navigation styles */
@@ -23,19 +52,17 @@ nav {
     bottom: 0;
     width: 280px;
     height: 100vh;
-    background: #2a2a2a;
+    background: var(--nav-bg-color);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
-    align-items: center; /* Center-align the navigation items */
 }
 
-.navbar {
+.navbar, nav ul, .panel, .admin-panel {
     width: 100%;
     display: flex;
     flex-direction: column;
-    height: 100%;
-    align-items: flex-start; /* Change from center to flex-start */
+    align-items: flex-start;
 }
 
 .logo {
@@ -43,8 +70,7 @@ nav {
     padding-bottom: 2rem;
     display: flex;
     justify-content: center;
-    align-items: center;
-    width: 100%; /* Ensure logo takes full width */
+    width: 100%;
 }
 
 .logo img {
@@ -54,42 +80,29 @@ nav {
     object-fit: contain;
 }
 
-nav ul {
-    padding: 0;
-    margin: 0;
-    list-style-type: none;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start; /* Change from center to flex-start */
+nav li, .panel ul li, .admin-panel ul li {
     width: 100%;
 }
 
-nav li {
-    width: 100%;
-}
-
-nav li a {
+nav li a, .panel ul li a, .admin-panel ul li a {
     font-size: 16px;
-    color: #ffffff;
+    color: var(--text-color);
     display: flex;
     align-items: center;
     padding: 1rem 1.5rem;
-    transition: background-color 0.3s ease;
     width: 100%;
-    box-sizing: border-box; /* Ensure padding is included in width calculation */
-    text-decoration: none; /* Add this line to remove the underline */
+    text-decoration: none;
 }
 
-nav li a:hover {
-    background-color: #3a3a3a;
-    width: 100%; /* Ensure hover effect covers full width */
+nav li a:hover, .panel ul li a:hover, .admin-panel ul li a:hover {
+    background-color: var(--hover-bg-color);
 }
 
 nav i {
     width: 24px;
     font-size: 18px;
     margin-right: 10px;
-    flex-shrink: 0; /* Prevent icon from shrinking */
+    flex-shrink: 0;
 }
 
 .logout {
@@ -97,7 +110,7 @@ nav i {
     padding: 1rem;
     width: 100%;
     display: flex;
-    justify-content: flex-start; /* Change from center to flex-start */
+    justify-content: flex-start;
 }
 
 .logout form {
@@ -108,10 +121,8 @@ nav i {
 
 .logout .button {
     width: 100%;
-    padding: 1rem;
-    background-color: #2a2a2a;
-    border: 1px solid #444;
-    transition: background-color 0.3s ease;
+    background-color: var(--nav-bg-color);
+    border: 1px solid var(--border-color);
 }
 
 /* Main content styles */
@@ -124,77 +135,59 @@ nav i {
 }
 
 .main-top {
-    background: #2a2a2a;
-    padding: 10px;
+    background: var(--nav-bg-color);
     text-align: center;
     font-size: 18px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #ffffff;
-    margin-bottom: 20px;
-    border-radius: 10px;
     width: 100%;
 }
 
 h1, h2 {
     margin: 20px 0;
-    color: #ffffff;
+    color: var(--text-color);
 }
 
-/* Dashboard card styles */
-@keyframes fadeInOut {
-    0% { opacity: 0; transform: translateY(-20px); }
-    15% { opacity: 1; transform: translateY(0); }
-    85% { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(20px); }
-}
-
+/* Welcome message styles */
 .welcome-message {
     text-align: center;
     max-width: 600px;
     width: 100%;
     margin-top: 40px;
-    animation: fadeInOut 7s ease-in-out forwards; /* Reduced from 10s to 7s */
+    animation: fadeInOut 7s ease-in-out forwards;
 }
 
 .welcome-message h1 {
-    font-size: 1.5rem; /* Reduced from 3.5rem to match "Dashboard" size */
-    font-weight: 400; /* Changed from 300 to 400 for better readability */
-    color: #ffffff;
+    font-size: 1.5rem;
+    font-weight: 400;
     margin: 0;
     padding: 0;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1); /* Reduced shadow for smaller text */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
 
 .welcome-message span {
     font-weight: 600;
-    color: #4CAF50; /* A nice green color, you can change this */
+    color: var(--success-color);
 }
-
-/* Remove the fade-out class as it's no longer needed */
 
 /* Button styles */
 .button, .submit-button, .admin-button, .home-button {
     display: inline-block;
-    padding: 10px 15px;
     margin: 0.5rem;
-    background-color: #2a2a2a;
-    color: white;
+    background-color: var(--nav-bg-color);
+    color: var(--text-color);
     text-decoration: none;
-    border-radius: 5px;
-    cursor: pointer;
     font-size: 1em;
-    transition: background-color 0.3s ease;
-    border: 1px solid #444;
+    border: 1px solid var(--border-color);
 }
 
 .button:hover, .submit-button:hover {
-    background-color: #3a3a3a;
+    background-color: var(--hover-bg-color);
 }
 
-.admin-button { background-color: #28a745; }
+.admin-button { background-color: var(--success-color); }
 .admin-button:hover { background-color: #218838; }
-.home-button { background-color: #6c757d; }
+.home-button { background-color: var(--secondary-color); }
 .home-button:hover { background-color: #5a6268; }
 
 /* Form styles */
@@ -206,47 +199,36 @@ h1, h2 {
 .form-group label {
     display: block;
     margin-bottom: 0.5rem;
-    color: #ffffff;
+    color: var(--text-color);
 }
 
 .form-group input,
 .form-group select {
     width: 100%;
-    padding: 10px;
-    border: 1px solid #444;
-    border-radius: 5px;
+    border: 1px solid var(--border-color);
     background-color: #333;
-    color: #ffffff;
+    color: var(--text-color);
 }
 
 .form-group input:focus,
 .form-group select:focus {
-    border-color: #007bff;
+    border-color: var(--primary-color);
 }
 
-/* Error message styles */
+/* Message styles */
 .error-message {
-    color: #ff6b6b;
+    color: var(--error-color);
     margin-bottom: 1rem;
 }
 
-/* Success message styles */
 .success-message {
-    background-color: #28a745;
-    color: white;
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 5px;
-    transition: opacity 0.6s ease-in-out;
+    background-color: var(--success-color);
+    color: var(--text-color);
 }
 
-/* Logout message styles */
 .logout-message {
-    background-color: #ff6b6b;
-    color: white;
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 20px;
+    background-color: var(--error-color);
+    color: var(--text-color);
     text-align: center;
     font-size: 0.9em;
     opacity: 1;
@@ -257,13 +239,67 @@ h1, h2 {
     opacity: 0;
 }
 
+.access-denied-message {
+    display: none;
+    background-color: #8B0000;
+    color: var(--text-color);
+    opacity: 0;
+    transition: opacity 0.5s, transform 0.5s;
+}
+
+.access-denied-message.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+    animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.access-denied-message.hide {
+    animation: fadeOutDown 0.5s ease-in forwards;
+}
+
 /* Container styles */
 .container {
-    background-color: #2a2a2a;
+    background-color: var(--nav-bg-color);
     padding: 2rem;
-    border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     margin: 20px auto;
+}
+
+/* Panel styles */
+.panel > span, .admin-panel > span {
+    display: block;
+    padding: 10px 1.5rem;
+    color: var(--text-color);
+    font-weight: bold;
+    font-size: 1em;
+}
+
+/* Animations */
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(-20px); }
+    15% { opacity: 1; transform: translateY(0); }
+    85% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(20px); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOutDown {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(20px); }
+}
+
+@keyframes flashRed {
+    0%, 100% { background-color: var(--nav-bg-color); }
+    50% { background-color: #8B0000; }
+}
+
+.flash-red {
+    animation: flashRed 0.5s 3;
 }
 
 /* Responsive design */
@@ -281,92 +317,4 @@ h1, h2 {
     .main {
         padding: 10px;
     }
-}
-
-/* Panel styles */
-.panel, .admin-panel {
-    width: 100%;
-}
-
-.panel > span, .admin-panel > span {
-    display: block;
-    padding: 10px 1.5rem;
-    color: #ffffff;
-    font-weight: bold;
-    font-size: 1em;
-}
-
-.panel ul, .admin-panel ul {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-}
-
-.panel ul li, .admin-panel ul li {
-    width: 100%;
-}
-
-.panel ul li a, .admin-panel ul li a {
-    padding: 1rem 1.5rem;
-    text-decoration: none; /* Add this line to remove the underline */
-    color: #ffffff; /* Ensure the text color is white */
-    display: flex;
-    align-items: center;
-    width: 100%;
-    transition: background-color 0.3s ease;
-}
-
-/* Access denied message styles */
-.access-denied-message {
-    display: none;
-    background-color: #8B0000; /* Darker shade of red */
-    color: #ffffff;
-    padding: 15px;
-    border-radius: 5px;
-    margin-top: 20px;
-    opacity: 0;
-    transition: opacity 0.5s, transform 0.5s;
-}
-
-.access-denied-message.show {
-    display: block;
-    opacity: 1;
-    transform: translateY(0);
-    animation: fadeInUp 0.5s ease-out forwards;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.access-denied-message.hide {
-    animation: fadeOutDown 0.5s ease-in forwards;
-}
-
-@keyframes fadeOutDown {
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-}
-
-/* PacMed button flashing effect */
-@keyframes flashRed {
-    0%, 100% { background-color: #2a2a2a; }
-    50% { background-color: #8B0000; }
-}
-
-.flash-red {
-    animation: flashRed 0.5s 3;
 }
