@@ -35,10 +35,12 @@ import java.util.List;
 
 import org.springframework.cache.interceptor.KeyGenerator;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 import jakarta.persistence.EntityManager;
 
 @Service
+@Configuration
 public class UserProductivityService {
     @Autowired
     private UserRepository userRepository;
@@ -67,31 +69,26 @@ public class UserProductivityService {
     private EntityManager entityManager;
 
     public Map<String, Object> getUserProductivity(String username) {
-        String jpql = "SELECT new map(COUNT(ua) as totalSubmissions, " +
+        String jpql = "SELECT COUNT(ua) as totalSubmissions, " +
                       "SUM(p.pouchesChecked) as totalPouchesChecked, " +
-                      "SUM(FUNCTION('TIMESTAMPDIFF', MINUTE, p.startTime, p.endTime)) as totalMinutes) " +
+                      "SUM(FUNCTION('TIMESTAMPDIFF', MINUTE, p.startTime, p.endTime)) as totalMinutes " +
                       "FROM UserAnswer ua JOIN ua.pac p WHERE ua.user.username = :username";
         
-        List<Object[]> result = entityManager.createQuery(jpql, Object[].class)
+        Object[] result = (Object[]) entityManager.createQuery(jpql)
                 .setParameter("username", username)
-                .getResultList();
+                .getSingleResult();
         
-        Map<String, Object> mappedResult = new HashMap<>();
-        if (!result.isEmpty()) {
-            Object[] row = result.get(0);
-            mappedResult.put("totalTasks", row[0]);
-            mappedResult.put("completedTasks", row[1]);
-            // Add other mappings as needed
-        }
+        Map<String, Object> productivityMap = new HashMap<>();
+        productivityMap.put("totalSubmissions", ((Number) result[0]).longValue());
+        productivityMap.put("totalPouchesChecked", ((Number) result[1]).longValue());
+        long totalMinutes = ((Number) result[2]).longValue();
         
-        long totalMinutes = ((Number) mappedResult.get("totalMinutes")).longValue();
-        long totalPouches = ((Number) mappedResult.get("totalPouchesChecked")).longValue();
-        double avgPouchesPerHour = totalMinutes > 0 ? (totalPouches * 60.0) / totalMinutes : 0;
+        double avgPouchesPerHour = totalMinutes > 0 ? (((Number) result[1]).doubleValue() * 60.0) / totalMinutes : 0;
         
-        mappedResult.put("avgPouchesPerHour", avgPouchesPerHour);
-        mappedResult.put("avgTimeDuration", String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60));
+        productivityMap.put("avgPouchesPerHour", avgPouchesPerHour);
+        productivityMap.put("avgTimeDuration", String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60));
         
-        return mappedResult;
+        return productivityMap;
     }
 
     @Cacheable(value = "allUserProductivity", keyGenerator = "customKeyGenerator")
