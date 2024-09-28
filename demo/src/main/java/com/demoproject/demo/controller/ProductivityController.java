@@ -20,6 +20,10 @@ import org.springframework.data.domain.Page;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Controller responsible for handling productivity-related requests.
+ * This class provides endpoints for retrieving and streaming productivity data.
+ */
 @Controller
 public class ProductivityController {
     private static final Logger logger = LoggerFactory.getLogger(ProductivityController.class);
@@ -27,11 +31,20 @@ public class ProductivityController {
     private final UserProductivityService userProductivityService;
     private final UserService userService;
 
+    /**
+     * Constructor for ProductivityController.
+     * @param userProductivityService Service for handling user productivity operations
+     * @param userService Service for handling user-related operations
+     */
     public ProductivityController(UserProductivityService userProductivityService, UserService userService) {
         this.userProductivityService = userProductivityService;
         this.userService = userService;
     }
 
+    /**
+     * Retrieves overall productivity data.
+     * @return ResponseEntity containing overall productivity data
+     */
     @GetMapping("/api/overall-productivity")
     @ResponseBody
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
@@ -48,6 +61,13 @@ public class ProductivityController {
         }
     }
 
+    /**
+     * Displays user productivity page with paginated results.
+     * @param model Model object for adding attributes
+     * @param page Page number (default: 0)
+     * @param size Number of items per page (default: 10)
+     * @return Name of the view to render
+     */
     @GetMapping("/user-productivity")
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
     public String userProductivity(Model model, 
@@ -60,6 +80,11 @@ public class ProductivityController {
         return "user-productivity";
     }
 
+    /**
+     * Retrieves productivity data for a specific user.
+     * @param username Username of the user
+     * @return ResponseEntity containing user's productivity data
+     */
     @GetMapping("/api/user-productivity/{username}")
     @ResponseBody
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
@@ -70,12 +95,22 @@ public class ProductivityController {
         return ResponseEntity.ok(productivity);
     }
 
+    /**
+     * Establishes a Server-Sent Events connection for streaming user productivity updates.
+     * @return SseEmitter for streaming updates
+     */
     @GetMapping(value = "/api/user-productivity-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamUserProductivity() {
         logger.info("New SSE connection established for user productivity");
         return userProductivityService.subscribeToProductivityUpdates();
     }
 
+    /**
+     * Retrieves paginated productivity data for all users.
+     * @param page Page number (default: 0)
+     * @param size Number of items per page (default: 10)
+     * @return ResponseEntity containing paginated user productivity data
+     */
     @GetMapping("/api/all-user-productivity")
     @ResponseBody
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
@@ -88,9 +123,16 @@ public class ProductivityController {
         return ResponseEntity.ok(productivityData);
     }
 
+    /**
+     * Establishes a Server-Sent Events connection for streaming overall productivity updates.
+     * @return SseEmitter for streaming updates
+     */
     @GetMapping(value = "/api/overall-productivity-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamOverallProductivity() {
         logger.info("New SSE connection established for overall productivity");
         return userProductivityService.subscribeToOverallProductivityUpdates();
     }
+
+    // TODO: Consider adding endpoints for productivity analytics and reporting
+    // TODO: Implement caching strategy for frequently accessed productivity data
 }

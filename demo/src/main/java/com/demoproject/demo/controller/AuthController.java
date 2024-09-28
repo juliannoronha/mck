@@ -22,6 +22,10 @@ import org.springframework.http.ResponseEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * AuthController handles authentication-related operations and user management.
+ * This controller manages user registration, login, and various user-related actions.
+ */
 @Controller
 public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
@@ -42,8 +46,9 @@ public class AuthController {
     }
 
     /**
-     * Handles the request for the home page.
-     * @return The name of the home view
+     * Displays the home page for authenticated users.
+     * @param model The Model object to add attributes
+     * @return The name of the home view or redirects to login if not authenticated
      */
     @GetMapping("/home")
     public String home(Model model) {
@@ -56,7 +61,9 @@ public class AuthController {
     }
 
     /**
-     * Handles the request for the login page.
+     * Displays the login page.
+     * @param logout Indicates if the user has logged out
+     * @param model The Model object to add attributes
      * @return The name of the login view
      */
     @GetMapping("/login")
@@ -68,7 +75,7 @@ public class AuthController {
     }
 
     /**
-     * Displays the registration form.
+     * Displays the registration form for admin users.
      * @param model The Model object to add attributes
      * @return The name of the register view
      */
@@ -82,12 +89,11 @@ public class AuthController {
     }
 
     /**
-     * Handles user registration.
+     * Handles user registration process.
      * @param user The UserDTO object containing user information
      * @param result BindingResult for validation errors
-     * @param model The Model object to add attributes
      * @param redirectAttributes RedirectAttributes for adding flash attributes
-     * @return Redirects to the users page if successful, otherwise returns the register view
+     * @return Redirects to the users page if successful, otherwise returns to the register view
      */
     @PostMapping("/register")
     @PreAuthorize("hasRole('ADMIN')")
@@ -107,8 +113,10 @@ public class AuthController {
     }
 
     /**
-     * Displays the list of users.
+     * Displays a paginated list of users for admin users.
      * @param model The Model object to add attributes
+     * @param page The page number (default 0)
+     * @param size The page size (default 10)
      * @return The name of the users view
      */
     @GetMapping("/users")
@@ -124,7 +132,7 @@ public class AuthController {
     }
 
     /**
-     * Handles user deletion.
+     * Handles user deletion for admin users.
      * @param username The username of the user to be deleted
      * @return ResponseEntity with appropriate status and message
      */
@@ -140,6 +148,12 @@ public class AuthController {
         }
     }
 
+    /**
+     * Displays the packmed page for authorized users.
+     * @param model The Model object to add attributes
+     * @param authentication The Authentication object for the current user
+     * @return The name of the packmed view
+     */
     @GetMapping("/packmed")
     @PreAuthorize("hasAnyRole('CHECKER', 'ADMIN', 'MODERATOR')")
     public String packmed(Model model, Authentication authentication) {
@@ -149,6 +163,13 @@ public class AuthController {
         return "packmed";
     }
 
+    /**
+     * Handles password change requests.
+     * @param username The username of the user whose password is being changed
+     * @param newPassword The new password
+     * @param authentication The Authentication object for the current user
+     * @return ResponseEntity with appropriate status and message
+     */
     @PostMapping("/change-password")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> changePassword(@RequestParam String username, @RequestParam String newPassword, Authentication authentication) {

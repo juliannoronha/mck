@@ -1,12 +1,20 @@
 package com.demoproject.demo.dto;
+
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Data Transfer Object for User entities.
  * Used for transferring user data between layers without exposing entity details.
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserDTO {
+
     /**
      * The username of the user.
      * Must not be empty and should be between 3 and 50 characters long.
@@ -28,77 +36,5 @@ public class UserDTO {
      * Must not be empty.
      */
     @NotEmpty(message = "Role cannot be empty")
-    private String role;  // Keep this as String
-
-    /**
-     * No-args constructor for UserDTO.
-     */
-    public UserDTO() {}
-
-    /**
-     * Constructor with all fields for UserDTO.
-     *
-     * @param username The username of the user
-     * @param password The password of the user
-     * @param role The role of the user as a string (will be converted to User.Role enum)
-     */
-    public UserDTO(String username, String password, String role) {
-        this.username = username;
-        this.password = password;
-        this.role = role;
-    }
-
-    /**
-     * Gets the username.
-     *
-     * @return The username
-     */
-    public String getUsername() {
-        return username;
-    }
-
-    /**
-     * Sets the username.
-     *
-     * @param username The username to set
-     */
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    /**
-     * Gets the password.
-     *
-     * @return The password
-     */
-    public String getPassword() {
-        return password;
-    }
-
-    /**
-     * Sets the password.
-     *
-     * @param password The password to set
-     */
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    /**
-     * Gets the role.
-     *
-     * @return The role
-     */
-    public String getRole() {
-        return this.role;
-    }
-
-    /**
-     * Sets the role.
-     *
-     * @param role The role to set
-     */
-    public void setRole(String role) {
-        this.role = role;
-    }
+    private String role;
 }
