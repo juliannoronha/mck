@@ -1,32 +1,49 @@
 package com.demoproject.demo.config;
 
 import com.demoproject.demo.repository.UserRepository;
-
 import jakarta.servlet.http.HttpServletResponse;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.context.annotation.EnableAspectJAutoProxy;
-import org.springframework.http.HttpMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
+
+import org.springframework.http.HttpMethod;
+
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import org.springframework.security.web.SecurityFilterChain;
+
 /**
- * Configuration class for Spring Security settings.
- * This class sets up the security configuration for the application,
- * including authentication, authorization, and other security-related beans.
+ * SecurityConfig: Central configuration for Spring Security settings.
+ * 
+ * This class orchestrates the security setup for the application, including:
+ * - Authentication mechanisms
+ * - Authorization rules
+ * - Password encoding
+ * - Session management
+ * - Custom error handling
+ *
+ * Key features:
+ * - Uses BCrypt for password hashing
+ * - Implements role-based access control
+ * - Configures secure channel requirements
+ * - Sets up custom login and logout behavior
+ * - Manages session fixation protection
  */
 @Configuration
 @EnableWebSecurity
@@ -37,7 +54,8 @@ public class SecurityConfig {
     private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
 
     /**
-     * Constructor for SecurityConfig.
+     * Constructs SecurityConfig with necessary dependencies.
+     * 
      * @param userRepository Repository for user data, injected by Spring.
      */
     public SecurityConfig(UserRepository userRepository) {
@@ -45,7 +63,8 @@ public class SecurityConfig {
     }
 
     /**
-     * Defines the password encoder bean.
+     * Configures the password encoder for the application.
+     * 
      * @return BCryptPasswordEncoder for secure password hashing.
      */
     @Bean
@@ -54,23 +73,33 @@ public class SecurityConfig {
     }
 
     /**
-     * Configures the UserDetailsService for authentication.
-     * @return A UserDetailsService that retrieves user details from the database.
+     * Sets up the UserDetailsService for authentication.
+     * 
+     * This service retrieves user details from the database and constructs
+     * a Spring Security User object with appropriate roles.
+     * 
+     * @return A custom UserDetailsService implementation.
      */
     @Bean
     public UserDetailsService userDetailsService() {
         return username -> userRepository.findByUsername(username)
-            .map(user -> {
-                return User.withUsername(user.getUsername())
-                    .password(user.getPassword())
-                    .roles(user.getRole().name())
-                    .build();
-            })
+            .map(user -> User.withUsername(user.getUsername())
+                              .password(user.getPassword())
+                              .roles(user.getRole().name())
+                              .build())
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
     /**
      * Configures the SecurityFilterChain for HTTP security.
+     * 
+     * This method sets up various security configurations including:
+     * - HTTPS channel requirement
+     * - URL-based authorization rules
+     * - Custom login and logout behavior
+     * - Exception handling for access denied scenarios
+     * - Session management policies
+     * 
      * @param http HttpSecurity object to be configured.
      * @return Configured SecurityFilterChain.
      * @throws Exception if an error occurs during configuration.
@@ -78,23 +107,31 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            // Require HTTPS for all requests
             .requiresChannel(channel -> channel.anyRequest().requiresSecure())
+            
+            // Configure authorization rules
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers(HttpMethod.POST, "/submit-questions").authenticated()
+                // Public access paths
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/*.png", "/*.ico", "/h2-console/**").permitAll()
                 .requestMatchers("/", "/login").permitAll()
-                .requestMatchers("/api/overall-productivity").hasAnyRole("ADMIN", "MODERATOR")
-                .requestMatchers("/view-responses").hasAnyRole("ADMIN", "MODERATOR")
-                .requestMatchers("/user-productivity").hasAnyRole("ADMIN", "MODERATOR")
-                .requestMatchers("/api/user-productivity/**").hasAnyRole("ADMIN", "MODERATOR")
+                
+                // Role-based access control
+                .requestMatchers("/api/overall-productivity", "/view-responses", "/user-productivity", "/api/user-productivity/**").hasAnyRole("ADMIN", "MODERATOR")
                 .requestMatchers("/api/checker/**").hasRole("CHECKER")
                 .requestMatchers("/api/shipping/**").hasRole("SHIPPING")
                 .requestMatchers("/api/inventory/**").hasRole("INVENTORY")
-                .requestMatchers("/packmed").hasAnyRole("CHECKER", "MODERATOR", "ADMIN")
-                .requestMatchers("/api/packmed/**").hasAnyRole("CHECKER", "MODERATOR", "ADMIN")
+                .requestMatchers("/packmed", "/api/packmed/**").hasAnyRole("CHECKER", "MODERATOR", "ADMIN")
                 .requestMatchers("/api/user-productivity-stream").hasAnyRole("ADMIN", "MODERATOR")
+                
+                // Authenticated access for specific endpoints
+                .requestMatchers(HttpMethod.POST, "/submit-questions").authenticated()
+                
+                // Default rule: require authentication for any other request
                 .anyRequest().authenticated()
             )
+            
+            // Configure form login
             .formLogin(form -> form
                 .loginPage("/login")
                 .defaultSuccessUrl("/home", true)
@@ -104,10 +141,14 @@ public class SecurityConfig {
                 })
                 .permitAll()
             )
+            
+            // Configure logout behavior
             .logout(logout -> logout
                 .logoutSuccessUrl("/login?logout")
                 .permitAll()
             )
+            
+            // Handle access denied scenarios
             .exceptionHandling(exceptionHandling -> exceptionHandling
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
                     logger.warn("Access denied: {}", accessDeniedException.getMessage());
@@ -117,18 +158,20 @@ public class SecurityConfig {
                     response.getWriter().flush();
                 })
             )
+            
+            // Configure session management
             .sessionManagement(session -> session
                 .sessionFixation().migrateSession()
                 .maximumSessions(1)
                 .expiredUrl("/login?expired")
-            )
-        ;
+            );
 
         return http.build();
     }
 
     /**
      * Configures the AuthenticationManager.
+     * 
      * @param authConfig AuthenticationConfiguration to be used.
      * @return Configured AuthenticationManager.
      * @throws Exception if an error occurs during configuration.
@@ -138,6 +181,15 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
+    /**
+     * Configures global security settings.
+     * 
+     * This method sets up the UserDetailsService and PasswordEncoder
+     * to be used by the AuthenticationManagerBuilder.
+     * 
+     * @param auth AuthenticationManagerBuilder to be configured.
+     * @throws Exception if an error occurs during configuration.
+     */
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
         auth.userDetailsService(userDetailsService()).passwordEncoder(passwordEncoder());
     }

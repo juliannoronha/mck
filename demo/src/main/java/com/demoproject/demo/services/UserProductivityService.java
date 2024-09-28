@@ -1,83 +1,100 @@
 package com.demoproject.demo.services;
 
-import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-
 import com.demoproject.demo.dto.UserProductivityDTO;
 import com.demoproject.demo.entity.Pac;
-import com.demoproject.demo.entity.User;
-import com.demoproject.demo.repository.UserRepository;
 import com.demoproject.demo.repository.PacRepository;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
-
-import java.util.*;
-import java.time.Duration;
-import java.io.IOException;
-
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.interceptor.KeyGenerator;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import jakarta.persistence.EntityManager;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 @Service
-@Configuration
 public class UserProductivityService {
-    @Autowired
-    private UserRepository userRepository;
 
-    @Autowired
-    private PacRepository pacRepository;
-
+    private final PacRepository pacRepository;
+    private final ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
-    @Autowired
+    @PersistenceContext
     private EntityManager entityManager;
 
-    public UserProductivityService(PacRepository pacRepository) {
+    public UserProductivityService(PacRepository pacRepository, ObjectMapper objectMapper) {
         this.pacRepository = pacRepository;
+        this.objectMapper = objectMapper;
     }
 
-    public void addEmitter(SseEmitter emitter) {
+    public SseEmitter subscribeToProductivityUpdates() {
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        
+        emitter.onCompletion(() -> {
+            emitters.remove(emitter);
+            logger.info("SSE connection closed");
+        });
+
+        emitter.onTimeout(() -> {
+            emitters.remove(emitter);
+            logger.info("SSE connection timed out");
+        });
+
         emitters.add(emitter);
+        logger.info("New SSE connection established");
+
+        try {
+            List<UserProductivityDTO> userProductivity = getUserProductivityData();
+            emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(userProductivity)));
+        } catch (IOException e) {
+            logger.error("Error sending initial data", e);
+            emitter.completeWithError(e);
+        }
+
+        return emitter;
     }
 
-    public void removeEmitter(SseEmitter emitter) {
-        emitters.remove(emitter);
+    public SseEmitter subscribeToOverallProductivityUpdates() {
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        
+        // Similar setup as in subscribeToProductivityUpdates
+        // ...
+
+        try {
+            UserProductivityDTO overallProductivity = getOverallProductivity();
+            emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(overallProductivity)));
+        } catch (IOException e) {
+            logger.error("Error sending initial overall productivity data", e);
+            emitter.completeWithError(e);
+        }
+
+        return emitter;
     }
 
-    @Cacheable(value = "allUserProductivity", keyGenerator = "customKeyGenerator")
+    @Cacheable(value = "allUserProductivity", key = "#page + '-' + #size")
+    @Transactional
     public Page<UserProductivityDTO> getAllUserProductivity(int page, int size) {
         logger.info("Fetching all user productivity data for page {} with size {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
         Page<Object[]> results = pacRepository.getUserProductivityDataPaginated(pageable);
         return results.map(this::mapToUserProductivityDTO);
-    }
-
-    @Bean
-    public KeyGenerator customKeyGenerator() {
-        return (target, method, params) -> {
-            StringBuilder sb = new StringBuilder();
-            sb.append(target.getClass().getName());
-            sb.append(method.getName());
-            for (Object param : params) {
-                sb.append(param.toString());
-            }
-            return sb.toString();
-        };
     }
 
     @Transactional
@@ -102,36 +119,19 @@ public class UserProductivityService {
             .mapToLong(pac -> Duration.between(pac.getStartTime(), pac.getEndTime()).toMinutes())
             .sum();
 
-        // Add a check to prevent division by zero
         double avgPouchesPerHour = totalMinutes > 0 ? (totalPouchesChecked * 60.0) / totalMinutes : 0;
-        String avgTimeDuration = totalSubmissions > 0 
-            ? String.format("%d:%02d", totalMinutes / totalSubmissions / 60, 
-                            totalMinutes / totalSubmissions % 60)
-            : "0:00";
+        String avgTimeDuration = formatDuration(totalSubmissions > 0 ? totalMinutes / totalSubmissions : 0);
 
-        return new UserProductivityDTO(
-            username,
-            totalSubmissions,
-            totalPouchesChecked,
-            avgTimeDuration,
-            avgPouchesPerHour
-        );
+        return new UserProductivityDTO(username, totalSubmissions, totalPouchesChecked, avgTimeDuration, avgPouchesPerHour);
     }
 
     private UserProductivityDTO calculateOverallProductivity(List<UserProductivityDTO> allProductivity) {
         long totalSubmissions = allProductivity.stream().mapToLong(UserProductivityDTO::getTotalSubmissions).sum();
         long totalPouchesChecked = allProductivity.stream().mapToLong(UserProductivityDTO::getTotalPouchesChecked).sum();
         double avgPouchesPerHour = allProductivity.stream().mapToDouble(UserProductivityDTO::getAvgPouchesPerHour).average().orElse(0.0);
-        
         String avgTimeDuration = calculateAverageTimeDuration(allProductivity);
 
-        return new UserProductivityDTO(
-            "Overall",
-            totalSubmissions,
-            totalPouchesChecked,
-            avgTimeDuration,
-            avgPouchesPerHour
-        );
+        return new UserProductivityDTO("Overall", totalSubmissions, totalPouchesChecked, avgTimeDuration, avgPouchesPerHour);
     }
 
     private String calculateAverageTimeDuration(List<UserProductivityDTO> allProductivity) {
@@ -142,91 +142,57 @@ public class UserProductivityService {
             })
             .sum();
 
-        long avgMinutes = allProductivity.isEmpty() ? 0 : totalMinutes / allProductivity.size();
-        return String.format("%d:%02d", avgMinutes / 60, avgMinutes % 60);
+        return formatDuration(allProductivity.isEmpty() ? 0 : totalMinutes / allProductivity.size());
     }
 
     public void notifyProductivityUpdate() {
-        List<UserProductivityDTO> updatedData = getUserProductivityData();
-        logger.info("Notifying {} emitters of productivity update", emitters.size());
-        emitters.removeIf(emitter -> {
-            try {
-                emitter.send(SseEmitter.event().data(updatedData));
-                return false;
-            } catch (IOException e) {
-                logger.error("Error sending SSE update", e);
-                return true;
-            }
-        });
+        UserProductivityDTO overallProductivity = getOverallProductivity();
+        sendUpdateToEmitters(overallProductivity);
     }
 
     public void sendOverallProductivityUpdate() {
         UserProductivityDTO overallProductivity = getOverallProductivity();
-        List<SseEmitter> deadEmitters = new ArrayList<>();
-        this.emitters.forEach(emitter -> {
-            try {
-                emitter.send(SseEmitter.event().data(overallProductivity));
-            } catch (IOException e) {
-                deadEmitters.add(emitter);
-            }
-        });
-        this.emitters.removeAll(deadEmitters);
+        sendUpdateToEmitters(overallProductivity);
+    }
+
+    private void sendUpdateToEmitters(Object data) {
+        try {
+            String jsonData = objectMapper.writeValueAsString(data);
+            emitters.removeIf(emitter -> {
+                try {
+                    emitter.send(jsonData);
+                    return false;
+                } catch (IOException e) {
+                    logger.error("Error sending SSE update", e);
+                    return true;
+                }
+            });
+        } catch (JsonProcessingException e) {
+            logger.error("Error converting data to JSON", e);
+        }
     }
 
     public List<UserProductivityDTO> getUserProductivityData() {
         List<Object[]> results = pacRepository.getUserProductivityData();
         return results.stream()
             .map(this::mapToUserProductivityDTO)
+            .filter(dto -> !"Overall".equals(dto.getUsername()))
             .collect(Collectors.toList());
     }
 
     private UserProductivityDTO mapToUserProductivityDTO(Object[] result) {
-        String username = (String) result[0];
-        long totalSubmissions = parseLong(result[1]);
-        long totalPouchesChecked = parseLong(result[2]);
-        long totalMinutes = parseLong(result[3]);
-        double avgPouchesPerHour = parseDouble(result[4]);
-
-        String avgTimeDuration = String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60);
-
         return new UserProductivityDTO(
-            username,
-            totalSubmissions,
-            totalPouchesChecked,
-            avgTimeDuration,
-            avgPouchesPerHour
+            (String) result[0],
+            ((Number) result[1]).longValue(),
+            ((Number) result[2]).longValue(),
+            formatDuration(((Number) result[3]).doubleValue()),
+            ((Number) result[4]).doubleValue()
         );
     }
 
-    private long parseLong(Object value) {
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
-        } else if (value instanceof String) {
-            try {
-                return Long.parseLong((String) value);
-            } catch (NumberFormatException e) {
-                return 0L;
-            }
-        }
-        return 0L;
-    }
-
-    private double parseDouble(Object value) {
-        if (value instanceof Number) {
-            return ((Number) value).doubleValue();
-        } else if (value instanceof String) {
-            try {
-                return Double.parseDouble((String) value);
-            } catch (NumberFormatException e) {
-                return 0.0;
-            }
-        }
-        return 0.0;
-    }
-
-    // Call this method whenever the productivity data changes
-    public void updateProductivity() {
-        sendOverallProductivityUpdate();
+    private String formatDuration(double hours) {
+        long totalMinutes = (long) (hours * 60);
+        return String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60);
     }
 
     public Map<String, Object> getUserProductivity(String username) {
@@ -239,16 +205,29 @@ public class UserProductivityService {
                 .setParameter("username", username)
                 .getSingleResult();
         
-        Map<String, Object> productivityMap = new HashMap<>();
-        productivityMap.put("totalSubmissions", ((Number) result[0]).longValue());
-        productivityMap.put("totalPouchesChecked", ((Number) result[1]).longValue());
+        long totalSubmissions = ((Number) result[0]).longValue();
+        long totalPouchesChecked = ((Number) result[1]).longValue();
         long totalMinutes = ((Number) result[2]).longValue();
         
-        double avgPouchesPerHour = totalMinutes > 0 ? (((Number) result[1]).doubleValue() * 60.0) / totalMinutes : 0;
+        double avgPouchesPerHour = totalMinutes > 0 ? (totalPouchesChecked * 60.0) / totalMinutes : 0;
         
-        productivityMap.put("avgPouchesPerHour", avgPouchesPerHour);
-        productivityMap.put("avgTimeDuration", String.format("%d:%02d", totalMinutes / 60, totalMinutes % 60));
-        
-        return productivityMap;
+        return Map.of(
+            "totalSubmissions", totalSubmissions,
+            "totalPouchesChecked", totalPouchesChecked,
+            "avgPouchesPerHour", avgPouchesPerHour,
+            "avgTimeDuration", formatDuration(totalMinutes / 60.0)
+        );
+    }
+
+    @CacheEvict(value = "allUserProductivity", allEntries = true)
+    @Transactional
+    public void updateUserProductivity() {
+        logger.info("Updating user productivity and evicting cache");
+        // Add any necessary update logic here
+    }
+
+    public void sendProductivityUpdate() {
+        List<UserProductivityDTO> users = getUserProductivityData();
+        sendUpdateToEmitters(users);
     }
 }

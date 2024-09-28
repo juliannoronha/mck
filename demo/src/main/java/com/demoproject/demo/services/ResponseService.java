@@ -14,6 +14,7 @@ import java.util.Optional;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.dao.TransientDataAccessException;
+import org.springframework.transaction.annotation.Propagation;
 
 @Service
 public class ResponseService {
@@ -36,7 +37,7 @@ public class ResponseService {
         maxAttempts = 3,
         backoff = @Backoff(delay = 1000)
     )
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void submitUserAnswer(Pac pac, String username) {
         User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new RuntimeException("User not found"));

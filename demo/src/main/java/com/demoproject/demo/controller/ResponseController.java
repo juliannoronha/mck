@@ -20,6 +20,10 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
+/**
+ * Controller responsible for handling responses related to the packmed system.
+ * This includes submitting questions, viewing responses, and managing user interactions.
+ */
 @Controller
 public class ResponseController {
 
@@ -30,12 +34,22 @@ public class ResponseController {
         this.responseService = responseService;
     }
 
+    /**
+     * Displays the questions page for authenticated users.
+     * @return The name of the view to render
+     */
     @GetMapping("/questions")
     @RequiresAuthentication
     public String showQuestions() {
         return "packmed";
     }
 
+    /**
+     * Handles the submission of questions from authenticated users.
+     * @param pacData Map containing the PAC (Pouch Accuracy Check) data
+     * @param authentication The authentication object of the current user
+     * @return ResponseEntity with the result of the submission
+     */
     @PostMapping("/submit-questions")
     @RequiresAuthentication
     @ResponseBody
@@ -46,6 +60,7 @@ public class ResponseController {
         }
 
         try {
+            // Parse and create Pac object from submitted data
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
             Pac pac = new Pac();
             pac.setStore(pacData.get("store"));
@@ -62,6 +77,11 @@ public class ResponseController {
         }
     }
 
+    /**
+     * Deletes a response. Only accessible by ADMIN or MODERATOR roles.
+     * @param id The ID of the response to delete
+     * @return ResponseEntity with the result of the deletion
+     */
     @PostMapping("/delete-response")
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
     public ResponseEntity<String> deleteResponse(@RequestParam Long id) {
@@ -80,6 +100,16 @@ public class ResponseController {
         }
     }
 
+    /**
+     * Displays a paginated and filtered list of responses. Only accessible by ADMIN or MODERATOR roles.
+     * @param model The Model object to add attributes
+     * @param page The page number (default 0)
+     * @param size The page size (default 10)
+     * @param nameFilter Optional filter for user name
+     * @param store Optional filter for store
+     * @param month Optional filter for month
+     * @return The name of the view to render
+     */
     @GetMapping("/view-responses")
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
     public String viewResponses(Model model, 
@@ -89,14 +119,19 @@ public class ResponseController {
                             @RequestParam(required = false) String store,
                             @RequestParam(required = false) String month) {
         try {
+            // Parse month filter if provided
             Integer monthValue = (month != null && !month.isEmpty() && !month.equals("null")) 
                 ? Integer.parseInt(month) : null;
 
+            // Create pageable object with sorting
             Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "submissionDate"));
+            
+            // Fetch filtered and paginated responses
             Page<Pac> responsesPage = responseService.getAllResponsesWithFilters(
                 pageable, nameFilter, store, monthValue);
             
-            model.addAttribute("responses", responsesPage); // Change this line
+            // Add attributes to the model for rendering in the view
+            model.addAttribute("responses", responsesPage);
             model.addAttribute("nameFilter", nameFilter);
             model.addAttribute("selectedStore", store);
             model.addAttribute("selectedMonth", month);
@@ -110,4 +145,7 @@ public class ResponseController {
             return "error";
         }
     }
+
+    // TODO: Consider adding an endpoint for exporting responses to CSV or Excel
+    // TODO: Implement caching for frequently accessed response data to improve performance
 }

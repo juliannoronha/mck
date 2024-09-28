@@ -94,11 +94,18 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error:', error);
-            successMessage.textContent = 'An error occurred. Please try again.';
-            successMessage.style.display = 'block';
-            successMessage.style.color = 'red';
+            showErrorMessage('An error occurred. Please try again later.');
         });
     });
+
+    function showErrorMessage(message) {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 5000);
+    }
 
     function validateForm() {
         let isValid = true;
@@ -157,7 +164,13 @@ document.addEventListener('DOMContentLoaded', function() {
         eventSource.onmessage = function(event) {
             try {
                 const data = JSON.parse(event.data);
-                updateDashboard(data);
+                if (Array.isArray(data)) {
+                    // Handle individual user productivity updates
+                    // You can implement this if needed
+                } else {
+                    // Handle overall productivity update
+                    updateDashboard(data);
+                }
             } catch (error) {
                 console.error('Error parsing SSE data:', error);
             }
