@@ -137,7 +137,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 console.log('Data received:', JSON.stringify(data));
                 document.getElementById('totalSubmissions').textContent = data.totalSubmissions ?? 'N/A';
-                document.getElementById('avgTimeDuration').textContent = data.avgTimeDuration ?? 'N/A';
+                document.getElementById('avgTimePerPouch').textContent = 
+                    data.avgTimePerPouch != null ? formatDuration(data.avgTimePerPouch) : 'N/A';
                 document.getElementById('avgPouchesPerHour').textContent = 
                     data.avgPouchesPerHour != null ? data.avgPouchesPerHour.toFixed(2) : 'N/A';
                 document.getElementById('totalPouchesChecked').textContent = data.totalPouchesChecked ?? 'N/A';
@@ -145,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error fetching overall productivity:', error);
                 document.getElementById('totalSubmissions').textContent = 'Error: ' + error.message;
-                document.getElementById('avgTimeDuration').textContent = 'Error: ' + error.message;
+                document.getElementById('avgTimePerPouch').textContent = 'Error: ' + error.message;
                 document.getElementById('avgPouchesPerHour').textContent = 'Error: ' + error.message;
                 document.getElementById('totalPouchesChecked').textContent = 'Error: ' + error.message;
             });
@@ -153,10 +154,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateDashboard(data) {
         document.getElementById('totalSubmissions').textContent = data.totalSubmissions ?? 'N/A';
-        document.getElementById('avgTimeDuration').textContent = data.avgTimeDuration ?? 'N/A';
+        document.getElementById('avgTimePerPouch').textContent = 
+            data.avgTimePerPouch != null ? formatDuration(data.avgTimePerPouch) : 'N/A';
         document.getElementById('avgPouchesPerHour').textContent = 
             data.avgPouchesPerHour != null ? data.avgPouchesPerHour.toFixed(2) : 'N/A';
         document.getElementById('totalPouchesChecked').textContent = data.totalPouchesChecked ?? 'N/A';
+    }
+
+    function formatDuration(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.round(seconds % 60);
+        return `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
     }
 
     function setupSSEConnection() {
