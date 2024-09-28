@@ -94,11 +94,18 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error:', error);
-            successMessage.textContent = 'An error occurred. Please try again.';
-            successMessage.style.display = 'block';
-            successMessage.style.color = 'red';
+            showErrorMessage('An error occurred. Please try again later.');
         });
     });
+
+    function showErrorMessage(message) {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 5000);
+    }
 
     function validateForm() {
         let isValid = true;
