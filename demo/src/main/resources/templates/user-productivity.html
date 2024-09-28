@@ -58,7 +58,7 @@
                     <th>Username</th>
                     <th>Total Submissions</th>
                     <th>Total Pouches Checked</th>
-                    <th>Average Time Duration</th>
+                    <th>Average Time Per Pouch</th>
                     <th>Average Pouches per Hour</th>
                 </tr>
             </thead>
@@ -74,6 +74,12 @@
     <script th:inline="javascript">
         const tableBody = document.getElementById('productivityTableBody');
 
+        function formatDuration(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.round(seconds % 60);
+            return `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
+        }
+
         function updateTable(users) {
             console.log('Updating table with users:', users);
             const noDataRow = document.getElementById('noDataRow');
@@ -88,7 +94,7 @@
                         <td>${user.username}</td>
                         <td>${user.totalSubmissions}</td>
                         <td>${user.totalPouchesChecked}</td>
-                        <td>${user.avgTimeDuration}</td>
+                        <td>${formatDuration(user.avgTimePerPouch)}</td>
                         <td>${user.avgPouchesPerHour.toFixed(2)}</td>
                     </tr>
                 `).join('');
