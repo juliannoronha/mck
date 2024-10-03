@@ -123,8 +123,8 @@ public class UserProductivityService {
     public Page<UserProductivityDTO> getAllUserProductivity(int page, int size) {
         logger.info("Fetching all user productivity data for page {} with size {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
-        Page<Object[]> results = pacRepository.getUserProductivityDataPaginated(pageable);
-        return results.map(this::mapToUserProductivityDTO);
+        return pacRepository.getUserProductivityDataPaginated(pageable)
+            .map(this::mapToUserProductivityDTO);
     }
 
     /**
