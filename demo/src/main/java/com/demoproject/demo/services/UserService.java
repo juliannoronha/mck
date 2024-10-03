@@ -26,7 +26,6 @@ public class UserService {
 
     // Dependency injection of specialized services
     private final UserRegistrationService registrationService;
-    private final UserDeletionService deletionService;
     private final UserProductivityService productivityService;
     private final PasswordManagementService passwordService;
     private final UserRepository userRepository;
@@ -46,7 +45,6 @@ public class UserService {
                        PasswordManagementService passwordService,
                        UserRepository userRepository) {
         this.registrationService = registrationService;
-        this.deletionService = deletionService;
         this.productivityService = productivityService;
         this.passwordService = passwordService;
         this.userRepository = userRepository;
