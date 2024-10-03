@@ -191,4 +191,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     setupSSEConnection();
+
+    function addRealTimeValidation() {
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                validateInput(this);
+            });
+        });
+    }
+
+    function validateInput(input) {
+        const errorElement = document.getElementById(`${input.id}Error`);
+        if (input.validity.valid) {
+            errorElement.textContent = '';
+            input.classList.remove('invalid');
+        } else {
+            errorElement.textContent = input.validationMessage;
+            input.classList.add('invalid');
+        }
+    }
+
+    addRealTimeValidation();
 });

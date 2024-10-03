@@ -78,8 +78,8 @@ public class UserProductivityService {
 
         // Send initial data
         try {
-            List<UserProductivityDTO> userProductivity = getUserProductivityData();
-            emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(userProductivity)));
+            Page<UserProductivityDTO> userProductivity = getAllUserProductivity(0, Integer.MAX_VALUE);
+            emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(userProductivity.getContent())));
         } catch (IOException e) {
             logger.error("Error sending initial data", e);
             emitter.completeWithError(e);
@@ -123,8 +123,8 @@ public class UserProductivityService {
     public Page<UserProductivityDTO> getAllUserProductivity(int page, int size) {
         logger.info("Fetching all user productivity data for page {} with size {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
-        Page<Object[]> results = pacRepository.getUserProductivityDataPaginated(pageable);
-        return results.map(this::mapToUserProductivityDTO);
+        return pacRepository.getUserProductivityDataPaginated(pageable)
+            .map(this::mapToUserProductivityDTO);
     }
 
     /**
@@ -170,13 +170,6 @@ public class UserProductivityService {
         return new UserProductivityDTO("Overall", totalSubmissions, totalPouchesChecked, avgTimePerPouch, avgPouchesPerHour);
     }
 
-    private String formatDuration(double seconds) {
-        long totalSeconds = (long) seconds;
-        long minutes = totalSeconds / 60;
-        long remainingSeconds = totalSeconds % 60;
-        return String.format("%dm %02ds", minutes, remainingSeconds);
-    }
-
     /**
      * Notifies all connected clients about productivity updates.
      */
@@ -213,19 +206,6 @@ public class UserProductivityService {
         } catch (JsonProcessingException e) {
             logger.error("Error converting data to JSON", e);
         }
-    }
-
-    /**
-     * Retrieves productivity data for all users.
-     *
-     * @return List of UserProductivityDTO objects
-     */
-    public List<UserProductivityDTO> getUserProductivityData() {
-        List<Object[]> results = pacRepository.getUserProductivityData();
-        return results.stream()
-            .map(this::mapToUserProductivityDTO)
-            .filter(dto -> !"Overall".equals(dto.getUsername()))
-            .collect(Collectors.toList());
     }
 
     // Helper methods for DTO mapping and formatting
@@ -286,7 +266,7 @@ public class UserProductivityService {
      * Sends productivity updates to all connected clients.
      */
     public void sendProductivityUpdate() {
-        List<UserProductivityDTO> users = getUserProductivityData();
+        Page<UserProductivityDTO> users = getAllUserProductivity(0, Integer.MAX_VALUE);
         sendUpdateToEmitters(users);
     }
 }
