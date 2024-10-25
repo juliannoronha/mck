@@ -41,15 +41,33 @@
         </div>
     </nav>
     <div class="main" id="mainContent">
-        <div class="main-top">
-            <h2>Dashboard</h2>
+        <div class="content-wrapper">
+            <div class="welcome-message" id="welcomeMessage">
+                <h1>Hello, <span th:text="${#authentication.name}">User</span>!</h1>
+            </div>
+            <div id="accessDeniedMessage" class="access-denied-message" aria-live="polite">
+                <p>You do not have access to this page!</p>
+            </div>
         </div>
-        <div class="welcome-message" id="welcomeMessage">
-            <h1>Hello, <span th:text="${#authentication.name}">User</span>!</h1>
-        </div>
-        <!-- Insert the access denied message here, right after the welcome-message div -->
-        <div id="accessDeniedMessage" class="access-denied-message" aria-live="polite">
-            <p>You do not have access to this page!</p>
+        <!-- Dashboard Card - Now visible only to ADMIN and MODERATOR -->
+        <div class="dashboard" sec:authorize="hasAnyRole('ADMIN', 'MODERATOR')">
+            <h3>PacMed</h3>
+            <div class="dashboard-item">
+                <div class="dashboard-item-label">Total Submissions</div>
+                <div class="dashboard-item-value" id="totalSubmissions">-</div>
+            </div>
+            <div class="dashboard-item">
+                <div class="dashboard-item-label">Total Pouches Checked</div>
+                <div class="dashboard-item-value" id="totalPouchesChecked">-</div>
+            </div>
+            <div class="dashboard-item">
+                <div class="dashboard-item-label">Average Time Per Pouch</div>
+                <div class="dashboard-item-value" id="avgTimePerPouch">-</div>
+            </div>
+            <div class="dashboard-item">
+                <div class="dashboard-item-label">Average Pouches per Hour</div>
+                <div class="dashboard-item-value" id="avgPouchesPerHour">-</div>
+            </div>
         </div>
     </div>
 
