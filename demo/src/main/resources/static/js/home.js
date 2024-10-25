@@ -7,6 +7,12 @@ document.addEventListener('DOMContentLoaded', function() {
             welcomeMessage.style.display = 'none';
         }, 1000); // Wait for fade out to complete before hiding
     }, 6000); // Start fading out after 6 seconds (reduced from 9 seconds)
+
+    // Fetch dashboard data if user is ADMIN or MODERATOR
+    if (hasRequiredRole()) {
+        fetchOverallProductivity();
+        setupSSEConnection();
+    }
 });
 
 function fadeOutAndNavigate(url, event) {
@@ -75,7 +81,7 @@ function handlePacMedClick(event) {
 
 function hasRequiredRole() {
     const userRole = document.body.dataset.userRole;
-    return ['ROLE_CHECKER', 'ROLE_MODERATOR', 'ROLE_ADMIN'].includes(userRole);
+    return ['ROLE_MODERATOR', 'ROLE_ADMIN'].includes(userRole);
 }
 
 function flashButton(button) {
@@ -83,4 +89,87 @@ function flashButton(button) {
     setTimeout(() => {
         button.classList.remove('flash-red');
     }, 1500); // Flash for 1.5 seconds (3 flashes at 0.5s each)
+}
+
+function fetchOverallProductivity() {
+    fetch('/api/overall-productivity')
+        .then(response => response.json())
+        .then(data => {
+            updateDashboard(data);
+            // Assuming the API now returns chart data as well
+            if (data.chartData) {
+                createPacMedChart(data.chartData);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching overall productivity:', error);
+            updateDashboardError(error.message);
+        });
+}
+
+function updateDashboard(data) {
+    document.getElementById('totalSubmissions').textContent = data.totalSubmissions ?? 'N/A';
+    document.getElementById('totalPouchesChecked').textContent = data.totalPouchesChecked ?? 'N/A';
+    document.getElementById('avgTimePerPouch').textContent = 
+        data.avgTimePerPouch != null ? formatDuration(data.avgTimePerPouch) : 'N/A';
+    document.getElementById('avgPouchesPerHour').textContent = 
+        data.avgPouchesPerHour != null ? data.avgPouchesPerHour.toFixed(2) : 'N/A';
+}
+
+function updateDashboardError(errorMessage) {
+    const errorText = 'Error: ' + errorMessage;
+    document.getElementById('totalSubmissions').textContent = errorText;
+    document.getElementById('totalPouchesChecked').textContent = errorText;
+    document.getElementById('avgTimePerPouch').textContent = errorText;
+    document.getElementById('avgPouchesPerHour').textContent = errorText;
+}
+
+function formatDuration(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.round(seconds % 60);
+    return `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
+}
+
+function setupSSEConnection() {
+    const eventSource = new EventSource('/api/overall-productivity-stream');
+    eventSource.onmessage = function(event) {
+        try {
+            const data = JSON.parse(event.data);
+            if (!Array.isArray(data)) {
+                updateDashboard(data);
+            }
+        } catch (error) {
+            console.error('Error parsing SSE data:', error);
+        }
+    };
+    eventSource.onerror = function(error) {
+        console.error('Error in SSE connection:', error);
+        eventSource.close();
+        setTimeout(setupSSEConnection, 5000);
+    };
+}
+
+function createPacMedChart(data) {
+    const ctx = document.getElementById('pacMedChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'Pouches Checked',
+                data: data.pouchesChecked,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
 }

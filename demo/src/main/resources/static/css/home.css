@@ -1,5 +1,5 @@
 @keyframes slideInFade {
-    from { opacity: 0; transform: translateX(-20px); }
+    from { opacity: 0; transform: translateX(20px); }
     to { opacity: 1; transform: translateX(0); }
 }
 
@@ -69,4 +69,71 @@ nav ul {
     font-size: 18px;
     margin-right: 10px;
     flex-shrink: 0;
+}
+
+.main {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px;
+}
+
+.content-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard {
+    position: fixed;
+    background-color: #2a2a2a;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    width: 300px;
+    margin-left: 20px;
+    align-self: flex-start;
+    top: 20px;
+    opacity: 0;
+    animation: slideInFade 0.5s ease-out forwards;
+    animation-delay: 1.2s;
+}
+
+.dashboard h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #ffffff;
+}
+
+.dashboard-item {
+    margin-bottom: 15px;
+}
+
+.dashboard-item-label {
+    font-size: 0.9em;
+    color: #888;
+}
+
+.dashboard-item-value {
+    font-size: 1.2em;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.welcome-message {
+    margin-bottom: 20px;
+}
+
+.welcome-message h1 {
+    color: #ffffff;
+}
+
+.access-denied-message {
+    color: #ff6b6b;
+    display: none;
+}
+
+.dashboard-chart {
+    margin-top: 20px;
+    height: 200px;
 }

@@ -14,6 +14,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.HashMap;
 
 import org.springframework.http.MediaType;
 import org.springframework.data.domain.Page;
@@ -53,8 +59,19 @@ public class ProductivityController {
         logger.info("Fetching overall productivity");
         try {
             UserProductivityDTO overallProductivity = userProductivityService.getOverallProductivity();
-            logger.debug("Overall productivity: {}", overallProductivity);
-            return ResponseEntity.ok(overallProductivity);
+            
+            // Create a new UserProductivityDTO instance with the chart data
+            UserProductivityDTO productivityWithChartData = new UserProductivityDTO(
+                overallProductivity.getUsername(),
+                overallProductivity.getTotalSubmissions(),
+                overallProductivity.getTotalPouchesChecked(),
+                overallProductivity.getAvgTimePerPouch(),
+                overallProductivity.getAvgPouchesPerHour(),
+                generateChartData()
+            );
+            
+            logger.debug("Overall productivity: {}", productivityWithChartData);
+            return ResponseEntity.ok(productivityWithChartData);
         } catch (Exception e) {
             logger.error("Error fetching overall productivity", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
@@ -135,4 +152,23 @@ public class ProductivityController {
 
     // TODO: Consider adding endpoints for productivity analytics and reporting
     // TODO: Implement caching strategy for frequently accessed productivity data
+
+    private Map<String, Object> generateChartData() {
+        Map<String, Object> chartData = new HashMap<>();
+        List<String> labels = new ArrayList<>();
+        List<Integer> pouchesChecked = new ArrayList<>();
+
+        // Generate sample data for the last 7 days
+        LocalDate today = LocalDate.now();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate date = today.minusDays(i);
+            labels.add(date.format(DateTimeFormatter.ofPattern("MMM dd")));
+            // Replace this with actual data from your database
+            pouchesChecked.add(new Random().nextInt(500) + 100);
+        }
+
+        chartData.put("labels", labels);
+        chartData.put("pouchesChecked", pouchesChecked);
+        return chartData;
+    }
 }
