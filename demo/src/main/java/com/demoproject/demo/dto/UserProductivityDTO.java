@@ -1,6 +1,7 @@
 package com.demoproject.demo.dto;
 
 import lombok.Value;
+import java.util.Map;
 
 /**
  * Data Transfer Object (DTO) representing user productivity metrics.
@@ -22,4 +23,7 @@ public class UserProductivityDTO {
 
     /** Average number of pouches processed per hour. */
     double avgPouchesPerHour;
+
+    /** Chart data for visualization. */
+    Map<String, Object> chartData;
 }

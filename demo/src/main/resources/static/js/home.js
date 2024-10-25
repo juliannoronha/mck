@@ -93,14 +93,13 @@ function flashButton(button) {
 
 function fetchOverallProductivity() {
     fetch('/api/overall-productivity')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             updateDashboard(data);
+            // Assuming the API now returns chart data as well
+            if (data.chartData) {
+                createPacMedChart(data.chartData);
+            }
         })
         .catch(error => {
             console.error('Error fetching overall productivity:', error);
@@ -148,4 +147,29 @@ function setupSSEConnection() {
         eventSource.close();
         setTimeout(setupSSEConnection, 5000);
     };
+}
+
+function createPacMedChart(data) {
+    const ctx = document.getElementById('pacMedChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'Pouches Checked',
+                data: data.pouchesChecked,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
 }

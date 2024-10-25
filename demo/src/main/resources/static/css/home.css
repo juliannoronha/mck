@@ -132,3 +132,8 @@ nav ul {
     color: #ff6b6b;
     display: none;
 }
+
+.dashboard-chart {
+    margin-top: 20px;
+    height: 200px;
+}

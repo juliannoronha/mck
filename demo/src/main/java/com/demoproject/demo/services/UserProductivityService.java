@@ -158,7 +158,7 @@ public class UserProductivityService {
         double avgTimePerPouch = totalPouchesChecked > 0 ? totalSeconds / totalPouchesChecked : 0;
         double avgPouchesPerHour = totalSeconds > 0 ? (totalPouchesChecked * 3600.0) / totalSeconds : 0;
 
-        return new UserProductivityDTO(username, totalSubmissions, totalPouchesChecked, avgTimePerPouch, avgPouchesPerHour);
+        return new UserProductivityDTO(username, totalSubmissions, totalPouchesChecked, avgTimePerPouch, avgPouchesPerHour, null);
     }
 
     private UserProductivityDTO calculateOverallProductivity(List<UserProductivityDTO> allProductivity) {
@@ -167,7 +167,7 @@ public class UserProductivityService {
         double avgTimePerPouch = allProductivity.stream().mapToDouble(dto -> dto.getAvgTimePerPouch() * dto.getTotalPouchesChecked()).sum() / totalPouchesChecked;
         double avgPouchesPerHour = allProductivity.stream().mapToDouble(UserProductivityDTO::getAvgPouchesPerHour).average().orElse(0.0);
 
-        return new UserProductivityDTO("Overall", totalSubmissions, totalPouchesChecked, avgTimePerPouch, avgPouchesPerHour);
+        return new UserProductivityDTO("Overall", totalSubmissions, totalPouchesChecked, avgTimePerPouch, avgPouchesPerHour, null);
     }
 
     /**
@@ -214,8 +214,9 @@ public class UserProductivityService {
             (String) result[0],
             ((Number) result[1]).longValue(),
             ((Number) result[2]).longValue(),
-            ((Number) result[3]).doubleValue(), // This is now avgTimePerPouch in seconds
-            ((Number) result[4]).doubleValue()
+            ((Number) result[3]).doubleValue(),
+            ((Number) result[4]).doubleValue(),
+            null
         );
     }
 
