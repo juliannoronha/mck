@@ -3,8 +3,8 @@ package com.demoproject.demo.controller;
 import com.demoproject.demo.dto.UserProductivityDTO;
 import com.demoproject.demo.services.UserProductivityService;
 import com.demoproject.demo.services.UserService;
+import com.demoproject.demo.repository.PacRepository;
 
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,8 +18,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.HashMap;
+import java.util.Random;
 
 import org.springframework.http.MediaType;
 import org.springframework.data.domain.Page;
@@ -36,15 +36,18 @@ public class ProductivityController {
 
     private final UserProductivityService userProductivityService;
     private final UserService userService;
+    private final PacRepository pacRepository;
 
     /**
      * Constructor for ProductivityController.
      * @param userProductivityService Service for handling user productivity operations
      * @param userService Service for handling user-related operations
+     * @param pacRepository Repository for handling Pac-related operations
      */
-    public ProductivityController(UserProductivityService userProductivityService, UserService userService) {
+    public ProductivityController(UserProductivityService userProductivityService, UserService userService, PacRepository pacRepository) {
         this.userProductivityService = userProductivityService;
         this.userService = userService;
+        this.pacRepository = pacRepository;
     }
 
     /**
@@ -54,27 +57,30 @@ public class ProductivityController {
     @GetMapping("/api/overall-productivity")
     @ResponseBody
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
-    @Cacheable("overallProductivity")
     public ResponseEntity<UserProductivityDTO> getOverallProductivity() {
         logger.info("Fetching overall productivity");
         try {
             UserProductivityDTO overallProductivity = userProductivityService.getOverallProductivity();
+            Map<String, Object> chartData = generateChartData();
             
-            // Create a new UserProductivityDTO instance with the chart data
+            logger.debug("Overall productivity: {}", overallProductivity);
+            logger.debug("Chart data: {}", chartData);
+            
             UserProductivityDTO productivityWithChartData = new UserProductivityDTO(
                 overallProductivity.getUsername(),
                 overallProductivity.getTotalSubmissions(),
                 overallProductivity.getTotalPouchesChecked(),
                 overallProductivity.getAvgTimePerPouch(),
                 overallProductivity.getAvgPouchesPerHour(),
-                generateChartData()
+                chartData
             );
             
-            logger.debug("Overall productivity: {}", productivityWithChartData);
+            logger.debug("Final productivity DTO: {}", productivityWithChartData);
             return ResponseEntity.ok(productivityWithChartData);
         } catch (Exception e) {
             logger.error("Error fetching overall productivity", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new UserProductivityDTO("Error", 0, 0, 0, 0, null));
         }
     }
 
@@ -154,21 +160,49 @@ public class ProductivityController {
     // TODO: Implement caching strategy for frequently accessed productivity data
 
     private Map<String, Object> generateChartData() {
-        Map<String, Object> chartData = new HashMap<>();
-        List<String> labels = new ArrayList<>();
-        List<Integer> pouchesChecked = new ArrayList<>();
+        try {
+            Map<String, Object> chartData = new HashMap<>();
+            List<String> labels = new ArrayList<>();
+            List<Integer> pouchesChecked = new ArrayList<>();
 
-        // Generate sample data for the last 7 days
-        LocalDate today = LocalDate.now();
-        for (int i = 6; i >= 0; i--) {
-            LocalDate date = today.minusDays(i);
-            labels.add(date.format(DateTimeFormatter.ofPattern("MMM dd")));
-            // Replace this with actual data from your database
-            pouchesChecked.add(new Random().nextInt(500) + 100);
+            LocalDate endDate = LocalDate.now();
+            LocalDate startDate = endDate.minusDays(6);
+
+            logger.debug("Fetching data from {} to {}", startDate, endDate);
+
+            List<Object[]> results = pacRepository.getPouchesCheckedLast7Days(startDate, endDate);
+            logger.debug("Results from getPouchesCheckedLast7Days: {}", results);
+
+            if (results.isEmpty()) {
+                logger.info("No data available for the last 7 days. Generating sample data.");
+                Random random = new Random();
+                for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+                    labels.add(date.format(DateTimeFormatter.ofPattern("MMM dd")));
+                    pouchesChecked.add(random.nextInt(100) + 1);
+                }
+            } else {
+                Map<LocalDate, Long> resultMap = new HashMap<>();
+                for (Object[] row : results) {
+                    if (row[0] instanceof java.sql.Date) {
+                        LocalDate date = ((java.sql.Date) row[0]).toLocalDate();
+                        Long count = (Long) row[1];
+                        resultMap.put(date, count);
+                    }
+                }
+
+                for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+                    labels.add(date.format(DateTimeFormatter.ofPattern("MMM dd")));
+                    pouchesChecked.add(resultMap.getOrDefault(date, 0L).intValue());
+                }
+            }
+
+            chartData.put("labels", labels);
+            chartData.put("pouchesChecked", pouchesChecked);
+            logger.debug("Generated chart data: {}", chartData);
+            return chartData;
+        } catch (Exception e) {
+            logger.error("Error generating chart data", e);
+            return new HashMap<>();
         }
-
-        chartData.put("labels", labels);
-        chartData.put("pouchesChecked", pouchesChecked);
-        return chartData;
     }
 }

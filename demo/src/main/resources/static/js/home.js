@@ -93,12 +93,22 @@ function flashButton(button) {
 
 function fetchOverallProductivity() {
     fetch('/api/overall-productivity')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${text}`);
+                });
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Received data:', JSON.stringify(data, null, 2));
             updateDashboard(data);
-            // Assuming the API now returns chart data as well
-            if (data.chartData) {
+            if (data.chartData && Object.keys(data.chartData).length > 0) {
+                console.log('Chart data:', JSON.stringify(data.chartData, null, 2));
                 createPacMedChart(data.chartData);
+            } else {
+                console.error('Chart data is missing or empty');
             }
         })
         .catch(error => {
@@ -130,8 +140,13 @@ function formatDuration(seconds) {
     return `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
 }
 
+let eventSource;
+
 function setupSSEConnection() {
-    const eventSource = new EventSource('/api/overall-productivity-stream');
+    if (eventSource) {
+        eventSource.close();
+    }
+    eventSource = new EventSource('/api/overall-productivity-stream');
     eventSource.onmessage = function(event) {
         try {
             const data = JSON.parse(event.data);
@@ -149,9 +164,26 @@ function setupSSEConnection() {
     };
 }
 
+let pacMedChart = null;
+
 function createPacMedChart(data) {
-    const ctx = document.getElementById('pacMedChart').getContext('2d');
-    new Chart(ctx, {
+    console.log('Creating chart with data:', JSON.stringify(data, null, 2));
+    if (!data || !data.labels || !data.pouchesChecked) {
+        console.error('Invalid chart data');
+        return;
+    }
+    const ctx = document.getElementById('pacMedChart');
+    if (!ctx) {
+        console.error('Canvas element not found');
+        return;
+    }
+
+    // Destroy existing chart if it exists
+    if (pacMedChart) {
+        pacMedChart.destroy();
+    }
+
+    pacMedChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: data.labels,
@@ -169,7 +201,28 @@ function createPacMedChart(data) {
                 y: {
                     beginAtZero: true
                 }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Pouches Checked (Last 7 Days)',
+                    font: {
+                        size: 16
+                    }
+                },
+                subtitle: {
+                    display: true,
+                    text: data.pouchesChecked.every(val => val === 0) ? 'Sample data shown (no actual data available)' : '',
+                    color: 'red',
+                    font: {
+                        size: 14,
+                        style: 'italic'
+                    }
+                }
             }
         }
     });
 }
+
+// Call fetchOverallProductivity when the page loads
+document.addEventListener('DOMContentLoaded', fetchOverallProductivity);
