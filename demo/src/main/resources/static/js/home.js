@@ -79,6 +79,18 @@ function handlePacMedClick(event) {
     }
 }
 
+function handleWellcaClick(event) {
+    event.preventDefault();
+    const wellcaButton = document.getElementById('wellcaButton');
+    
+    if (hasRequiredRole()) {
+        window.location.href = '/wellca';
+    } else {
+        showAccessDeniedMessage();
+        flashButton(wellcaButton);
+    }
+}
+
 function hasRequiredRole() {
     const userRole = document.body.dataset.userRole;
     return ['ROLE_MODERATOR', 'ROLE_ADMIN'].includes(userRole);
