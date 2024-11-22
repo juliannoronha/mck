@@ -183,4 +183,13 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/wellca")
+    @PreAuthorize("hasAnyRole('CHECKER', 'ADMIN', 'MODERATOR')")
+    public String wellca(Model model, Authentication authentication) {
+        String username = authentication.getName();
+        logger.info("User {} accessed wellca page", username);
+        model.addAttribute("username", username);
+        return "wellca";
+    }
 }
