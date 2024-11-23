@@ -1,8 +1,8 @@
-﻿# McKesson Productivity Tracker
+﻿# JulOS
 
 ## Overview
 
-The McKesson Productivity Tracker is a robust Spring Boot application designed to monitor and manage productivity in medical packaging operations. It provides real-time tracking of pouch checking activities, user performance metrics, and comprehensive reporting features for administrators and moderators.
+JulOS is a robust Spring Boot application designed to monitor and manage productivity in medical packaging operations. It provides real-time tracking, user performance metrics, and comprehensive reporting features for administrators and moderators.
 
 ## Features
 
@@ -75,7 +75,3 @@ The application will be available at `http://localhost:8080`.
 ## Authors
 
 - Julian Noronha -  [juliannoronha](https://github.com/juliannoronha)
-
-## License
-
-This software was developed for McKesson. All rights to this software belong to McKesson. For licensing inquiries, please contact McKesson's legal department.
