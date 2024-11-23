@@ -63,10 +63,15 @@ public class UserProductivityService {
      *
      * @return SseEmitter for the established connection
      */
+    @Transactional
     public SseEmitter subscribeToProductivityUpdates() {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
         
         try {
+            // Add to emitters collection first
+            emitters.add(emitter);
+            
+            // Configure callbacks
             emitter.onCompletion(() -> {
                 emitters.remove(emitter);
                 logger.info("SSE connection closed");
@@ -87,18 +92,20 @@ public class UserProductivityService {
                 SecurityContextHolder.clearContext();
             });
 
-            // Send initial data
-            Page<UserProductivityDTO> userProductivity = getAllUserProductivity(0, Integer.MAX_VALUE);
-            emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(userProductivity.getContent())));
+            // Use try-with-resources for database operations
+            try {
+                Page<UserProductivityDTO> userProductivity = getAllUserProductivity(0, Integer.MAX_VALUE);
+                emitter.send(userProductivity);
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+                return emitter;
+            }
             
-            emitters.add(emitter);
-        } catch (IOException e) {
+            return emitter;
+        } catch (Exception e) {
             emitter.completeWithError(e);
-            logger.error("Error sending initial data", e);
-            SecurityContextHolder.clearContext();
+            return emitter;
         }
-
-        return emitter;
     }
 
     /**

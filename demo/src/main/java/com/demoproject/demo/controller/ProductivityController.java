@@ -163,24 +163,8 @@ public class ProductivityController {
      */
     @GetMapping(value = "/api/overall-productivity-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamOverallProductivity() {
-        SseEmitter emitter = null;
-        try {
-            emitter = userProductivityService.subscribeToOverallProductivityUpdates();
-            // Add completion callback
-            emitter.onCompletion(() -> {
-                logger.info("SSE connection completed");
-            });
-            emitter.onTimeout(() -> {
-                logger.warn("SSE connection timed out");
-            });
-            return emitter;
-        } catch (Exception e) {
-            logger.error("Error creating SSE emitter", e);
-            if (emitter != null) {
-                emitter.completeWithError(e);
-            }
-            throw e;
-        }
+        logger.info("New SSE connection established for overall productivity");
+        return userProductivityService.subscribeToOverallProductivityUpdates();
     }
 
     // TODO: Consider adding endpoints for productivity analytics and reporting
