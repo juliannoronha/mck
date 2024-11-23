@@ -63,27 +63,36 @@ public class UserProductivityService {
     public SseEmitter subscribeToProductivityUpdates() {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
         
-        // Setup completion and timeout handlers
-        emitter.onCompletion(() -> {
-            emitters.remove(emitter);
-            logger.info("SSE connection closed");
-        });
-
-        emitter.onTimeout(() -> {
-            emitters.remove(emitter);
-            logger.info("SSE connection timed out");
-        });
-
-        emitters.add(emitter);
-        logger.info("New SSE connection established");
-
-        // Send initial data
         try {
+            // Send initial data immediately
             Page<UserProductivityDTO> userProductivity = getAllUserProductivity(0, Integer.MAX_VALUE);
             emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(userProductivity.getContent())));
+            
+            emitters.add(emitter);
+            
+            // Setup completion callback
+            emitter.onCompletion(() -> {
+                emitters.remove(emitter);
+                logger.info("SSE connection closed");
+            });
+
+            // Setup timeout callback
+            emitter.onTimeout(() -> {
+                emitters.remove(emitter);
+                emitter.complete();
+                logger.info("SSE connection timed out");
+            });
+
+            // Setup error callback
+            emitter.onError(ex -> {
+                emitters.remove(emitter);
+                emitter.complete();
+                logger.error("SSE error occurred", ex);
+            });
+            
         } catch (IOException e) {
-            logger.error("Error sending initial data", e);
             emitter.completeWithError(e);
+            logger.error("Error sending initial data", e);
         }
 
         return emitter;
