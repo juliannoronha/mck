@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.demoproject.demo.entity.Pac;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Repository interface for managing Pac (Pouch Accuracy Check) entities.
@@ -103,7 +103,9 @@ public interface PacRepository extends JpaRepository<Pac, Long> {
            "WHERE p.submissionDate >= :startDate AND p.submissionDate <= :endDate " +
            "GROUP BY DATE(p.submissionDate) " +
            "ORDER BY DATE(p.submissionDate)")
-    List<Object[]> getPouchesCheckedLast7Days(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    List<Object[]> getPouchesCheckedLast7Days(
+        @Param("startDate") LocalDateTime startDate, 
+        @Param("endDate") LocalDateTime endDate);
 
     // TODO: Consider adding methods for more specific queries, such as finding Pacs by date range
     // TODO: Implement query method for calculating average pouches checked per hour for a specific user

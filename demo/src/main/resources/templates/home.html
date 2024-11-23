@@ -10,7 +10,7 @@
     <link rel="stylesheet" th:href="@{/css/home.css}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body th:data-user-role="${#authentication.authorities[0].authority}">
+<body th:data-user-role="${#authentication.authorities[0]}">
     <nav id="mainNav">
         <div class="navbar">
             <div class="logo">

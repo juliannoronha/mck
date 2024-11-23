@@ -8,6 +8,7 @@ import com.demoproject.demo.repository.PacRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -161,8 +163,24 @@ public class ProductivityController {
      */
     @GetMapping(value = "/api/overall-productivity-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamOverallProductivity() {
-        logger.info("New SSE connection established for overall productivity");
-        return userProductivityService.subscribeToOverallProductivityUpdates();
+        SseEmitter emitter = null;
+        try {
+            emitter = userProductivityService.subscribeToOverallProductivityUpdates();
+            // Add completion callback
+            emitter.onCompletion(() -> {
+                logger.info("SSE connection completed");
+            });
+            emitter.onTimeout(() -> {
+                logger.warn("SSE connection timed out");
+            });
+            return emitter;
+        } catch (Exception e) {
+            logger.error("Error creating SSE emitter", e);
+            if (emitter != null) {
+                emitter.completeWithError(e);
+            }
+            throw e;
+        }
     }
 
     // TODO: Consider adding endpoints for productivity analytics and reporting
@@ -174,18 +192,22 @@ public class ProductivityController {
             List<String> labels = new ArrayList<>();
             List<Integer> pouchesChecked = new ArrayList<>();
 
-            LocalDate endDate = LocalDate.now();
-            LocalDate startDate = endDate.minusDays(6);
+            LocalDateTime endDate = LocalDateTime.now();
+            LocalDateTime startDate = endDate.minusDays(6).withHour(0).withMinute(0).withSecond(0);
 
             logger.debug("Fetching data from {} to {}", startDate, endDate);
-
-            List<Object[]> results = pacRepository.getPouchesCheckedLast7Days(startDate, endDate);
-            logger.debug("Results from getPouchesCheckedLast7Days: {}", results);
+            
+            List<Object[]> results = null;
+            try {
+                results = pacRepository.getPouchesCheckedLast7Days(startDate, endDate);
+            } finally {
+                SecurityContextHolder.clearContext(); // Clear security context
+            }
 
             if (results.isEmpty()) {
                 logger.info("No data available for the last 7 days. Generating sample data.");
                 Random random = new Random();
-                for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+                for (LocalDate date = startDate.toLocalDate(); !date.isAfter(endDate.toLocalDate()); date = date.plusDays(1)) {
                     labels.add(date.format(DateTimeFormatter.ofPattern("MMM dd")));
                     pouchesChecked.add(random.nextInt(100) + 1);
                 }
@@ -199,7 +221,7 @@ public class ProductivityController {
                     }
                 }
 
-                for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+                for (LocalDate date = startDate.toLocalDate(); !date.isAfter(endDate.toLocalDate()); date = date.plusDays(1)) {
                     labels.add(date.format(DateTimeFormatter.ofPattern("MMM dd")));
                     pouchesChecked.add(resultMap.getOrDefault(date, 0L).intValue());
                 }

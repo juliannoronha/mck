@@ -7,6 +7,7 @@ import com.demoproject.demo.repository.PacRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.annotation.PreDestroy;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
@@ -19,6 +20,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -40,6 +42,7 @@ public class UserProductivityService {
     private final ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
+    private static final long SSE_TIMEOUT = 300000L; // 5 minutes
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -61,38 +64,38 @@ public class UserProductivityService {
      * @return SseEmitter for the established connection
      */
     public SseEmitter subscribeToProductivityUpdates() {
-        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
         
         try {
-            // Send initial data immediately
-            Page<UserProductivityDTO> userProductivity = getAllUserProductivity(0, Integer.MAX_VALUE);
-            emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(userProductivity.getContent())));
-            
-            emitters.add(emitter);
-            
-            // Setup completion callback
             emitter.onCompletion(() -> {
                 emitters.remove(emitter);
                 logger.info("SSE connection closed");
+                SecurityContextHolder.clearContext();
             });
 
-            // Setup timeout callback
             emitter.onTimeout(() -> {
                 emitters.remove(emitter);
                 emitter.complete();
                 logger.info("SSE connection timed out");
+                SecurityContextHolder.clearContext();
             });
 
-            // Setup error callback
             emitter.onError(ex -> {
                 emitters.remove(emitter);
                 emitter.complete();
                 logger.error("SSE error occurred", ex);
+                SecurityContextHolder.clearContext();
             });
+
+            // Send initial data
+            Page<UserProductivityDTO> userProductivity = getAllUserProductivity(0, Integer.MAX_VALUE);
+            emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(userProductivity.getContent())));
             
+            emitters.add(emitter);
         } catch (IOException e) {
             emitter.completeWithError(e);
             logger.error("Error sending initial data", e);
+            SecurityContextHolder.clearContext();
         }
 
         return emitter;
@@ -279,5 +282,17 @@ public class UserProductivityService {
     public void sendProductivityUpdate() {
         Page<UserProductivityDTO> users = getAllUserProductivity(0, Integer.MAX_VALUE);
         sendUpdateToEmitters(users);
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        emitters.forEach(emitter -> {
+            try {
+                emitter.complete();
+            } catch (Exception e) {
+                logger.error("Error during emitter cleanup", e);
+            }
+        });
+        emitters.clear();
     }
 }

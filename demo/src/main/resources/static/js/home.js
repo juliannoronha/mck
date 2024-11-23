@@ -93,7 +93,7 @@ function handleWellcaClick(event) {
 
 function hasRequiredRole() {
     const userRole = document.body.dataset.userRole;
-    return ['ROLE_MODERATOR', 'ROLE_ADMIN'].includes(userRole);
+    return ['ROLE_MODERATOR', 'ROLE_ADMIN', 'ROLE_CHECKER'].includes(userRole);
 }
 
 function flashButton(button) {
