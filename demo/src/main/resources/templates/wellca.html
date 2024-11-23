@@ -19,7 +19,6 @@
                 <ul class="nav-links">
                     <li><a href="/home">Home</a></li>
                     <li><a href="/wellca" class="active">Well.ca</a></li>
-                    <li sec:authorize="hasAnyRole('ADMIN', 'MODERATOR')"><a href="/view-responses">View Responses</a></li>
                     <li><a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a></li>
                 </ul>
             </div>
