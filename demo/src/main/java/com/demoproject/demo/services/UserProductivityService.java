@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 public class UserProductivityService {
 
     private final PacRepository pacRepository;
+    
     private final ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();

@@ -124,8 +124,17 @@ public class ProductivityController {
      */
     @GetMapping(value = "/api/user-productivity-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamUserProductivity() {
-        logger.info("New SSE connection established for user productivity");
-        return userProductivityService.subscribeToProductivityUpdates();
+        SseEmitter emitter = null;
+        try {
+            emitter = userProductivityService.subscribeToProductivityUpdates();
+            return emitter;
+        } catch (Exception e) {
+            if (emitter != null) {
+                emitter.completeWithError(e);
+            }
+            logger.error("Error creating SSE stream", e);
+            throw e;
+        }
     }
 
     /**

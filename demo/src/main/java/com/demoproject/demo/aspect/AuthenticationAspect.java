@@ -6,6 +6,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Aspect for handling authentication checks.
@@ -17,6 +19,8 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 @Component
 public class AuthenticationAspect {
 
+    private final Logger logger = LoggerFactory.getLogger(AuthenticationAspect.class);
+
     /**
      * Checks if the current user is authenticated.
      * This method is executed before any method annotated with @RequiresAuthentication.
@@ -25,13 +29,20 @@ public class AuthenticationAspect {
      */
     @Before("@annotation(com.demoproject.demo.annotation.RequiresAuthentication)")
     public void checkAuthentication() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        
-        // Check if authentication is null or if it's an instance of AnonymousAuthenticationToken
-        if (auth == null || auth instanceof AnonymousAuthenticationToken) {
-            throw new IllegalStateException("User is not authenticated");
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            
+            if (auth == null || auth instanceof AnonymousAuthenticationToken) {
+                throw new IllegalStateException("User is not authenticated");
+            }
+            
+            logger.debug("Authentication check passed for user: {}", auth.getName());
+        } catch (Exception e) {
+            logger.error("Authentication check failed", e);
+            throw e;
+        } finally {
+            // Clear authentication context to prevent memory leaks
+            SecurityContextHolder.clearContext();
         }
-        
-        // TODO: Consider adding logging for failed authentication attempts
     }
 }
