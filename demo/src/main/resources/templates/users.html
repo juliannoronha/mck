@@ -165,7 +165,7 @@
         <div th:if="${successMessage}" class="success-message" th:text="${successMessage}"></div>
         
         <!-- Register New User button -->
-        <a href="/register" class="button register-button">Register New User</a>
+        <a th:href="@{/users/register}" class="button register-button">Register New User</a>
         
         <!-- Add search input -->
         <div class="search-container">

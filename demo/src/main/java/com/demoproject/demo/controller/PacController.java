@@ -25,12 +25,12 @@ import java.util.Map;
  * This includes submitting questions, viewing responses, and managing user interactions.
  */
 @Controller
-public class ResponseController {
+public class PacController {
 
-    private static final Logger logger = LoggerFactory.getLogger(ResponseController.class);
+    private static final Logger logger = LoggerFactory.getLogger(PacController.class);
     private final PacService pacService;
 
-    public ResponseController(PacService pacService) {
+    public PacController(PacService pacService) {
         this.pacService = pacService;
     }
 
