@@ -233,8 +233,55 @@
                 <h2>Betting Statistics</h2>
                 <div class="stats-grid">
                     <div class="stats-card ats-record">
-                        <h3>ATS Performance</h3>
-                        <!-- Add ATS stats -->
+                        <h3><i class="fas fa-chart-bar"></i> ATS Performance</h3>
+                        <div class="stat-item">
+                            <div class="stat-label-group">
+                                <span class="stat-label">Home ATS</span>
+                                <i class="fas fa-info-circle info-icon" 
+                                   data-tooltip="Team's record against the spread in home games. Indicates how well they perform against expectations at home."></i>
+                            </div>
+                            <span class="stat-value" id="homeATS">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label-group">
+                                <span class="stat-label">Away ATS</span>
+                                <i class="fas fa-info-circle info-icon" 
+                                   data-tooltip="Team's record against the spread in away games. Shows their performance against expectations on the road."></i>
+                            </div>
+                            <span class="stat-value" id="awayATS">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label-group">
+                                <span class="stat-label">Last 5 ATS</span>
+                                <i class="fas fa-info-circle info-icon" 
+                                   data-tooltip="Team's performance against the spread in their last 5 games. Recent form indicator."></i>
+                            </div>
+                            <span class="stat-value" id="last5ATS">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label-group">
+                                <span class="stat-label">Last 10 ATS</span>
+                                <i class="fas fa-info-circle info-icon" 
+                                   data-tooltip="Team's performance against the spread in their last 10 games. Shows medium-term betting trends."></i>
+                            </div>
+                            <span class="stat-value" id="last10ATS">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label-group">
+                                <span class="stat-label">VS Top Teams</span>
+                                <i class="fas fa-info-circle info-icon" 
+                                   data-tooltip="ATS record against teams with winning records. Indicates performance against stronger competition."></i>
+                            </div>
+                            <span class="stat-value" id="topTeamsATS">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label-group">
+                                <span class="stat-label">Current Streak</span>
+                                <i class="fas fa-info-circle info-icon" 
+                                   data-tooltip="Current ATS streak. Positive numbers indicate consecutive covers, negative numbers indicate consecutive failures to cover."></i>
+                            </div>
+                            <span class="stat-value" id="atsStreak">-</span>
+                        </div>
                     </div>
                     <div class="stats-card over-under">
                         <h3>Over/Under Record</h3>
