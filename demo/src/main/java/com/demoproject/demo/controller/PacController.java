@@ -1,7 +1,7 @@
 package com.demoproject.demo.controller;
 
 import com.demoproject.demo.entity.Pac;
-import com.demoproject.demo.services.ResponseService;
+import com.demoproject.demo.services.PacService;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
@@ -25,13 +25,13 @@ import java.util.Map;
  * This includes submitting questions, viewing responses, and managing user interactions.
  */
 @Controller
-public class ResponseController {
+public class PacController {
 
-    private final ResponseService responseService;
-    private static final Logger logger = LoggerFactory.getLogger(ResponseController.class);
+    private static final Logger logger = LoggerFactory.getLogger(PacController.class);
+    private final PacService pacService;
 
-    public ResponseController(ResponseService responseService) {
-        this.responseService = responseService;
+    public PacController(PacService pacService) {
+        this.pacService = pacService;
     }
 
     /**
@@ -68,7 +68,7 @@ public class ResponseController {
             pac.setEndTime(LocalTime.parse(pacData.get("endTime").split("T")[1], formatter));
             pac.setPouchesChecked(Integer.parseInt(pacData.get("pouchesChecked")));
 
-            responseService.submitUserAnswer(pac, authentication.getName());
+            pacService.submitPac(pac, authentication.getName());
 
             return ResponseEntity.ok("Questions submitted successfully");
         } catch (Exception e) {
@@ -86,7 +86,7 @@ public class ResponseController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
     public ResponseEntity<String> deleteResponse(@RequestParam Long id) {
         try {
-            boolean deleted = responseService.deleteResponse(id);
+            boolean deleted = pacService.deletePac(id);
             if (deleted) {
                 return ResponseEntity.ok("Response deleted successfully.");
             } else {
@@ -126,8 +126,7 @@ public class ResponseController {
             // Create pageable object with sorting
             Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "submissionDate"));
             
-            // Fetch filtered and paginated responses
-            Page<Pac> responsesPage = responseService.getAllResponsesWithFilters(
+            Page<Pac> responsesPage = pacService.getAllPacsWithFilters(
                 pageable, nameFilter, store, monthValue);
             
             // Add attributes to the model for rendering in the view

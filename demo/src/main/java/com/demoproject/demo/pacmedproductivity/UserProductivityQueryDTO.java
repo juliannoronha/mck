@@ -1,4 +1,4 @@
-package com.demoproject.demo.dto;
+package com.demoproject.demo.pacmedproductivity;
 
 import lombok.Getter;
 import lombok.AllArgsConstructor;
