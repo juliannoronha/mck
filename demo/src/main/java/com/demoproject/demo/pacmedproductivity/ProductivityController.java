@@ -1,9 +1,7 @@
-package com.demoproject.demo.controller;
+package com.demoproject.demo.pacmedproductivity;
 
-import com.demoproject.demo.dto.UserProductivityDTO;
-import com.demoproject.demo.services.UserProductivityService;
-import com.demoproject.demo.services.UserService;
 import com.demoproject.demo.repository.PacRepository;
+import com.demoproject.demo.services.UserService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +35,6 @@ public class ProductivityController {
     private static final Logger logger = LoggerFactory.getLogger(ProductivityController.class);
 
     private final UserProductivityService userProductivityService;
-    private final UserService userService;
     private final PacRepository pacRepository;
 
     /**
@@ -48,7 +45,6 @@ public class ProductivityController {
      */
     public ProductivityController(UserProductivityService userProductivityService, UserService userService, PacRepository pacRepository) {
         this.userProductivityService = userProductivityService;
-        this.userService = userService;
         this.pacRepository = pacRepository;
     }
 
@@ -115,7 +111,7 @@ public class ProductivityController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
     public ResponseEntity<Map<String, Object>> getUserProductivity(@PathVariable String username) {
         logger.info("Fetching user productivity for username: {}", username);
-        Map<String, Object> productivity = userService.getUserProductivity(username);
+        Map<String, Object> productivity = userProductivityService.getUserProductivity(username);
         logger.debug("User productivity for {}: {}", username, productivity);
         return ResponseEntity.ok(productivity);
     }
@@ -152,7 +148,7 @@ public class ProductivityController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         logger.info("Fetching all user productivity data. Page: {}, Size: {}", page, size);
-        Page<UserProductivityDTO> productivityData = userService.getAllUserProductivity(page, size);
+        Page<UserProductivityDTO> productivityData = userProductivityService.getAllUserProductivity(page, size);
         logger.debug("Retrieved {} user productivity records", productivityData.getContent().size());
         return ResponseEntity.ok(productivityData);
     }

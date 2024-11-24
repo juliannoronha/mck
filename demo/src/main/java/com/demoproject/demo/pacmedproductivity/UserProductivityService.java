@@ -1,6 +1,5 @@
-package com.demoproject.demo.services;
+package com.demoproject.demo.pacmedproductivity;
 
-import com.demoproject.demo.dto.UserProductivityDTO;
 import com.demoproject.demo.entity.Pac;
 import com.demoproject.demo.repository.PacRepository;
 
@@ -301,5 +300,38 @@ public class UserProductivityService {
             }
         });
         emitters.clear();
+    }
+
+    /**
+     * Retrieves productivity data for a specific user.
+     *
+     * @param username The username of the user
+     * @return A map containing productivity metrics for the user
+     */
+    public Map<String, Object> getUserProductivityMetrics(String username) {
+        logger.info("Retrieving productivity data for user: {}", username);
+        return getUserProductivity(username);
+    }
+
+    /**
+     * Retrieves productivity data for all users.
+     *
+     * @return A list of UserProductivityDTO objects containing productivity data for all users
+     */
+    public List<UserProductivityDTO> getAllUserProductivityMetrics() {
+        logger.info("Retrieving productivity data for all users.");
+        return getAllUserProductivity(0, Integer.MAX_VALUE).getContent();
+    }
+
+    /**
+     * Retrieves paginated productivity data for all users.
+     *
+     * @param page The page number (zero-based)
+     * @param size The size of each page
+     * @return A Page of UserProductivityDTO objects
+     */
+    public Page<UserProductivityDTO> getAllUserProductivityMetrics(int page, int size) {
+        logger.info("Retrieving productivity data for all users. Page: {}, Size: {}", page, size);
+        return getAllUserProductivity(page, size);
     }
 }

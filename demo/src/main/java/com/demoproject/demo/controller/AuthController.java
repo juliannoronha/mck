@@ -1,8 +1,12 @@
 package com.demoproject.demo.controller;
 
 import com.demoproject.demo.dto.UserDTO;
-import com.demoproject.demo.services.UserService;
 import com.demoproject.demo.entity.User;
+import com.demoproject.demo.services.PasswordManagementService;
+import com.demoproject.demo.services.UserRegistrationService;
+import com.demoproject.demo.services.UserService;
+import com.demoproject.demo.services.UserDeletionService;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
@@ -31,9 +35,18 @@ public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     private final UserService userService;
+    private final PasswordManagementService passwordService;
+    private final UserRegistrationService registrationService;
+    private final UserDeletionService deletionService;
 
-    public AuthController(UserService userService) {
+    public AuthController(UserService userService, 
+                         PasswordManagementService passwordService,
+                         UserRegistrationService registrationService,
+                         UserDeletionService deletionService) {
         this.userService = userService;
+        this.passwordService = passwordService;
+        this.registrationService = registrationService;
+        this.deletionService = deletionService;
     }
 
     /**
@@ -97,13 +110,15 @@ public class AuthController {
      */
     @PostMapping("/register")
     @PreAuthorize("hasRole('ADMIN')")
-    public String registerUser(@ModelAttribute("user") @Valid UserDTO user, BindingResult result, RedirectAttributes redirectAttributes) {
+    public String registerUser(@ModelAttribute("user") @Valid UserDTO user, 
+                             BindingResult result, 
+                             RedirectAttributes redirectAttributes) {
         if (result.hasErrors()) {
             return "register";
         }
         
         try {
-            userService.registerNewUser(user);
+            registrationService.registerNewUser(user);
             redirectAttributes.addFlashAttribute("successMessage", "User registered successfully!");
             return "redirect:/users";
         } catch (Exception e) {
@@ -140,7 +155,7 @@ public class AuthController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteUser(@RequestParam String username) {
         try {
-            userService.deleteUser(username);
+            deletionService.deleteUser(username);
             return ResponseEntity.ok().body("User deleted successfully");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -172,12 +187,17 @@ public class AuthController {
      */
     @PostMapping("/change-password")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> changePassword(@RequestParam String username, @RequestParam String newPassword, Authentication authentication) {
-        if (!authentication.getName().equals(username) && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You don't have permission to change this password");
+    public ResponseEntity<?> changePassword(@RequestParam String username, 
+                                          @RequestParam String newPassword, 
+                                          Authentication authentication) {
+        if (!authentication.getName().equals(username) && 
+            !authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("You don't have permission to change this password");
         }
         try {
-            userService.changePassword(username, newPassword);
+            passwordService.changePassword(username, newPassword);
             return ResponseEntity.ok("Password changed successfully");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
