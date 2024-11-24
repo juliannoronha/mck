@@ -91,6 +91,18 @@ function handleWellcaClick(event) {
     }
 }
 
+function handleNBAClick(event) {
+    event.preventDefault();
+    const nbaButton = document.getElementById('nbaButton');
+    
+    if (hasRequiredRole()) {
+        window.location.href = '/nba';
+    } else {
+        showAccessDeniedMessage();
+        flashButton(nbaButton);
+    }
+}
+
 function hasRequiredRole() {
     const userRole = document.body.dataset.userRole;
     return ['ROLE_MODERATOR', 'ROLE_ADMIN', 'ROLE_CHECKER'].includes(userRole);

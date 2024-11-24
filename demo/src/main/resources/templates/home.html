@@ -34,6 +34,14 @@
                         </ul>
                     </div>
                 </li>
+                <li>
+                    <div class="panel sports-panel">
+                        <span>Sports Stats</span>
+                        <ul>
+                            <li><a href="#" id="nbaButton" onclick="handleNBAClick(event)"><i class="fas fa-basketball-ball"></i> NBA</a></li>
+                        </ul>
+                    </div>
+                </li>
             </ul>
             <div class="logout">
                 <form th:action="@{/logout}" method="post" onsubmit="return fadeOutAndSubmit(this, event)">

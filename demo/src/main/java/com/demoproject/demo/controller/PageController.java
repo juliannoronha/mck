@@ -69,4 +69,19 @@ public class PageController {
         model.addAttribute("username", username);
         return "wellca";
     }
+
+    /**
+     * Displays the NBA stats page for authorized users.
+     * @param model The Model object to add attributes
+     * @param authentication The Authentication object for the current user
+     * @return The name of the nba view
+     */
+    @GetMapping("/nba")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'MODERATOR')")
+    public String nba(Model model, Authentication authentication) {
+        String username = authentication.getName();
+        logger.info("User {} accessed NBA stats page", username);
+        model.addAttribute("username", username);
+        return "nba";
+    }
 }
