@@ -101,6 +101,9 @@
                     <div class="dashboard-item-label">Average Pouches per Hour</div>
                     <div class="dashboard-item-value" id="avgPouchesPerHour">-</div>
                 </div>
+                <div class="dashboard-chart">
+                    <canvas id="pacMedChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -126,5 +129,6 @@
         var csrfHeader = /*[[${_csrf.headerName}]]*/ '';
         /*]]>*/
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>

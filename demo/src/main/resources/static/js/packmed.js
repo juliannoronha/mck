@@ -136,19 +136,13 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(data => {
                 console.log('Data received:', JSON.stringify(data));
-                document.getElementById('totalSubmissions').textContent = data.totalSubmissions ?? 'N/A';
-                document.getElementById('avgTimePerPouch').textContent = 
-                    data.avgTimePerPouch != null ? formatDuration(data.avgTimePerPouch) : 'N/A';
-                document.getElementById('avgPouchesPerHour').textContent = 
-                    data.avgPouchesPerHour != null ? data.avgPouchesPerHour.toFixed(2) : 'N/A';
-                document.getElementById('totalPouchesChecked').textContent = data.totalPouchesChecked ?? 'N/A';
+                updateDashboard(data);
+                if (data.chartData) {
+                    createPacMedChart(data.chartData);
+                }
             })
             .catch(error => {
                 console.error('Error fetching overall productivity:', error);
-                document.getElementById('totalSubmissions').textContent = 'Error: ' + error.message;
-                document.getElementById('avgTimePerPouch').textContent = 'Error: ' + error.message;
-                document.getElementById('avgPouchesPerHour').textContent = 'Error: ' + error.message;
-                document.getElementById('totalPouchesChecked').textContent = 'Error: ' + error.message;
             });
     }
 
@@ -213,4 +207,61 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     addRealTimeValidation();
+
+    let pacMedChart = null;
+
+    function createPacMedChart(data) {
+    console.log('Creating chart with data:', JSON.stringify(data, null, 2));
+    if (!data || !data.labels || !data.pouchesChecked) {
+        console.error('Invalid chart data');
+        return;
+    }
+    const ctx = document.getElementById('pacMedChart');
+    if (!ctx) {
+        console.error('Canvas element not found');
+        return;
+    }
+
+    pacMedChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'Pouches Checked',
+                data: data.pouchesChecked,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Pouches Checked (Last 7 Days)',
+                    font: {
+                        size: 16
+                    }
+                },
+                subtitle: {
+                    display: true,
+                    text: data.pouchesChecked.every(val => val === 0) ? 'Sample data shown (no actual data available)' : '',
+                    color: 'red',
+                    font: {
+                        size: 14,
+                        style: 'italic'
+                    }
+                }
+            }
+        }
+    });
+}
+
+fetchOverallProductivity();
 });
