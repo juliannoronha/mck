@@ -96,7 +96,7 @@ function handleNBAClick(event) {
     const nbaButton = document.getElementById('nbaButton');
     
     if (hasNBAAccess()) {
-        window.location.href = '/nba';
+        window.location.href = '/nbaplayers';
     } else {
         showAccessDeniedMessage();
         flashButton(nbaButton);

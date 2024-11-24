@@ -71,17 +71,44 @@ public class PageController {
     }
 
     /**
-     * Displays the NBA stats page for authorized users.
+     * Displays the NBA player stats page for authorized users.
      * @param model The Model object to add attributes
      * @param authentication The Authentication object for the current user
-     * @return The name of the nba view
+     * @return The name of the nbaplayers view
      */
-    @GetMapping("/nba")
+    @GetMapping("/nbaplayers")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'MODERATOR')")
-    public String nba(Model model, Authentication authentication) {
+    public String nbaPlayers(Model model, Authentication authentication) {
         String username = authentication.getName();
-        logger.info("User {} accessed NBA stats page", username);
+        logger.info("User {} accessed NBA player stats page", username);
         model.addAttribute("username", username);
-        return "nba";
+        return "nbaplayers";
+    }
+
+    /**
+     * Displays the NBA team stats page for authorized users.
+     * @param model The Model object to add attributes
+     * @param authentication The Authentication object for the current user
+     * @return The name of the nbateams view
+     */
+    @GetMapping("/nbateams")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'MODERATOR')")
+    public String nbaTeams(Model model, Authentication authentication) {
+        String username = authentication.getName();
+        logger.info("User {} accessed NBA team stats page", username);
+        model.addAttribute("username", username);
+        return "nbateams";
+    }
+
+    /**
+     * Displays the NBA betting stats page for authorized users.
+     */
+    @GetMapping("/nbabets")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'MODERATOR')")
+    public String nbaBets(Model model, Authentication authentication) {
+        String username = authentication.getName();
+        logger.info("User {} accessed NBA betting stats page", username);
+        model.addAttribute("username", username);
+        return "nbabets";
     }
 }
