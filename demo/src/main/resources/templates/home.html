@@ -25,7 +25,7 @@
                         </ul>
                     </div>
                 </li>
-                <li>
+                <li sec:authorize="hasAnyRole('ADMIN', 'MODERATOR', 'CHECKER', 'SHIPPING', 'INVENTORY')">
                     <div class="panel central-fill-panel">
                         <span>Central Fill</span>
                         <ul>
@@ -34,7 +34,7 @@
                         </ul>
                     </div>
                 </li>
-                <li>
+                <li sec:authorize="hasAnyRole('USER', 'ADMIN', 'MODERATOR')">
                     <div class="panel sports-panel">
                         <span>Sports Stats</span>
                         <ul>

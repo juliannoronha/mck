@@ -95,7 +95,7 @@ function handleNBAClick(event) {
     event.preventDefault();
     const nbaButton = document.getElementById('nbaButton');
     
-    if (hasRequiredRole()) {
+    if (hasNBAAccess()) {
         window.location.href = '/nba';
     } else {
         showAccessDeniedMessage();
@@ -105,7 +105,12 @@ function handleNBAClick(event) {
 
 function hasRequiredRole() {
     const userRole = document.body.dataset.userRole;
-    return ['ROLE_MODERATOR', 'ROLE_ADMIN', 'ROLE_CHECKER'].includes(userRole);
+    return ['ROLE_MODERATOR', 'ROLE_ADMIN', 'ROLE_CHECKER', 'ROLE_SHIPPING', 'ROLE_INVENTORY'].includes(userRole);
+}
+
+function hasNBAAccess() {
+    const userRole = document.body.dataset.userRole;
+    return ['ROLE_USER', 'ROLE_ADMIN', 'ROLE_MODERATOR'].includes(userRole);
 }
 
 function flashButton(button) {
