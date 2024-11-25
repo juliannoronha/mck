@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchOverallProductivity();
         setupSSEConnection();
     }
+
+    // Setup chart cleanup interval
+    chartCleanupInterval = setInterval(cleanupChartResources, 5 * 60 * 1000); // Run every 5 minutes
 });
 
 function fadeOutAndNavigate(url, event) {
@@ -202,7 +205,9 @@ function setupSSEConnection() {
     };
 }
 
+let chartDataCache = new Map();
 let pacMedChart = null;
+let chartCleanupInterval;
 
 function createPacMedChart(data) {
     console.log('Creating chart with data:', JSON.stringify(data, null, 2));
@@ -210,17 +215,26 @@ function createPacMedChart(data) {
         console.error('Invalid chart data');
         return;
     }
+
     const ctx = document.getElementById('pacMedChart');
     if (!ctx) {
         console.error('Canvas element not found');
         return;
     }
 
-    // Destroy existing chart if it exists
+    // Cleanup old chart instance
     if (pacMedChart) {
         pacMedChart.destroy();
+        pacMedChart = null;
     }
 
+    // Cache the new data with timestamp
+    chartDataCache.set('latest', {
+        data: data,
+        timestamp: Date.now()
+    });
+
+    // Create new chart
     pacMedChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -261,6 +275,45 @@ function createPacMedChart(data) {
         }
     });
 }
+
+// Add this function for chart cleanup
+function cleanupChartResources() {
+    const CACHE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+    const now = Date.now();
+
+    // Cleanup old cached data
+    chartDataCache.forEach((value, key) => {
+        if (now - value.timestamp > CACHE_TIMEOUT) {
+            chartDataCache.delete(key);
+        }
+    });
+
+    // Force garbage collection on unused chart data
+    if (pacMedChart && !document.getElementById('pacMedChart')) {
+        pacMedChart.destroy();
+        pacMedChart = null;
+    }
+}
+
+// Add cleanup initialization to DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing DOMContentLoaded code ...
+
+    // Setup chart cleanup interval
+    chartCleanupInterval = setInterval(cleanupChartResources, 5 * 60 * 1000); // Run every 5 minutes
+});
+
+// Add cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (chartCleanupInterval) {
+        clearInterval(chartCleanupInterval);
+    }
+    if (pacMedChart) {
+        pacMedChart.destroy();
+        pacMedChart = null;
+    }
+    chartDataCache.clear();
+});
 
 // Call fetchOverallProductivity when the page loads
 document.addEventListener('DOMContentLoaded', fetchOverallProductivity);

@@ -186,24 +186,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupSSEConnection();
 
+    function validateInput(input) {
+        const errorId = `${input.id}Error`;
+        const errorElement = document.getElementById(errorId);
+        
+        // If error element doesn't exist, create it
+        if (!errorElement && input.parentElement) {
+            const newErrorElement = document.createElement('div');
+            newErrorElement.id = errorId;
+            newErrorElement.className = 'error';
+            input.parentElement.appendChild(newErrorElement);
+        }
+
+        const currentErrorElement = document.getElementById(errorId);
+        if (!currentErrorElement) return; // Safety check
+
+        if (input.validity.valid) {
+            currentErrorElement.textContent = '';
+            input.classList.remove('invalid');
+        } else {
+            let errorMessage = '';
+            
+            switch(input.id) {
+                case 'startTime':
+                case 'endTime':
+                    errorMessage = 'Please enter a valid time';
+                    break;
+                case 'store':
+                    errorMessage = 'Please select a store';
+                    break;
+                case 'pouchesChecked':
+                    errorMessage = 'Please enter a valid number';
+                    break;
+                default:
+                    errorMessage = input.validationMessage;
+            }
+            
+            currentErrorElement.textContent = errorMessage;
+            input.classList.add('invalid');
+        }
+    }
+
     function addRealTimeValidation() {
+        const form = document.getElementById('questionForm');
+        if (!form) return;
+
         const inputs = form.querySelectorAll('input, select');
         inputs.forEach(input => {
             input.addEventListener('input', function() {
                 validateInput(this);
             });
         });
-    }
-
-    function validateInput(input) {
-        const errorElement = document.getElementById(`${input.id}Error`);
-        if (input.validity.valid) {
-            errorElement.textContent = '';
-            input.classList.remove('invalid');
-        } else {
-            errorElement.textContent = input.validationMessage;
-            input.classList.add('invalid');
-        }
     }
 
     addRealTimeValidation();
