@@ -67,41 +67,26 @@ public class UserProductivityService {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
         
         try {
-            // Add to emitters collection first
             emitters.add(emitter);
             
-            // Configure callbacks
             emitter.onCompletion(() -> {
                 emitters.remove(emitter);
-                logger.info("SSE connection closed");
-                SecurityContextHolder.clearContext();
+                logger.debug("SSE connection completed");
             });
-
+            
             emitter.onTimeout(() -> {
                 emitters.remove(emitter);
-                emitter.complete();
-                logger.info("SSE connection timed out");
-                SecurityContextHolder.clearContext();
+                logger.debug("SSE connection timed out");
             });
-
-            emitter.onError(ex -> {
-                emitters.remove(emitter);
-                emitter.complete();
-                logger.error("SSE error occurred", ex);
-                SecurityContextHolder.clearContext();
-            });
-
-            // Use try-with-resources for database operations
-            try {
-                Page<UserProductivityDTO> userProductivity = getAllUserProductivity(0, Integer.MAX_VALUE);
-                emitter.send(userProductivity);
-            } catch (Exception e) {
-                emitter.completeWithError(e);
-                return emitter;
-            }
+            
+            // Send initial data
+            Page<UserProductivityDTO> initialData = getAllUserProductivity(0, Integer.MAX_VALUE);
+            String jsonData = objectMapper.writeValueAsString(initialData.getContent());
+            emitter.send(SseEmitter.event().data(jsonData));
             
             return emitter;
         } catch (Exception e) {
+            logger.error("Error setting up SSE connection: {}", e.getMessage());
             emitter.completeWithError(e);
             return emitter;
         }
@@ -229,14 +214,34 @@ public class UserProductivityService {
 
     // Helper methods for DTO mapping and formatting
     private UserProductivityDTO mapToUserProductivityDTO(Object[] result) {
-        return new UserProductivityDTO(
-            (String) result[0],
-            ((Number) result[1]).longValue(),
-            ((Number) result[2]).longValue(),
-            ((Number) result[3]).doubleValue(),
-            ((Number) result[4]).doubleValue(),
-            null
-        );
+        try {
+            String username = (String) result[0];
+            long totalSubmissions = ((Number) result[1]).longValue();
+            long totalPouchesChecked = ((Number) result[2]).longValue();
+            double avgTimePerPouch = ((Number) result[3]).doubleValue();
+            double avgPouchesPerHour = ((Number) result[4]).doubleValue();
+            
+            logger.debug("Mapping productivity data for user: {}", username);
+            
+            return new UserProductivityDTO(
+                username,
+                totalSubmissions,
+                totalPouchesChecked,
+                avgTimePerPouch,
+                avgPouchesPerHour,
+                null
+            );
+        } catch (Exception e) {
+            logger.error("Error mapping productivity data: {}", e.getMessage());
+            return new UserProductivityDTO(
+                "Unknown",
+                0L,
+                0L,
+                0.0,
+                0.0,
+                null
+            );
+        }
     }
 
     /**
