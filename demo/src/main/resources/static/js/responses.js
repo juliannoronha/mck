@@ -95,15 +95,34 @@ document.addEventListener('DOMContentLoaded', function() {
     monthFilter.addEventListener('change', debouncedFetchFilteredResults);
 
     function fetchFilteredResults(page = 0) {
+        if (!validateFilters()) {
+            return;
+        }
+
+        const tableContainer = document.getElementById('responsesTable').parentElement;
+        tableContainer.classList.add('loading');
+        
+        const sanitizedName = encodeURIComponent(nameFilter.value.trim());
+        const sanitizedStore = encodeURIComponent(storeFilter.value.trim());
+        const sanitizedMonth = monthFilter.value ? encodeURIComponent(monthFilter.value.trim()) : '';
+        
         const url = new URL(window.location.href);
-        url.searchParams.set('nameFilter', nameFilter.value);
-        url.searchParams.set('store', storeFilter.value);
-        url.searchParams.set('month', monthFilter.value || '');
+        url.searchParams.set('nameFilter', sanitizedName);
+        url.searchParams.set('store', sanitizedStore);
+        url.searchParams.set('month', sanitizedMonth);
         url.searchParams.set('page', page);
 
-        fetch(url)
-            .then(response => response.text())
+        return fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
             .then(html => {
+                if (!html.trim()) {
+                    throw new Error('Empty response received');
+                }
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 const newTable = doc.getElementById('responsesTable');
@@ -119,15 +138,21 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error:', error);
-                showMessage('Error fetching results: ' + error.message, true);
+                showMessage(`Failed to fetch results: ${error.message}`, true);
+            })
+            .finally(() => {
+                tableContainer.classList.remove('loading');
             });
     }
 
     // Make fetchFilteredResults accessible globally
     window.fetchFilteredResults = fetchFilteredResults;
 
-    submitNameFilterBtn.addEventListener('click', function() {
-        fetchFilteredResults();
+    submitNameFilterBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (validateFilters()) {
+            fetchFilteredResults();
+        }
     });
 
     resetFilterBtn.addEventListener('click', function() {
@@ -143,7 +168,9 @@ document.addEventListener('DOMContentLoaded', function() {
             paginationContainer.addEventListener('click', function(e) {
                 if (e.target.tagName === 'A' && e.target.dataset.page) {
                     e.preventDefault();
-                    fetchFilteredResults(parseInt(e.target.dataset.page));
+                    if (validateFilters()) {
+                        fetchFilteredResults(parseInt(e.target.dataset.page));
+                    }
                 }
             });
         }
@@ -165,6 +192,12 @@ function showMessage(message, isError = false) {
 }
 
 function deleteResponse(id) {
+    // Validate ID
+    if (!id || isNaN(id) || id < 1) {
+        showMessage('Invalid response ID', true);
+        return;
+    }
+
     const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
 
@@ -207,4 +240,30 @@ function cleanup() {
     nameFilter.removeEventListener('input', debouncedFetchFilteredResults);
     storeFilter.removeEventListener('change', debouncedFetchFilteredResults);
     monthFilter.removeEventListener('change', debouncedFetchFilteredResults);
+}
+
+function validateFilters() {
+    const nameFilter = document.getElementById('nameFilter');
+    const storeFilter = document.getElementById('storeFilter');
+    const monthFilter = document.getElementById('monthFilter');
+
+    // Validate name filter (alphanumeric and spaces only)
+    if (nameFilter.value && !/^[a-zA-Z0-9\s]*$/.test(nameFilter.value)) {
+        showMessage('Name filter can only contain letters, numbers, and spaces', true);
+        return false;
+    }
+
+    // Validate store filter (prevent XSS)
+    if (storeFilter.value && !/^[A-Za-z0-9\s-]+$/.test(storeFilter.value)) {
+        showMessage('Store filter contains invalid characters', true);
+        return false;
+    }
+
+    // Validate month filter (must be 1-12 or empty)
+    if (monthFilter.value && (isNaN(monthFilter.value) || monthFilter.value < 1 || monthFilter.value > 12)) {
+        showMessage('Invalid month selected', true);
+        return false;
+    }
+
+    return true;
 }
