@@ -24,13 +24,19 @@
     </nav>
 
     <div class="main-container">
-        <!-- Search and Filter Section -->
-        <div class="search-section">
-            <input type="text" id="teamSearch" placeholder="Search for a team...">
-            <input type="text" id="playerSearch" placeholder="Search for a player...">
+        <!-- Collapsible Search Container -->
+        <div class="search-container">
+            <button class="collapse-button" id="searchToggle">
+                <i class="fas fa-search"></i> Search Options
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="search-section" id="searchSection" style="display: none;">
+                <input type="text" id="teamSearch" placeholder="Search for a team...">
+                <input type="text" id="playerSearch" placeholder="Search for a player...">
+            </div>
         </div>
 
-        <!-- Betting Stats Dashboard -->
+        <!-- Stats Dashboard -->
         <div class="stats-dashboard">
             <!-- Betting Stats Section -->
             <section class="stats-section" id="bettingStats">
@@ -98,6 +104,6 @@
     </footer>
 
     <!-- Scripts -->
-    <script th:src="@{/js/nbabets.js}"></script>
+    <script th:src="@{/js/nba.js}"></script>
 </body>
 </html>
