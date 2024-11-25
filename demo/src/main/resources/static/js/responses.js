@@ -1,4 +1,11 @@
+let isInitialized = false;
+
 document.addEventListener('DOMContentLoaded', function() {
+    if (isInitialized) {
+        cleanup();
+    }
+    isInitialized = true;
+
     if (window.location.protocol !== 'https:') {
         console.warn('This page is not being served over HTTPS. Some features may not work correctly.');
     }
@@ -194,4 +201,10 @@ function escapeHtml(unsafe) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+function cleanup() {
+    nameFilter.removeEventListener('input', debouncedFetchFilteredResults);
+    storeFilter.removeEventListener('change', debouncedFetchFilteredResults);
+    monthFilter.removeEventListener('change', debouncedFetchFilteredResults);
 }
