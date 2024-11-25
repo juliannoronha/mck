@@ -4,6 +4,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const startTime = document.getElementById('startTime');
     const endTime = document.getElementById('endTime');
 
+    const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+    if (!csrfToken) {
+        console.error('CSRF token not found');
+        return;
+    }
+
     // New time input validation functions
     function validateTimeInput(input) {
         const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
