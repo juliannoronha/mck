@@ -47,6 +47,18 @@
         .button:hover {
             background-color: #0056b3;
         }
+        .error-message {
+            background-color: #ff4444;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: none;
+        }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -95,11 +107,11 @@
                 noDataRow.style.display = 'none';
                 tableBody.innerHTML = users.map(user => `
                     <tr>
-                        <td>${user.username}</td>
-                        <td>${user.totalSubmissions}</td>
-                        <td>${user.totalPouchesChecked}</td>
-                        <td>${formatDuration(user.avgTimePerPouch)}</td>
-                        <td>${user.avgPouchesPerHour.toFixed(2)}</td>
+                        <td>${escapeHtml(user.username)}</td>
+                        <td>${escapeHtml(String(user.totalSubmissions))}</td>
+                        <td>${escapeHtml(String(user.totalPouchesChecked))}</td>
+                        <td>${escapeHtml(formatDuration(user.avgTimePerPouch))}</td>
+                        <td>${escapeHtml(String(user.avgPouchesPerHour.toFixed(2)))}</td>
                     </tr>
                 `).join('');
             }
@@ -129,9 +141,14 @@
             
             eventSource.onerror = function(error) {
                 console.error('SSE connection error:', error);
+                showConnectionError(true);
                 setTimeout(() => {
                     setupSSEConnection();
                 }, RECONNECT_TIMEOUT);
+            };
+
+            eventSource.onopen = function() {
+                showConnectionError(false);
             };
 
             // Add heartbeat listener
@@ -154,6 +171,38 @@
 
         // Initial setup
         setupSSEConnection();
+
+        // Add this helper function
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (eventSource) {
+                eventSource.close();
+            }
+            clearInterval(connectionCheckInterval);
+        });
+
+        // Store interval reference
+        const connectionCheckInterval = setInterval(checkConnection, 10000);
+
+        function showConnectionError(show) {
+            const errorDiv = document.getElementById('connectionError') || (() => {
+                const div = document.createElement('div');
+                div.id = 'connectionError';
+                div.className = 'error-message';
+                document.querySelector('.container').prepend(div);
+                return div;
+            })();
+            errorDiv.style.display = show ? 'block' : 'none';
+            errorDiv.textContent = show ? 'Connection lost. Attempting to reconnect...' : '';
+        }
     </script>
 </body>
 </html>
