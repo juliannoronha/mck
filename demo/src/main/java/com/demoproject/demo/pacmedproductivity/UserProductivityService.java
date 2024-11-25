@@ -67,48 +67,27 @@ public class UserProductivityService {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
         
         try {
-            // Add heartbeat to keep connection alive
-            emitter.onTimeout(() -> {
-                emitters.remove(emitter);
-                logger.debug("SSE connection timed out");
-                try {
-                    emitter.complete();
-                } catch (Exception e) {
-                    logger.warn("Error completing emitter on timeout", e);
-                }
-            });
-
+            emitters.add(emitter);
+            
             emitter.onCompletion(() -> {
                 emitters.remove(emitter);
                 logger.debug("SSE connection completed");
             });
-
-            emitter.onError(ex -> {
+            
+            emitter.onTimeout(() -> {
                 emitters.remove(emitter);
-                logger.error("SSE connection error", ex);
-                try {
-                    emitter.complete();
-                } catch (Exception e) {
-                    logger.warn("Error completing emitter on error", e);
-                }
+                logger.debug("SSE connection timed out");
             });
-
-            emitters.add(emitter);
             
             // Send initial data
             Page<UserProductivityDTO> initialData = getAllUserProductivity(0, Integer.MAX_VALUE);
-            if (!initialData.isEmpty()) {
-                String jsonData = objectMapper.writeValueAsString(initialData.getContent());
-                emitter.send(SseEmitter.event().data(jsonData));
-            }
-            
-            // Send heartbeat event
-            emitter.send(SseEmitter.event().comment("heartbeat"));
+            String jsonData = objectMapper.writeValueAsString(initialData.getContent());
+            emitter.send(SseEmitter.event().data(jsonData));
             
             return emitter;
         } catch (Exception e) {
+            logger.error("Error setting up SSE connection: {}", e.getMessage());
             emitter.completeWithError(e);
-            logger.error("Error setting up SSE connection", e);
             return emitter;
         }
     }

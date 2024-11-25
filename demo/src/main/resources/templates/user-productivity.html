@@ -77,6 +77,34 @@
         let lastHeartbeat = Date.now();
         const HEARTBEAT_TIMEOUT = 30000; // 30 seconds
 
+        function formatDuration(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.round(seconds % 60);
+            return `${minutes}m ${remainingSeconds}s`;
+        }
+
+        function updateTable(users) {
+            console.log('Updating table with users:', users);
+            const tableBody = document.getElementById('productivityTableBody');
+            const noDataRow = document.getElementById('noDataRow');
+
+            if (!Array.isArray(users) || users.length === 0) {
+                tableBody.innerHTML = '';
+                noDataRow.style.display = 'table-row';
+            } else {
+                noDataRow.style.display = 'none';
+                tableBody.innerHTML = users.map(user => `
+                    <tr>
+                        <td>${user.username}</td>
+                        <td>${user.totalSubmissions}</td>
+                        <td>${user.totalPouchesChecked}</td>
+                        <td>${formatDuration(user.avgTimePerPouch)}</td>
+                        <td>${user.avgPouchesPerHour.toFixed(2)}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
         function setupSSEConnection() {
             if (eventSource) {
                 eventSource.close();
@@ -85,37 +113,31 @@
             eventSource = new EventSource('/api/user-productivity-stream');
             
             eventSource.onmessage = function(event) {
-                console.log('Received SSE event:', event);
                 try {
-                    if (event.data) {
-                        const users = JSON.parse(event.data);
+                    const users = JSON.parse(event.data);
+                    if (Array.isArray(users)) {
                         updateTable(users);
+                    } else {
+                        console.error('Invalid data format received:', event.data);
+                        document.getElementById('noDataRow').style.display = 'table-row';
                     }
                 } catch (error) {
-                    console.error('Error parsing SSE data:', error);
-                    console.error('Raw event data:', event.data);
+                    console.error('Error processing SSE data:', error);
+                    document.getElementById('noDataRow').style.display = 'table-row';
                 }
             };
-
+            
             eventSource.onerror = function(error) {
                 console.error('SSE connection error:', error);
-                eventSource.close();
-                setTimeout(setupSSEConnection, RECONNECT_TIMEOUT);
+                setTimeout(() => {
+                    setupSSEConnection();
+                }, RECONNECT_TIMEOUT);
             };
 
-            // Handle page visibility changes
-            document.addEventListener('visibilitychange', function() {
-                if (document.hidden) {
-                    eventSource.close();
-                } else {
-                    setupSSEConnection();
-                }
-            });
-
-            // Clean up on page unload
-            window.addEventListener('beforeunload', function() {
-                if (eventSource) {
-                    eventSource.close();
+            // Add heartbeat listener
+            eventSource.addEventListener('comment', function(event) {
+                if (event.data === 'heartbeat') {
+                    lastHeartbeat = Date.now();
                 }
             });
         }
@@ -129,13 +151,6 @@
 
         // Check connection every 10 seconds
         setInterval(checkConnection, 10000);
-
-        // Update heartbeat timestamp when received
-        eventSource.addEventListener('comment', function(event) {
-            if (event.data === 'heartbeat') {
-                lastHeartbeat = Date.now();
-            }
-        });
 
         // Initial setup
         setupSSEConnection();
