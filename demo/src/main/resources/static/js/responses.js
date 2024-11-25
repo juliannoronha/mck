@@ -23,11 +23,11 @@ document.addEventListener('DOMContentLoaded', function() {
         data.content.forEach(response => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${response.user.username}</td>
-                <td>${response.pac.startTime}</td>
-                <td>${response.pac.endTime}</td>
-                <td>${response.pac.store}</td>
-                <td>${response.pac.pouchesChecked}</td>
+                <td>${escapeHtml(response.user.username)}</td>
+                <td>${escapeHtml(response.pac.startTime)}</td>
+                <td>${escapeHtml(response.pac.endTime)}</td>
+                <td>${escapeHtml(response.pac.store)}</td>
+                <td>${escapeHtml(response.pac.pouchesChecked)}</td>
                 <td data-sort="${response.submissionDate}">${formatDate(response.submissionDate)}</td>
                 <td><button class="delete-btn" data-id="${response.id}">Delete</button></td>
             `;
@@ -183,4 +183,13 @@ function deleteResponse(id) {
         console.error('Error:', error);
         showMessage('Error deleting response: ' + error.message, true);
     });
+}
+
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
