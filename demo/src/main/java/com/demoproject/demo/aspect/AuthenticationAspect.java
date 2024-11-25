@@ -1,5 +1,7 @@
 package com.demoproject.demo.aspect;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.springframework.security.core.Authentication;
@@ -20,6 +22,11 @@ import org.slf4j.LoggerFactory;
 public class AuthenticationAspect {
 
     private final Logger logger = LoggerFactory.getLogger(AuthenticationAspect.class);
+    private final MeterRegistry meterRegistry;
+
+    public AuthenticationAspect(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+    }
 
     /**
      * Checks if the current user is authenticated.
@@ -29,20 +36,28 @@ public class AuthenticationAspect {
      */
     @Before("@annotation(com.demoproject.demo.annotation.RequiresAuthentication)")
     public void checkAuthentication() {
+        Timer.Sample sample = Timer.start(meterRegistry);
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             
             if (auth == null || auth instanceof AnonymousAuthenticationToken) {
+                // Increment counter for failed authentications
+                meterRegistry.counter("auth.check.failures").increment();
+                logger.warn("Authentication check failed: User is not authenticated");
                 throw new IllegalStateException("User is not authenticated");
             }
             
+            // Record successful authentication
+            meterRegistry.counter("auth.check.success").increment();
             logger.debug("Authentication check passed for user: {}", auth.getName());
         } catch (Exception e) {
-            logger.error("Authentication check failed", e);
+            // Record authentication errors
+            meterRegistry.counter("auth.check.errors", "error", e.getClass().getSimpleName()).increment();
+            logger.error("Authentication check failed: {}", e.getMessage());
             throw e;
         } finally {
-            // Clear authentication context to prevent memory leaks
-            SecurityContextHolder.clearContext();
+            // Record the timing of the authentication check
+            sample.stop(meterRegistry.timer("auth.check.time"));
         }
     }
 }
