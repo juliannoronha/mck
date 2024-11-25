@@ -113,6 +113,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
+    // Create a unified message handling system
+    function showMessage(message, type = 'error') {
+        const messageDiv = document.getElementById(`${type}Message`);
+        if (!messageDiv) return;
+        
+        messageDiv.textContent = message;
+        messageDiv.style.display = 'block';
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 5000);
+    }
+
     function validateForm() {
         let isValid = true;
         const pouches = document.getElementsByName('pouchesChecked')[0].value;
@@ -238,14 +250,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
     function addRealTimeValidation() {
         const form = document.getElementById('questionForm');
         if (!form) return;
 
         const inputs = form.querySelectorAll('input, select');
+        const debouncedValidate = debounce(validateInput, 300);
+        
         inputs.forEach(input => {
             input.addEventListener('input', function() {
-                validateInput(this);
+                debouncedValidate(this);
             });
         });
     }
