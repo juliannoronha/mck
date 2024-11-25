@@ -28,6 +28,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.security.web.SecurityFilterChain;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+
 /**
  * SecurityConfig: Central configuration for Spring Security settings.
  * 
@@ -82,12 +85,19 @@ public class SecurityConfig {
      */
     @Bean
     public UserDetailsService userDetailsService() {
-        return username -> userRepository.findByUsername(username)
-            .map(user -> User.withUsername(user.getUsername())
-                              .password(user.getPassword())
-                              .roles(user.getRole().name())
-                              .build())
-            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return username -> {
+            try {
+                return userRepository.findByUsername(username)
+                    .map(user -> User.withUsername(user.getUsername())
+                                    .password(user.getPassword())
+                                    .roles(user.getRole().name())
+                                    .build())
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+            } catch (Exception e) {
+                logger.error("Error during user authentication for username: {}", username, e);
+                throw new UsernameNotFoundException("Authentication error", e);
+            }
+        };
     }
 
     /**
@@ -151,11 +161,15 @@ public class SecurityConfig {
             // Handle access denied scenarios
             .exceptionHandling(exceptionHandling -> exceptionHandling
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
-                    logger.warn("Access denied: {}", accessDeniedException.getMessage());
-                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    response.setContentType("application/json");
-                    response.getWriter().write("{\"error\": \"ACCESS_DENIED\", \"message\": \"You do not have permission to access this resource\"}");
-                    response.getWriter().flush();
+                    try (PrintWriter writer = response.getWriter()) {
+                        logger.warn("Access denied: {}", accessDeniedException.getMessage());
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.setContentType("application/json");
+                        writer.write("{\"error\": \"ACCESS_DENIED\", \"message\": \"You do not have permission to access this resource\"}");
+                        writer.flush();
+                    } catch (IOException e) {
+                        logger.error("Error writing access denied response", e);
+                    }
                 })
             )
             
