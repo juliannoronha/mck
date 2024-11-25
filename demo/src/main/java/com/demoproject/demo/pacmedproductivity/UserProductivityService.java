@@ -67,27 +67,48 @@ public class UserProductivityService {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
         
         try {
-            emitters.add(emitter);
-            
+            // Add heartbeat to keep connection alive
+            emitter.onTimeout(() -> {
+                emitters.remove(emitter);
+                logger.debug("SSE connection timed out");
+                try {
+                    emitter.complete();
+                } catch (Exception e) {
+                    logger.warn("Error completing emitter on timeout", e);
+                }
+            });
+
             emitter.onCompletion(() -> {
                 emitters.remove(emitter);
                 logger.debug("SSE connection completed");
             });
-            
-            emitter.onTimeout(() -> {
+
+            emitter.onError(ex -> {
                 emitters.remove(emitter);
-                logger.debug("SSE connection timed out");
+                logger.error("SSE connection error", ex);
+                try {
+                    emitter.complete();
+                } catch (Exception e) {
+                    logger.warn("Error completing emitter on error", e);
+                }
             });
+
+            emitters.add(emitter);
             
             // Send initial data
             Page<UserProductivityDTO> initialData = getAllUserProductivity(0, Integer.MAX_VALUE);
-            String jsonData = objectMapper.writeValueAsString(initialData.getContent());
-            emitter.send(SseEmitter.event().data(jsonData));
+            if (!initialData.isEmpty()) {
+                String jsonData = objectMapper.writeValueAsString(initialData.getContent());
+                emitter.send(SseEmitter.event().data(jsonData));
+            }
+            
+            // Send heartbeat event
+            emitter.send(SseEmitter.event().comment("heartbeat"));
             
             return emitter;
         } catch (Exception e) {
-            logger.error("Error setting up SSE connection: {}", e.getMessage());
             emitter.completeWithError(e);
+            logger.error("Error setting up SSE connection", e);
             return emitter;
         }
     }
@@ -196,20 +217,22 @@ public class UserProductivityService {
      * @param data Data to be sent to clients
      */
     private void sendUpdateToEmitters(Object data) {
-        try {
-            String jsonData = objectMapper.writeValueAsString(data);
-            emitters.removeIf(emitter -> {
-                try {
-                    emitter.send(jsonData);
-                    return false;
-                } catch (IOException e) {
-                    logger.error("Error sending SSE update", e);
-                    return true;
-                }
-            });
-        } catch (JsonProcessingException e) {
-            logger.error("Error converting data to JSON", e);
-        }
+        List<SseEmitter> deadEmitters = new ArrayList<>();
+
+        emitters.forEach(emitter -> {
+            try {
+                String jsonData = objectMapper.writeValueAsString(data);
+                emitter.send(SseEmitter.event().data(jsonData));
+                // Send heartbeat
+                emitter.send(SseEmitter.event().comment("heartbeat"));
+            } catch (Exception e) {
+                deadEmitters.add(emitter);
+                logger.warn("Failed to send update to emitter", e);
+            }
+        });
+
+        // Clean up dead emitters
+        emitters.removeAll(deadEmitters);
     }
 
     // Helper methods for DTO mapping and formatting
