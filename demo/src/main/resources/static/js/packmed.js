@@ -167,8 +167,13 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
     }
 
+    let eventSource = null;
+
     function setupSSEConnection() {
-        const eventSource = new EventSource('/api/overall-productivity-stream');
+        if (eventSource) {
+            eventSource.close();
+        }
+        eventSource = new EventSource('/api/overall-productivity-stream');
         eventSource.onmessage = function(event) {
             try {
                 const data = JSON.parse(event.data);
@@ -303,4 +308,11 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 fetchOverallProductivity();
+
+// Add cleanup
+window.addEventListener('beforeunload', () => {
+    if (eventSource) {
+        eventSource.close();
+    }
+});
 });
