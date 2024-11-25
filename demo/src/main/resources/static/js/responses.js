@@ -158,16 +158,18 @@ function showMessage(message, isError = false) {
 }
 
 function deleteResponse(id) {
-    const csrfToken = document.querySelector('meta[name="_csrf"]');
-    const csrfHeader = document.querySelector('meta[name="_csrf_header"]');
+    const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+    if (!csrfToken || !csrfHeader) {
+        console.error('CSRF tokens not found');
+        return;
+    }
 
     let headers = {
         'Content-Type': 'application/x-www-form-urlencoded'
     };
-
-    if (csrfToken && csrfHeader) {
-        headers[csrfHeader.getAttribute('content')] = csrfToken.getAttribute('content');
-    }
+    headers[csrfHeader] = csrfToken;
 
     fetch('/delete-response', {
         method: 'POST',
