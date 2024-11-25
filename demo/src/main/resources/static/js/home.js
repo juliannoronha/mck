@@ -127,13 +127,14 @@ function fetchOverallProductivity() {
     fetch('/api/overall-productivity')
         .then(response => {
             if (!response.ok) {
-                return response.text().then(text => {
-                    throw new Error(`HTTP error! status: ${response.status}, body: ${text}`);
-                });
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid data format received');
+            }
             console.log('Received data:', JSON.stringify(data, null, 2));
             updateDashboard(data);
             if (data.chartData && Object.keys(data.chartData).length > 0) {
@@ -144,7 +145,7 @@ function fetchOverallProductivity() {
             }
         })
         .catch(error => {
-            console.error('Error fetching overall productivity:', error);
+            console.error('Error:', error);
             updateDashboardError(error.message);
         });
 }
