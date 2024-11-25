@@ -55,7 +55,10 @@ function showAccessDeniedMessage() {
 function handleUnauthorizedAccess(url) {
     fetch(url, {
         method: 'GET',
-        credentials: 'same-origin'
+        credentials: 'same-origin',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').content
+        }
     }).then(response => {
         if (response.status === 403) {
             showAccessDeniedMessage();
@@ -176,6 +179,11 @@ function setupSSEConnection() {
         eventSource.close();
     }
     eventSource = new EventSource('/api/overall-productivity-stream');
+    window.addEventListener('beforeunload', () => {
+        if (eventSource) {
+            eventSource.close();
+        }
+    });
     eventSource.onmessage = function(event) {
         try {
             const data = JSON.parse(event.data);

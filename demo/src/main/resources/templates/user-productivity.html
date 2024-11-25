@@ -124,11 +124,25 @@
 
             eventSource = new EventSource('/api/user-productivity-stream');
             
+            const debounce = (func, wait) => {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            };
+
+            const debouncedUpdateTable = debounce(updateTable, 250);
+
             eventSource.onmessage = function(event) {
                 try {
                     const users = JSON.parse(event.data);
                     if (Array.isArray(users)) {
-                        updateTable(users);
+                        debouncedUpdateTable(users);
                     } else {
                         console.error('Invalid data format received:', event.data);
                         document.getElementById('noDataRow').style.display = 'table-row';
