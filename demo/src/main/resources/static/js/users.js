@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const usersTable = document.getElementById('usersTable');
     const rows = usersTable.getElementsByTagName('tr');
 
-    searchInput.addEventListener('keyup', function() {
+    const searchHandler = function() {
         const searchTerm = searchInput.value.toLowerCase();
 
         for (let i = 1; i < rows.length; i++) {
@@ -59,6 +59,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 rows[i].style.display = 'none';
             }
         }
+    };
+    
+    searchInput.addEventListener('keyup', searchHandler);
+    
+    // Cleanup function
+    window.addEventListener('unload', function() {
+        searchInput.removeEventListener('keyup', searchHandler);
     });
 });
 
