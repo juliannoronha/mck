@@ -31,6 +31,10 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 /**
  * Controller responsible for handling productivity-related requests.
  * This class provides endpoints for retrieving and streaming productivity data.
@@ -60,6 +64,12 @@ public class ProductivityController {
      * Retrieves overall productivity data.
      * @return ResponseEntity containing overall productivity data
      */
+    @Operation(summary = "Get overall productivity metrics")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved productivity data"),
+        @ApiResponse(responseCode = "403", description = "Access denied"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/api/overall-productivity")
     @ResponseBody
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
