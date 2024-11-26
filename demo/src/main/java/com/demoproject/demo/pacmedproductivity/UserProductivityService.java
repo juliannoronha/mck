@@ -39,7 +39,7 @@ public class UserProductivityService {
     private final ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
-    private static final long SSE_TIMEOUT = 300000L; // 5 minutes
+    public static final long SSE_TIMEOUT = 300000L; // 5 minutes
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -61,21 +61,9 @@ public class UserProductivityService {
      * @return SseEmitter for the established connection
      */
     @Transactional
-    public SseEmitter subscribeToProductivityUpdates() {
-        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
-        
+    public SseEmitter subscribeToProductivityUpdates(SseEmitter emitter) {
         try {
             emitters.add(emitter);
-            
-            emitter.onCompletion(() -> {
-                emitters.remove(emitter);
-                logger.debug("SSE connection completed");
-            });
-            
-            emitter.onTimeout(() -> {
-                emitters.remove(emitter);
-                logger.debug("SSE connection timed out");
-            });
             
             // Send initial data
             Page<UserProductivityDTO> initialData = getAllUserProductivity(0, Integer.MAX_VALUE);
@@ -338,5 +326,10 @@ public class UserProductivityService {
     public Page<UserProductivityDTO> getAllUserProductivityMetrics(int page, int size) {
         logger.info("Retrieving productivity data for all users. Page: {}, Size: {}", page, size);
         return getAllUserProductivity(page, size);
+    }
+
+    public void removeEmitter(SseEmitter emitter) {
+        emitters.remove(emitter);
+        logger.debug("Removed SSE emitter");
     }
 }
