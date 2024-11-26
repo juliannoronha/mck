@@ -2,7 +2,7 @@ package com.demoproject.demo.pacmedproductivity;
 
 import com.demoproject.demo.entity.Pac;
 import com.demoproject.demo.repository.PacRepository;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.annotation.PreDestroy;
@@ -198,15 +198,18 @@ public class UserProductivityService {
             try {
                 String jsonData = objectMapper.writeValueAsString(data);
                 emitter.send(SseEmitter.event().data(jsonData));
-                // Send heartbeat
-                emitter.send(SseEmitter.event().comment("heartbeat"));
-            } catch (Exception e) {
+            } catch (JsonProcessingException e) {
+                logger.error("Failed to serialize productivity data: {}", e.getMessage());
                 deadEmitters.add(emitter);
-                logger.warn("Failed to send update to emitter", e);
+            } catch (IOException e) {
+                logger.error("Failed to send SSE update: {}", e.getMessage());
+                deadEmitters.add(emitter);
+            } catch (Exception e) {
+                logger.error("Unexpected error during SSE update: {}", e.getMessage());
+                deadEmitters.add(emitter);
             }
         });
 
-        // Clean up dead emitters
         emitters.removeAll(deadEmitters);
     }
 
