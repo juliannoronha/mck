@@ -3,6 +3,8 @@ package com.demoproject.demo.pacmedproductivity;
 import com.demoproject.demo.repository.PacRepository;
 import com.demoproject.demo.services.UserService;
 
+import jakarta.validation.constraints.Pattern;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -116,7 +118,11 @@ public class ProductivityController {
     @GetMapping("/api/user-productivity/{username}")
     @ResponseBody
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
-    public ResponseEntity<Map<String, Object>> getUserProductivity(@PathVariable String username) {
+    public ResponseEntity<Map<String, Object>> getUserProductivity(@PathVariable @Pattern(regexp = "^[a-zA-Z0-9_-]{3,50}$") String username) {
+        if (!userProductivityService.userExists(username)) {
+            logger.warn("Attempted to access non-existent user: {}", username);
+            return ResponseEntity.notFound().build();
+        }
         logger.info("Fetching user productivity for username: {}", username);
         Map<String, Object> productivity = userProductivityService.getUserProductivity(username);
         logger.debug("User productivity for {}: {}", username, productivity);

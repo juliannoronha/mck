@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.transaction.Transactional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -331,5 +331,24 @@ public class UserProductivityService {
     public void removeEmitter(SseEmitter emitter) {
         emitters.remove(emitter);
         logger.debug("Removed SSE emitter");
+    }
+
+    /**
+     * Checks if a user exists in the system.
+     *
+     * @param username The username to check
+     * @return boolean indicating if the user exists
+     */
+    @Transactional(readOnly = true)
+    public boolean userExists(String username) {
+        try {
+            String jpql = "SELECT COUNT(p) > 0 FROM Pac p WHERE p.user.username = :username";
+            return entityManager.createQuery(jpql, Boolean.class)
+                    .setParameter("username", username)
+                    .getSingleResult();
+        } catch (Exception e) {
+            logger.error("Error checking user existence for username: {}", username, e);
+            return false;
+        }
     }
 }
