@@ -62,6 +62,16 @@ public class UserProductivityService {
      */
     @Transactional
     public SseEmitter subscribeToProductivityUpdates(SseEmitter emitter) {
+        emitter.onTimeout(() -> {
+            emitters.remove(emitter);
+            emitter.complete();
+        });
+        emitter.onCompletion(() -> emitters.remove(emitter));
+        emitter.onError(e -> {
+            emitters.remove(emitter);
+            emitter.completeWithError(e);
+        });
+        
         try {
             emitters.add(emitter);
             
