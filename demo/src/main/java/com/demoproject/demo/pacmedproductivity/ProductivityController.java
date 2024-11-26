@@ -25,6 +25,9 @@ import org.springframework.data.domain.Page;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.scheduling.annotation.Scheduled;
 
 /**
  * Controller responsible for handling productivity-related requests.
@@ -58,6 +61,7 @@ public class ProductivityController {
     @GetMapping("/api/overall-productivity")
     @ResponseBody
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
+    @Cacheable(value = "overallProductivity", key = "'overall'", unless = "#result == null")
     public ResponseEntity<UserProductivityDTO> getOverallProductivity() {
         logger.info("Fetching overall productivity");
         try {
@@ -224,5 +228,11 @@ public class ProductivityController {
             logger.error("Error generating chart data", e);
             throw new RuntimeException("Failed to generate chart data", e);
         }
+    }
+
+    @CacheEvict(value = "overallProductivity", allEntries = true)
+    @Scheduled(fixedRate = 300000) // 5 minutes
+    public void clearProductivityCache() {
+        logger.info("Clearing productivity cache");
     }
 }
