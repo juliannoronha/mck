@@ -2,14 +2,12 @@ package com.demoproject.demo.pacmedproductivity;
 
 import com.demoproject.demo.entity.Pac;
 import com.demoproject.demo.repository.PacRepository;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.annotation.PreDestroy;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.transaction.Transactional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,8 +17,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -41,7 +39,7 @@ public class UserProductivityService {
     private final ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
-    private static final long SSE_TIMEOUT = 300000L; // 5 minutes
+    public static final long SSE_TIMEOUT = 300000L; // 5 minutes
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -63,45 +61,28 @@ public class UserProductivityService {
      * @return SseEmitter for the established connection
      */
     @Transactional
-    public SseEmitter subscribeToProductivityUpdates() {
-        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
+    public SseEmitter subscribeToProductivityUpdates(SseEmitter emitter) {
+        emitter.onTimeout(() -> {
+            emitters.remove(emitter);
+            emitter.complete();
+        });
+        emitter.onCompletion(() -> emitters.remove(emitter));
+        emitter.onError(e -> {
+            emitters.remove(emitter);
+            emitter.completeWithError(e);
+        });
         
         try {
-            // Add to emitters collection first
             emitters.add(emitter);
             
-            // Configure callbacks
-            emitter.onCompletion(() -> {
-                emitters.remove(emitter);
-                logger.info("SSE connection closed");
-                SecurityContextHolder.clearContext();
-            });
-
-            emitter.onTimeout(() -> {
-                emitters.remove(emitter);
-                emitter.complete();
-                logger.info("SSE connection timed out");
-                SecurityContextHolder.clearContext();
-            });
-
-            emitter.onError(ex -> {
-                emitters.remove(emitter);
-                emitter.complete();
-                logger.error("SSE error occurred", ex);
-                SecurityContextHolder.clearContext();
-            });
-
-            // Use try-with-resources for database operations
-            try {
-                Page<UserProductivityDTO> userProductivity = getAllUserProductivity(0, Integer.MAX_VALUE);
-                emitter.send(userProductivity);
-            } catch (Exception e) {
-                emitter.completeWithError(e);
-                return emitter;
-            }
+            // Send initial data
+            Page<UserProductivityDTO> initialData = getAllUserProductivity(0, Integer.MAX_VALUE);
+            String jsonData = objectMapper.writeValueAsString(initialData.getContent());
+            emitter.send(SseEmitter.event().data(jsonData));
             
             return emitter;
         } catch (Exception e) {
+            logger.error("Error setting up SSE connection: {}", e.getMessage());
             emitter.completeWithError(e);
             return emitter;
         }
@@ -138,7 +119,7 @@ public class UserProductivityService {
      * @return Page of UserProductivityDTO objects
      */
     @Cacheable(value = "allUserProductivity", key = "#page + '-' + #size")
-    @Transactional
+    @Transactional(readOnly = true)
     public Page<UserProductivityDTO> getAllUserProductivity(int page, int size) {
         logger.info("Fetching all user productivity data for page {} with size {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
@@ -151,7 +132,7 @@ public class UserProductivityService {
      *
      * @return UserProductivityDTO representing overall productivity
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public UserProductivityDTO getOverallProductivity() {
         List<Pac> allPacs = pacRepository.findAll();
         List<UserProductivityDTO> allProductivity = allPacs.stream()
@@ -211,32 +192,57 @@ public class UserProductivityService {
      * @param data Data to be sent to clients
      */
     private void sendUpdateToEmitters(Object data) {
-        try {
-            String jsonData = objectMapper.writeValueAsString(data);
-            emitters.removeIf(emitter -> {
-                try {
-                    emitter.send(jsonData);
-                    return false;
-                } catch (IOException e) {
-                    logger.error("Error sending SSE update", e);
-                    return true;
-                }
-            });
-        } catch (JsonProcessingException e) {
-            logger.error("Error converting data to JSON", e);
-        }
+        List<SseEmitter> deadEmitters = new ArrayList<>();
+
+        emitters.forEach(emitter -> {
+            try {
+                String jsonData = objectMapper.writeValueAsString(data);
+                emitter.send(SseEmitter.event().data(jsonData));
+            } catch (JsonProcessingException e) {
+                logger.error("Failed to serialize productivity data: {}", e.getMessage());
+                deadEmitters.add(emitter);
+            } catch (IOException e) {
+                logger.error("Failed to send SSE update: {}", e.getMessage());
+                deadEmitters.add(emitter);
+            } catch (Exception e) {
+                logger.error("Unexpected error during SSE update: {}", e.getMessage());
+                deadEmitters.add(emitter);
+            }
+        });
+
+        emitters.removeAll(deadEmitters);
     }
 
     // Helper methods for DTO mapping and formatting
     private UserProductivityDTO mapToUserProductivityDTO(Object[] result) {
-        return new UserProductivityDTO(
-            (String) result[0],
-            ((Number) result[1]).longValue(),
-            ((Number) result[2]).longValue(),
-            ((Number) result[3]).doubleValue(),
-            ((Number) result[4]).doubleValue(),
-            null
-        );
+        try {
+            String username = (String) result[0];
+            long totalSubmissions = ((Number) result[1]).longValue();
+            long totalPouchesChecked = ((Number) result[2]).longValue();
+            double avgTimePerPouch = ((Number) result[3]).doubleValue();
+            double avgPouchesPerHour = ((Number) result[4]).doubleValue();
+            
+            logger.debug("Mapping productivity data for user: {}", username);
+            
+            return new UserProductivityDTO(
+                username,
+                totalSubmissions,
+                totalPouchesChecked,
+                avgTimePerPouch,
+                avgPouchesPerHour,
+                null
+            );
+        } catch (Exception e) {
+            logger.error("Error mapping productivity data: {}", e.getMessage());
+            return new UserProductivityDTO(
+                "Unknown",
+                0L,
+                0L,
+                0.0,
+                0.0,
+                null
+            );
+        }
     }
 
     /**
@@ -333,5 +339,29 @@ public class UserProductivityService {
     public Page<UserProductivityDTO> getAllUserProductivityMetrics(int page, int size) {
         logger.info("Retrieving productivity data for all users. Page: {}, Size: {}", page, size);
         return getAllUserProductivity(page, size);
+    }
+
+    public void removeEmitter(SseEmitter emitter) {
+        emitters.remove(emitter);
+        logger.debug("Removed SSE emitter");
+    }
+
+    /**
+     * Checks if a user exists in the system.
+     *
+     * @param username The username to check
+     * @return boolean indicating if the user exists
+     */
+    @Transactional(readOnly = true)
+    public boolean userExists(String username) {
+        try {
+            String jpql = "SELECT COUNT(p) > 0 FROM Pac p WHERE p.user.username = :username";
+            return entityManager.createQuery(jpql, Boolean.class)
+                    .setParameter("username", username)
+                    .getSingleResult();
+        } catch (Exception e) {
+            logger.error("Error checking user existence for username: {}", username, e);
+            return false;
+        }
     }
 }

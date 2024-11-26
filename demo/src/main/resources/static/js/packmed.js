@@ -4,6 +4,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const startTime = document.getElementById('startTime');
     const endTime = document.getElementById('endTime');
 
+    const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+    if (!csrfToken) {
+        console.error('CSRF token not found');
+        return;
+    }
+
     // New time input validation functions
     function validateTimeInput(input) {
         const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -107,6 +113,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
+    // Create a unified message handling system
+    function showMessage(message, type = 'error') {
+        const messageDiv = document.getElementById(`${type}Message`);
+        if (!messageDiv) return;
+        
+        messageDiv.textContent = message;
+        messageDiv.style.display = 'block';
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 5000);
+    }
+
     function validateForm() {
         let isValid = true;
         const pouches = document.getElementsByName('pouchesChecked')[0].value;
@@ -161,8 +179,13 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
     }
 
+    let eventSource = null;
+
     function setupSSEConnection() {
-        const eventSource = new EventSource('/api/overall-productivity-stream');
+        if (eventSource) {
+            eventSource.close();
+        }
+        eventSource = new EventSource('/api/overall-productivity-stream');
         eventSource.onmessage = function(event) {
             try {
                 const data = JSON.parse(event.data);
@@ -186,24 +209,71 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupSSEConnection();
 
-    function addRealTimeValidation() {
-        const inputs = form.querySelectorAll('input, select');
-        inputs.forEach(input => {
-            input.addEventListener('input', function() {
-                validateInput(this);
-            });
-        });
-    }
-
     function validateInput(input) {
-        const errorElement = document.getElementById(`${input.id}Error`);
+        const errorId = `${input.id}Error`;
+        const errorElement = document.getElementById(errorId);
+        
+        // If error element doesn't exist, create it
+        if (!errorElement && input.parentElement) {
+            const newErrorElement = document.createElement('div');
+            newErrorElement.id = errorId;
+            newErrorElement.className = 'error';
+            input.parentElement.appendChild(newErrorElement);
+        }
+
+        const currentErrorElement = document.getElementById(errorId);
+        if (!currentErrorElement) return; // Safety check
+
         if (input.validity.valid) {
-            errorElement.textContent = '';
+            currentErrorElement.textContent = '';
             input.classList.remove('invalid');
         } else {
-            errorElement.textContent = input.validationMessage;
+            let errorMessage = '';
+            
+            switch(input.id) {
+                case 'startTime':
+                case 'endTime':
+                    errorMessage = 'Please enter a valid time';
+                    break;
+                case 'store':
+                    errorMessage = 'Please select a store';
+                    break;
+                case 'pouchesChecked':
+                    errorMessage = 'Please enter a valid number';
+                    break;
+                default:
+                    errorMessage = input.validationMessage;
+            }
+            
+            currentErrorElement.textContent = errorMessage;
             input.classList.add('invalid');
         }
+    }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    function addRealTimeValidation() {
+        const form = document.getElementById('questionForm');
+        if (!form) return;
+
+        const inputs = form.querySelectorAll('input, select');
+        const debouncedValidate = debounce(validateInput, 300);
+        
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                debouncedValidate(this);
+            });
+        });
     }
 
     addRealTimeValidation();
@@ -264,4 +334,11 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 fetchOverallProductivity();
+
+// Add cleanup
+window.addEventListener('beforeunload', () => {
+    if (eventSource) {
+        eventSource.close();
+    }
+});
 });

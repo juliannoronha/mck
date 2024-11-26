@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchOverallProductivity();
         setupSSEConnection();
     }
+
+    // Setup chart cleanup interval
+    chartCleanupInterval = setInterval(cleanupChartResources, 5 * 60 * 1000); // Run every 5 minutes
 });
 
 function fadeOutAndNavigate(url, event) {
@@ -55,7 +58,10 @@ function showAccessDeniedMessage() {
 function handleUnauthorizedAccess(url) {
     fetch(url, {
         method: 'GET',
-        credentials: 'same-origin'
+        credentials: 'same-origin',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').content
+        }
     }).then(response => {
         if (response.status === 403) {
             showAccessDeniedMessage();
@@ -91,9 +97,26 @@ function handleWellcaClick(event) {
     }
 }
 
+function handleNBAClick(event) {
+    event.preventDefault();
+    const nbaButton = document.getElementById('nbaButton');
+    
+    if (hasNBAAccess()) {
+        window.location.href = '/nbaplayers';
+    } else {
+        showAccessDeniedMessage();
+        flashButton(nbaButton);
+    }
+}
+
 function hasRequiredRole() {
     const userRole = document.body.dataset.userRole;
-    return ['ROLE_MODERATOR', 'ROLE_ADMIN', 'ROLE_CHECKER'].includes(userRole);
+    return ['ROLE_MODERATOR', 'ROLE_ADMIN', 'ROLE_CHECKER', 'ROLE_SHIPPING', 'ROLE_INVENTORY'].includes(userRole);
+}
+
+function hasNBAAccess() {
+    const userRole = document.body.dataset.userRole;
+    return ['ROLE_USER', 'ROLE_ADMIN', 'ROLE_MODERATOR'].includes(userRole);
 }
 
 function flashButton(button) {
@@ -107,13 +130,14 @@ function fetchOverallProductivity() {
     fetch('/api/overall-productivity')
         .then(response => {
             if (!response.ok) {
-                return response.text().then(text => {
-                    throw new Error(`HTTP error! status: ${response.status}, body: ${text}`);
-                });
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid data format received');
+            }
             console.log('Received data:', JSON.stringify(data, null, 2));
             updateDashboard(data);
             if (data.chartData && Object.keys(data.chartData).length > 0) {
@@ -124,7 +148,7 @@ function fetchOverallProductivity() {
             }
         })
         .catch(error => {
-            console.error('Error fetching overall productivity:', error);
+            console.error('Error:', error);
             updateDashboardError(error.message);
         });
 }
@@ -159,6 +183,11 @@ function setupSSEConnection() {
         eventSource.close();
     }
     eventSource = new EventSource('/api/overall-productivity-stream');
+    window.addEventListener('beforeunload', () => {
+        if (eventSource) {
+            eventSource.close();
+        }
+    });
     eventSource.onmessage = function(event) {
         try {
             const data = JSON.parse(event.data);
@@ -176,7 +205,9 @@ function setupSSEConnection() {
     };
 }
 
+let chartDataCache = new Map();
 let pacMedChart = null;
+let chartCleanupInterval;
 
 function createPacMedChart(data) {
     console.log('Creating chart with data:', JSON.stringify(data, null, 2));
@@ -184,17 +215,26 @@ function createPacMedChart(data) {
         console.error('Invalid chart data');
         return;
     }
+
     const ctx = document.getElementById('pacMedChart');
     if (!ctx) {
         console.error('Canvas element not found');
         return;
     }
 
-    // Destroy existing chart if it exists
+    // Cleanup old chart instance
     if (pacMedChart) {
         pacMedChart.destroy();
+        pacMedChart = null;
     }
 
+    // Cache the new data with timestamp
+    chartDataCache.set('latest', {
+        data: data,
+        timestamp: Date.now()
+    });
+
+    // Create new chart
     pacMedChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -235,6 +275,45 @@ function createPacMedChart(data) {
         }
     });
 }
+
+// Add this function for chart cleanup
+function cleanupChartResources() {
+    const CACHE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+    const now = Date.now();
+
+    // Cleanup old cached data
+    chartDataCache.forEach((value, key) => {
+        if (now - value.timestamp > CACHE_TIMEOUT) {
+            chartDataCache.delete(key);
+        }
+    });
+
+    // Force garbage collection on unused chart data
+    if (pacMedChart && !document.getElementById('pacMedChart')) {
+        pacMedChart.destroy();
+        pacMedChart = null;
+    }
+}
+
+// Add cleanup initialization to DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing DOMContentLoaded code ...
+
+    // Setup chart cleanup interval
+    chartCleanupInterval = setInterval(cleanupChartResources, 5 * 60 * 1000); // Run every 5 minutes
+});
+
+// Add cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (chartCleanupInterval) {
+        clearInterval(chartCleanupInterval);
+    }
+    if (pacMedChart) {
+        pacMedChart.destroy();
+        pacMedChart = null;
+    }
+    chartDataCache.clear();
+});
 
 // Call fetchOverallProductivity when the page loads
 document.addEventListener('DOMContentLoaded', fetchOverallProductivity);

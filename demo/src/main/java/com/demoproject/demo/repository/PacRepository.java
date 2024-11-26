@@ -30,16 +30,28 @@ public interface PacRepository extends JpaRepository<Pac, Long> {
      * @param pageable Pagination information
      * @return A page of Object arrays containing productivity metrics
      */
-    @Query(value = "SELECT u.username, " +
-           "COUNT(p.id) as totalSubmissions, " +
-           "AVG(EXTRACT(EPOCH FROM (p.end_time - p.start_time))) / 3600 as avgTimeDuration, " +
-           "AVG(CAST(p.pouches_checked AS DOUBLE PRECISION) / (EXTRACT(EPOCH FROM (p.end_time - p.start_time)) / 3600)) as avgPouchesPerHour, " +
-           "SUM(p.pouches_checked) as totalPouchesChecked " +
-           "FROM pac p " +
-           "JOIN users u ON p.user_id = u.id " +
-           "GROUP BY u.username",
-           countQuery = "SELECT COUNT(DISTINCT u.username) FROM pac p JOIN users u ON p.user_id = u.id",
-           nativeQuery = true)
+    @Query(value = """
+        SELECT 
+            u.username,
+            COUNT(p.id) as totalSubmissions,
+            COALESCE(SUM(p.pouches_checked), 0) as totalPouchesChecked,
+            CASE 
+                WHEN COUNT(p.id) > 0 THEN 
+                    AVG(EXTRACT(EPOCH FROM (p.end_time - p.start_time))) / COUNT(p.id)
+                ELSE 0 
+            END as avgTimePerPouch,
+            CASE 
+                WHEN SUM(EXTRACT(EPOCH FROM (p.end_time - p.start_time))) > 0 THEN 
+                    (SUM(p.pouches_checked) * 3600.0) / SUM(EXTRACT(EPOCH FROM (p.end_time - p.start_time)))
+                ELSE 0 
+            END as avgPouchesPerHour
+        FROM users u
+        INNER JOIN pac p ON p.user_id = u.id
+        GROUP BY u.username
+        ORDER BY totalSubmissions DESC
+        """,
+        countQuery = "SELECT COUNT(DISTINCT u.username) FROM users u INNER JOIN pac p ON p.user_id = u.id",
+        nativeQuery = true)
     Page<Object[]> getUserProductivityDataPaginated(Pageable pageable);
 
     /**

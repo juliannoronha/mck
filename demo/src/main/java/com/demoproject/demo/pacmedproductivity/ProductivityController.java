@@ -3,10 +3,11 @@ package com.demoproject.demo.pacmedproductivity;
 import com.demoproject.demo.repository.PacRepository;
 import com.demoproject.demo.services.UserService;
 
+import jakarta.validation.constraints.Pattern;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,14 @@ import org.springframework.http.MediaType;
 import org.springframework.data.domain.Page;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.scheduling.annotation.Scheduled;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 /**
  * Controller responsible for handling productivity-related requests.
@@ -36,25 +45,35 @@ public class ProductivityController {
 
     private final UserProductivityService userProductivityService;
     private final PacRepository pacRepository;
+    private final ThreadPoolTaskExecutor taskExecutor;
 
     /**
      * Constructor for ProductivityController.
      * @param userProductivityService Service for handling user productivity operations
      * @param userService Service for handling user-related operations
      * @param pacRepository Repository for handling Pac-related operations
+     * @param taskExecutor ThreadPoolTaskExecutor for handling SSE connections
      */
-    public ProductivityController(UserProductivityService userProductivityService, UserService userService, PacRepository pacRepository) {
+    public ProductivityController(UserProductivityService userProductivityService, UserService userService, PacRepository pacRepository, ThreadPoolTaskExecutor taskExecutor) {
         this.userProductivityService = userProductivityService;
         this.pacRepository = pacRepository;
+        this.taskExecutor = taskExecutor;
     }
 
     /**
      * Retrieves overall productivity data.
      * @return ResponseEntity containing overall productivity data
      */
+    @Operation(summary = "Get overall productivity metrics")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved productivity data"),
+        @ApiResponse(responseCode = "403", description = "Access denied"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/api/overall-productivity")
     @ResponseBody
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
+    @Cacheable(value = "overallProductivity", key = "'overall'", unless = "#result == null")
     public ResponseEntity<UserProductivityDTO> getOverallProductivity() {
         logger.info("Fetching overall productivity");
         try {
@@ -109,7 +128,11 @@ public class ProductivityController {
     @GetMapping("/api/user-productivity/{username}")
     @ResponseBody
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
-    public ResponseEntity<Map<String, Object>> getUserProductivity(@PathVariable String username) {
+    public ResponseEntity<Map<String, Object>> getUserProductivity(@PathVariable @Pattern(regexp = "^[a-zA-Z0-9_-]{3,50}$") String username) {
+        if (!userProductivityService.userExists(username)) {
+            logger.warn("Attempted to access non-existent user: {}", username);
+            return ResponseEntity.notFound().build();
+        }
         logger.info("Fetching user productivity for username: {}", username);
         Map<String, Object> productivity = userProductivityService.getUserProductivity(username);
         logger.debug("User productivity for {}: {}", username, productivity);
@@ -122,17 +145,28 @@ public class ProductivityController {
      */
     @GetMapping(value = "/api/user-productivity-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamUserProductivity() {
-        SseEmitter emitter = null;
-        try {
-            emitter = userProductivityService.subscribeToProductivityUpdates();
-            return emitter;
-        } catch (Exception e) {
-            if (emitter != null) {
-                emitter.completeWithError(e);
+        SseEmitter emitter = new SseEmitter(UserProductivityService.SSE_TIMEOUT);
+        taskExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    emitter.onCompletion(() -> cleanupEmitter(emitter));
+                    emitter.onTimeout(() -> cleanupEmitter(emitter));
+                    emitter.onError(ex -> cleanupEmitter(emitter));
+                    userProductivityService.subscribeToProductivityUpdates(emitter);
+                } catch (Exception e) {
+                    logger.error("Error in SSE stream: ", e);
+                    emitter.completeWithError(e);
+                    cleanupEmitter(emitter);
+                }
             }
-            logger.error("Error creating SSE stream", e);
-            throw e;
-        }
+        });
+        return emitter;
+    }
+
+    private void cleanupEmitter(SseEmitter emitter) {
+        userProductivityService.removeEmitter(emitter);
+        logger.info("SSE connection cleaned up");
     }
 
     /**
@@ -177,12 +211,7 @@ public class ProductivityController {
 
             logger.debug("Fetching data from {} to {}", startDate, endDate);
             
-            List<Object[]> results = null;
-            try {
-                results = pacRepository.getPouchesCheckedLast7Days(startDate, endDate);
-            } finally {
-                SecurityContextHolder.clearContext(); // Clear security context
-            }
+            List<Object[]> results = pacRepository.getPouchesCheckedLast7Days(startDate, endDate);
 
             if (results.isEmpty()) {
                 logger.info("No data available for the last 7 days. Generating sample data.");
@@ -213,7 +242,13 @@ public class ProductivityController {
             return chartData;
         } catch (Exception e) {
             logger.error("Error generating chart data", e);
-            return new HashMap<>();
+            throw new RuntimeException("Failed to generate chart data", e);
         }
+    }
+
+    @CacheEvict(value = "overallProductivity", allEntries = true)
+    @Scheduled(fixedRate = 300000) // 5 minutes
+    public void clearProductivityCache() {
+        logger.info("Clearing productivity cache");
     }
 }

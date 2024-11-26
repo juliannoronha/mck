@@ -25,12 +25,20 @@
                         </ul>
                     </div>
                 </li>
-                <li>
+                <li sec:authorize="hasAnyRole('ADMIN', 'MODERATOR', 'CHECKER', 'SHIPPING', 'INVENTORY')">
                     <div class="panel central-fill-panel">
                         <span>Central Fill</span>
                         <ul>
                             <li><a href="#" id="pacmedButton" onclick="handlePacMedClick(event)"><i class="fas fa-box"></i> PacMed</a></li>
                             <li><a href="#" id="wellcaButton" onclick="handleWellcaClick(event)"><i class="fas fa-pills"></i> Well.ca</a></li>
+                        </ul>
+                    </div>
+                </li>
+                <li sec:authorize="hasAnyRole('USER', 'ADMIN', 'MODERATOR')">
+                    <div class="panel sports-panel">
+                        <span>Sports Stats</span>
+                        <ul>
+                            <li><a href="#" id="nbaButton" onclick="handleNBAClick(event)"><i class="fas fa-basketball-ball"></i> NBA</a></li>
                         </ul>
                     </div>
                 </li>

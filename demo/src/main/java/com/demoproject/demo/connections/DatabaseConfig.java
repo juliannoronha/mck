@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
+import com.codahale.metrics.MetricRegistry;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -30,13 +31,12 @@ public class DatabaseConfig {
         config.setPassword(dbPassword);
         
         // Optimized connection pool settings
-        config.setMaximumPoolSize(20);          // Increased from 10
-        config.setMinimumIdle(5);
-        config.setIdleTimeout(300000);          // 5 minutes
-        config.setConnectionTimeout(30000);      // Increased from 20000
-        config.setMaxLifetime(1800000);         // 30 minutes
-        config.setLeakDetectionThreshold(60000); // 1 minute
-        config.setValidationTimeout(5000);       // 5 seconds
+        config.setMaximumPoolSize(10);          // Reduced to prevent resource exhaustion
+        config.setMinimumIdle(2);               // Reduced to optimize resource usage
+        config.setIdleTimeout(600000);          // Increased to 10 minutes for better connection reuse
+        config.setConnectionTimeout(20000);      // Reduced to fail fast
+        config.setMaxLifetime(1200000);         // Reduced to 20 minutes to prevent stale connections
+        config.setLeakDetectionThreshold(30000); // Reduced to 30 seconds for faster leak detection
         
         // Connection testing and performance settings
         config.setConnectionTestQuery("SELECT 1");
@@ -44,6 +44,16 @@ public class DatabaseConfig {
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+        
+        // Added health check and monitoring properties
+        config.addDataSourceProperty("registerMbeans", "true");
+        config.setPoolName("MainHikariPool");
+        config.setMetricRegistry(new MetricRegistry()); // Requires metrics dependency
+        
+        // Enhanced performance properties
+        config.addDataSourceProperty("useServerPrepStmts", "true");
+        config.addDataSourceProperty("rewriteBatchedStatements", "true");
+        config.addDataSourceProperty("maintainTimeStats", "false");
         
         return config;
     }
