@@ -119,7 +119,7 @@ public class UserProductivityService {
      * @return Page of UserProductivityDTO objects
      */
     @Cacheable(value = "allUserProductivity", key = "#page + '-' + #size")
-    @Transactional
+    @Transactional(readOnly = true)
     public Page<UserProductivityDTO> getAllUserProductivity(int page, int size) {
         logger.info("Fetching all user productivity data for page {} with size {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
@@ -132,7 +132,7 @@ public class UserProductivityService {
      *
      * @return UserProductivityDTO representing overall productivity
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public UserProductivityDTO getOverallProductivity() {
         List<Pac> allPacs = pacRepository.findAll();
         List<UserProductivityDTO> allProductivity = allPacs.stream()
