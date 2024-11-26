@@ -9,21 +9,24 @@ function showDeleteConfirmation(username) {
 }
 
 // Event listener for confirm delete button
-document.getElementById('confirmDelete').addEventListener('click', function() {
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', /*[[@{/users/delete}]]*/ '/users/delete', true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-    xhr.setRequestHeader(csrfHeader, csrfToken);
-    xhr.onload = function() {
-        if (xhr.status === 200) {
-            location.reload(); // Reload the page to reflect changes
-        } else {
-            // Handle error
-            alert(xhr.responseText || 'Error deleting user');
-        }
+document.getElementById('confirmDelete').addEventListener('click', async function() {
+    try {
+        const response = await fetch('/users/delete?username=' + encodeURIComponent(currentUsername), {
+            method: 'POST',
+            headers: {
+                [csrfHeader]: csrfToken
+            }
+        });
+        
+        if (!response.ok) throw new Error('Delete operation failed');
+        
+        location.reload();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error deleting user: ' + error.message);
+    } finally {
         document.getElementById('deleteModal').style.display = 'none';
-    };
-    xhr.send('username=' + encodeURIComponent(currentUsername));
+    }
 });
 
 // Event listener for cancel delete button
