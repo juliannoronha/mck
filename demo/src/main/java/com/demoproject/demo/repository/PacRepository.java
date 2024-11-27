@@ -1,3 +1,15 @@
+/* =============================================================================
+ * PAC (Pouch Accuracy Check) Repository
+ * =============================================================================
+ * PURPOSE: Provides data access and querying capabilities for PAC entities
+ * DEPENDENCIES: 
+ * - Spring Data JPA
+ * - Hibernate
+ * - PostgreSQL (for native queries)
+ * 
+ * @author DemoProject Team
+ * @version 1.0
+ */
 package com.demoproject.demo.repository;
 
 import java.util.List;
@@ -10,25 +22,29 @@ import org.springframework.stereotype.Repository;
 import com.demoproject.demo.entity.Pac;
 import java.time.LocalDateTime;
 
-/**
- * Repository interface for managing Pac (Pouch Accuracy Check) entities.
- * Provides methods for querying and manipulating Pac data in the database.
- */
 @Repository
 public interface PacRepository extends JpaRepository<Pac, Long> {
 
+    /* -----------------------------------------------------------------------------
+     * Basic Queries
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Finds all Pac entries for a given username.
-     * @param username The username to search for
-     * @return A list of Pac entries associated with the given username
+     * Retrieves all PAC entries for a specific user
+     * @param username Target user's username
+     * @returns List of matching PAC records
      */
     List<Pac> findByUser_Username(String username);
 
+    /* -----------------------------------------------------------------------------
+     * Productivity Analytics
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Retrieves paginated user productivity data.
-     * This query aggregates Pac data to provide insights on user performance.
-     * @param pageable Pagination information
-     * @return A page of Object arrays containing productivity metrics
+     * Calculates paginated productivity metrics per user
+     * @param pageable Pagination parameters
+     * @returns Page of metrics arrays: [username, submissions, pouches, avgTime, rate]
+     * @note Uses native query for optimal performance
      */
     @Query(value = """
         SELECT 
@@ -54,42 +70,51 @@ public interface PacRepository extends JpaRepository<Pac, Long> {
         nativeQuery = true)
     Page<Object[]> getUserProductivityDataPaginated(Pageable pageable);
 
+    /* -----------------------------------------------------------------------------
+     * Filtered Queries
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Counts Pac entries based on specified filters.
-     * @param name Optional username filter (case-insensitive, partial match)
-     * @param store Optional store filter (exact match)
-     * @param month Optional month filter
-     * @return The count of Pac entries matching the specified filters
+     * Counts PAC entries matching specified filters
+     * @param name Username filter (partial, case-insensitive)
+     * @param store Store identifier
+     * @param month Month number (1-12)
+     * @returns Total matching records
      */
     @Query("SELECT COUNT(p) FROM Pac p WHERE " +
            "(:name IS NULL OR LOWER(p.user.username) LIKE %:name%) AND " +
            "(:store IS NULL OR p.store = :store) AND " +
            "(:month IS NULL OR MONTH(p.startTime) = :month)")
     long countAllWithFilters(@Param("name") String name, 
-                             @Param("store") String store, 
-                             @Param("month") Integer month);
+                           @Param("store") String store, 
+                           @Param("month") Integer month);
 
     /**
-     * Retrieves paginated Pac entries based on specified filters.
-     * @param pageable Pagination information
-     * @param nameFilter Optional username filter (case-insensitive, partial match)
-     * @param store Optional store filter (exact match)
-     * @param month Optional month filter
-     * @return A page of Pac entries matching the specified filters
+     * Retrieves filtered PAC entries with pagination
+     * @param pageable Pagination parameters
+     * @param nameFilter Username filter (partial, case-insensitive)
+     * @param store Store identifier
+     * @param month Month number (1-12)
+     * @returns Page of matching PAC records with user data
+     * @note Uses JOIN FETCH to avoid N+1 queries
      */
     @Query("SELECT p FROM Pac p JOIN FETCH p.user u WHERE " +
            "(:nameFilter IS NULL OR LOWER(u.username) LIKE %:nameFilter%) AND " +
            "(:store IS NULL OR p.store = :store) AND " +
            "(:month IS NULL OR MONTH(p.submissionDate) = :month)")
     Page<Pac> findAllWithFilters(Pageable pageable, 
-                                 @Param("nameFilter") String nameFilter, 
-                                 @Param("store") String store, 
-                                 @Param("month") Integer month);
+                               @Param("nameFilter") String nameFilter, 
+                               @Param("store") String store, 
+                               @Param("month") Integer month);
+
+    /* -----------------------------------------------------------------------------
+     * Aggregate Analytics
+     * -------------------------------------------------------------------------- */
 
     /**
-     * Retrieves aggregated user productivity data.
-     * This query calculates various metrics to measure user performance.
-     * @return A list of Object arrays containing productivity metrics for each user
+     * Calculates comprehensive productivity metrics per user
+     * @returns List of metric arrays: [username, count, pouches, avgTime, rate]
+     * @note Uses JPQL for database agnostic implementation
      */
     @Query("SELECT p.user.username, " +
            "COUNT(p), " +
@@ -105,10 +130,10 @@ public interface PacRepository extends JpaRepository<Pac, Long> {
     List<Object[]> getUserProductivityData();
 
     /**
-     * Retrieves Pac entries with pouches checked for the last 7 days.
-     * @param startDate Start date of the period (inclusive)
-     * @param endDate End date of the period (inclusive)
-     * @return A list of Object arrays containing date and count of Pac entries
+     * Retrieves daily pouch check counts for date range
+     * @param startDate Range start (inclusive)
+     * @param endDate Range end (inclusive)
+     * @returns List of arrays: [date, count]
      */
     @Query("SELECT DATE(p.submissionDate) as date, COUNT(p) as count " +
            "FROM Pac p " +
@@ -119,6 +144,11 @@ public interface PacRepository extends JpaRepository<Pac, Long> {
         @Param("startDate") LocalDateTime startDate, 
         @Param("endDate") LocalDateTime endDate);
 
-    // TODO: Consider adding methods for more specific queries, such as finding Pacs by date range
-    // TODO: Implement query method for calculating average pouches checked per hour for a specific user
+    /* -----------------------------------------------------------------------------
+     * TODO: Future Enhancements
+     * -------------------------------------------------------------------------- */
+    // - Add date range filtering capabilities
+    // - Implement user-specific hourly metrics
+    // - Add error rate tracking
+    // - Consider caching frequently accessed metrics
 }

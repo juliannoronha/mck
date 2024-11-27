@@ -1,44 +1,95 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const welcomeMessage = document.getElementById('welcomeMessage');
-    
-    setTimeout(function() {
-        welcomeMessage.style.opacity = '0';
-        setTimeout(function() {
-            welcomeMessage.style.display = 'none';
-        }, 1000); // Wait for fade out to complete before hiding
-    }, 6000); // Start fading out after 6 seconds (reduced from 9 seconds)
+/* =============================================================================
+ * Home Page JavaScript Module
+ * 
+ * PURPOSE: Manages dashboard functionality, animations, and real-time updates
+ * DEPENDENCIES: 
+ * - Chart.js for data visualization
+ * - Server-Sent Events (SSE) API for real-time updates
+ * 
+ * ARCHITECTURE:
+ * - Event-driven initialization
+ * - Role-based access control
+ * - Real-time data streaming
+ * - Memory-managed chart rendering
+ * ============================================================================= */
 
-    // Fetch dashboard data if user is ADMIN or MODERATOR
+/* -----------------------------------------------------------------------------
+ * Core Initialization
+ * -------------------------------------------------------------------------- */
+
+/**
+ * Main initialization handler
+ * @note Establishes core functionality on page load
+ * @dependencies DOM content, user role data
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    initWelcomeMessage();
+    
     if (hasRequiredRole()) {
         fetchOverallProductivity();
-        setupSSEConnection();
+        setupSSEConnection(); 
     }
-
-    // Setup chart cleanup interval
-    chartCleanupInterval = setInterval(cleanupChartResources, 5 * 60 * 1000); // Run every 5 minutes
+    
+    // Periodic cleanup to prevent memory leaks
+    chartCleanupInterval = setInterval(cleanupChartResources, 5 * 60 * 1000);
 });
 
+/* -----------------------------------------------------------------------------
+ * UI Animation System
+ * -------------------------------------------------------------------------- */
+
+/**
+ * Manages welcome message animation and cleanup
+ * @note Removes element from DOM after animation for memory efficiency
+ */
+function initWelcomeMessage() {
+    const welcomeMessage = document.getElementById('welcomeMessage');
+    setTimeout(() => {
+        welcomeMessage.style.opacity = '0';
+        setTimeout(() => welcomeMessage.style.display = 'none', 1000);
+    }, 6000);
+}
+
+/**
+ * Handles page transitions with fade effect
+ * @param {string} url - Target navigation URL
+ * @param {Event} event - Click event object
+ * @note Prevents default navigation for smooth animation
+ */
 function fadeOutAndNavigate(url, event) {
     event.preventDefault();
     fadeOutElements();
-    setTimeout(() => {
-        window.location.href = url;
-    }, 500);
+    setTimeout(() => window.location.href = url, 500);
 }
 
+/**
+ * Handles form submissions with fade animation
+ * @param {HTMLFormElement} form - Form to submit
+ * @param {Event} event - Submit event
+ */
 function fadeOutAndSubmit(form, event) {
     event.preventDefault();
     fadeOutElements();
-    setTimeout(() => {
-        form.submit();
-    }, 500);
+    setTimeout(() => form.submit(), 500);
 }
 
+/**
+ * Fades out main UI elements
+ */
 function fadeOutElements() {
     document.getElementById('mainNav').classList.add('fade-out');
     document.getElementById('mainContent').classList.add('fade-out');
 }
 
+/* -----------------------------------------------------------------------------
+ * Access Control & Authorization
+ * @security Critical section - handles user permissions
+ * -------------------------------------------------------------------------- */
+
+/**
+ * Displays temporary access denied message
+ * @note Message auto-hides after 3 seconds
+ */
 function showAccessDeniedMessage() {
     const message = document.getElementById('accessDeniedMessage');
     message.classList.remove('hide');
@@ -51,10 +102,14 @@ function showAccessDeniedMessage() {
         setTimeout(() => {
             message.style.display = 'none';
             message.classList.remove('hide');
-        }, 500); // Match the duration of the fadeOutDown animation
-    }, 3000); // Show for 3 seconds
+        }, 500);
+    }, 3000);
 }
 
+/**
+ * Checks user authorization before navigation
+ * @param {string} url - Target URL to check access for
+ */
 function handleUnauthorizedAccess(url) {
     fetch(url, {
         method: 'GET',
@@ -63,16 +118,18 @@ function handleUnauthorizedAccess(url) {
             'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]').content
         }
     }).then(response => {
-        if (response.status === 403) {
-            showAccessDeniedMessage();
-        } else {
-            window.location.href = url;
-        }
-    }).catch(error => {
-        console.error('Error:', error);
-    });
+        response.status === 403 ? showAccessDeniedMessage() : window.location.href = url;
+    }).catch(error => console.error('Error:', error));
 }
 
+/* -----------------------------------------------------------------------------
+ * Navigation Handlers
+ * -------------------------------------------------------------------------- */
+
+/**
+ * Handles PacMed section access
+ * @param {Event} event - Click event
+ */
 function handlePacMedClick(event) {
     event.preventDefault();
     const pacmedButton = document.getElementById('pacmedButton');
@@ -85,6 +142,10 @@ function handlePacMedClick(event) {
     }
 }
 
+/**
+ * Handles Wellca section access
+ * @param {Event} event - Click event
+ */
 function handleWellcaClick(event) {
     event.preventDefault();
     const wellcaButton = document.getElementById('wellcaButton');
@@ -97,6 +158,10 @@ function handleWellcaClick(event) {
     }
 }
 
+/**
+ * Handles NBA section access
+ * @param {Event} event - Click event
+ */
 function handleNBAClick(event) {
     event.preventDefault();
     const nbaButton = document.getElementById('nbaButton');
@@ -109,42 +174,67 @@ function handleNBAClick(event) {
     }
 }
 
+/* -----------------------------------------------------------------------------
+ * Role & Access Validation
+ * -------------------------------------------------------------------------- */
+
+/**
+ * Role validation for admin features
+ * @returns {boolean} True if user has sufficient privileges
+ * @security Enforces role-based access control
+ */
 function hasRequiredRole() {
     const userRole = document.body.dataset.userRole;
-    return ['ROLE_MODERATOR', 'ROLE_ADMIN', 'ROLE_CHECKER', 'ROLE_SHIPPING', 'ROLE_INVENTORY'].includes(userRole);
+    return ['ROLE_MODERATOR', 'ROLE_ADMIN', 'ROLE_CHECKER', 
+            'ROLE_SHIPPING', 'ROLE_INVENTORY'].includes(userRole);
 }
 
+/**
+ * NBA section access validation
+ * @returns {boolean} True if user has NBA access
+ * @note Separate permission set from admin features
+ */
 function hasNBAAccess() {
     const userRole = document.body.dataset.userRole;
     return ['ROLE_USER', 'ROLE_ADMIN', 'ROLE_MODERATOR'].includes(userRole);
 }
 
+/* -----------------------------------------------------------------------------
+ * UI Feedback & Animations
+ * -------------------------------------------------------------------------- */
+
+/**
+ * Flashes button red to indicate access denied
+ * @param {HTMLElement} button - Button to animate
+ */
 function flashButton(button) {
     button.classList.add('flash-red');
-    setTimeout(() => {
-        button.classList.remove('flash-red');
-    }, 1500); // Flash for 1.5 seconds (3 flashes at 0.5s each)
+    setTimeout(() => button.classList.remove('flash-red'), 1500);
 }
 
+/* -----------------------------------------------------------------------------
+ * Dashboard Data Management
+ * @performance Critical section - handles real-time updates
+ * -------------------------------------------------------------------------- */
+
+/**
+ * Fetches and processes productivity metrics
+ * @throws {Error} If API response is invalid
+ * @note Implements error handling and data validation
+ */
 function fetchOverallProductivity() {
     fetch('/api/overall-productivity')
         .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return response.json();
         })
         .then(data => {
             if (!data || typeof data !== 'object') {
                 throw new Error('Invalid data format received');
             }
-            console.log('Received data:', JSON.stringify(data, null, 2));
             updateDashboard(data);
             if (data.chartData && Object.keys(data.chartData).length > 0) {
-                console.log('Chart data:', JSON.stringify(data.chartData, null, 2));
                 createPacMedChart(data.chartData);
-            } else {
-                console.error('Chart data is missing or empty');
             }
         })
         .catch(error => {
@@ -153,6 +243,10 @@ function fetchOverallProductivity() {
         });
 }
 
+/**
+ * Updates dashboard with productivity metrics
+ * @param {Object} data - Dashboard data object
+ */
 function updateDashboard(data) {
     document.getElementById('totalSubmissions').textContent = data.totalSubmissions ?? 'N/A';
     document.getElementById('totalPouchesChecked').textContent = data.totalPouchesChecked ?? 'N/A';
@@ -162,42 +256,57 @@ function updateDashboard(data) {
         data.avgPouchesPerHour != null ? data.avgPouchesPerHour.toFixed(2) : 'N/A';
 }
 
+/**
+ * Displays error message in dashboard
+ * @param {string} errorMessage - Error message to display
+ */
 function updateDashboardError(errorMessage) {
     const errorText = 'Error: ' + errorMessage;
-    document.getElementById('totalSubmissions').textContent = errorText;
-    document.getElementById('totalPouchesChecked').textContent = errorText;
-    document.getElementById('avgTimePerPouch').textContent = errorText;
-    document.getElementById('avgPouchesPerHour').textContent = errorText;
+    ['totalSubmissions', 'totalPouchesChecked', 
+     'avgTimePerPouch', 'avgPouchesPerHour'].forEach(id => {
+        document.getElementById(id).textContent = errorText;
+    });
 }
 
+/**
+ * Formats duration in minutes and seconds
+ * @param {number} seconds - Duration in seconds
+ * @returns {string} Formatted duration string
+ */
 function formatDuration(seconds) {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.round(seconds % 60);
     return `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
 }
 
+/* -----------------------------------------------------------------------------
+ * Server-Sent Events (SSE) Management
+ * -------------------------------------------------------------------------- */
+
 let eventSource;
 
+/**
+ * Sets up SSE connection for real-time updates
+ * @note Includes auto-reconnect on error
+ */
 function setupSSEConnection() {
-    if (eventSource) {
-        eventSource.close();
-    }
+    if (eventSource) eventSource.close();
+    
     eventSource = new EventSource('/api/overall-productivity-stream');
+    
     window.addEventListener('beforeunload', () => {
-        if (eventSource) {
-            eventSource.close();
-        }
+        if (eventSource) eventSource.close();
     });
+    
     eventSource.onmessage = function(event) {
         try {
             const data = JSON.parse(event.data);
-            if (!Array.isArray(data)) {
-                updateDashboard(data);
-            }
+            if (!Array.isArray(data)) updateDashboard(data);
         } catch (error) {
             console.error('Error parsing SSE data:', error);
         }
     };
+    
     eventSource.onerror = function(error) {
         console.error('Error in SSE connection:', error);
         eventSource.close();
@@ -205,13 +314,20 @@ function setupSSEConnection() {
     };
 }
 
+/* -----------------------------------------------------------------------------
+ * Chart Management
+ * -------------------------------------------------------------------------- */
+
 let chartDataCache = new Map();
 let pacMedChart = null;
 let chartCleanupInterval;
 
+/**
+ * Creates/updates productivity chart
+ * @param {Object} data - Chart data object
+ */
 function createPacMedChart(data) {
-    console.log('Creating chart with data:', JSON.stringify(data, null, 2));
-    if (!data || !data.labels || !data.pouchesChecked) {
+    if (!data?.labels || !data?.pouchesChecked) {
         console.error('Invalid chart data');
         return;
     }
@@ -222,19 +338,16 @@ function createPacMedChart(data) {
         return;
     }
 
-    // Cleanup old chart instance
     if (pacMedChart) {
         pacMedChart.destroy();
         pacMedChart = null;
     }
 
-    // Cache the new data with timestamp
     chartDataCache.set('latest', {
         data: data,
         timestamp: Date.now()
     });
 
-    // Create new chart
     pacMedChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -249,65 +362,48 @@ function createPacMedChart(data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            },
+            scales: { y: { beginAtZero: true } },
             plugins: {
                 title: {
                     display: true,
                     text: 'Pouches Checked (Last 7 Days)',
-                    font: {
-                        size: 16
-                    }
+                    font: { size: 16 }
                 },
                 subtitle: {
                     display: true,
-                    text: data.pouchesChecked.every(val => val === 0) ? 'Sample data shown (no actual data available)' : '',
+                    text: data.pouchesChecked.every(val => val === 0) ? 
+                          'Sample data shown (no actual data available)' : '',
                     color: 'red',
-                    font: {
-                        size: 14,
-                        style: 'italic'
-                    }
+                    font: { size: 14, style: 'italic' }
                 }
             }
         }
     });
 }
 
-// Add this function for chart cleanup
+/**
+ * Cleans up chart resources to prevent memory leaks
+ * @note Runs every 5 minutes
+ */
 function cleanupChartResources() {
     const CACHE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
     const now = Date.now();
 
-    // Cleanup old cached data
     chartDataCache.forEach((value, key) => {
         if (now - value.timestamp > CACHE_TIMEOUT) {
             chartDataCache.delete(key);
         }
     });
 
-    // Force garbage collection on unused chart data
     if (pacMedChart && !document.getElementById('pacMedChart')) {
         pacMedChart.destroy();
         pacMedChart = null;
     }
 }
 
-// Add cleanup initialization to DOMContentLoaded
-document.addEventListener('DOMContentLoaded', function() {
-    // ... existing DOMContentLoaded code ...
-
-    // Setup chart cleanup interval
-    chartCleanupInterval = setInterval(cleanupChartResources, 5 * 60 * 1000); // Run every 5 minutes
-});
-
-// Add cleanup on page unload
+// Cleanup on page unload
 window.addEventListener('beforeunload', function() {
-    if (chartCleanupInterval) {
-        clearInterval(chartCleanupInterval);
-    }
+    if (chartCleanupInterval) clearInterval(chartCleanupInterval);
     if (pacMedChart) {
         pacMedChart.destroy();
         pacMedChart = null;
@@ -315,5 +411,6 @@ window.addEventListener('beforeunload', function() {
     chartDataCache.clear();
 });
 
-// Call fetchOverallProductivity when the page loads
+// Initial data fetch
 document.addEventListener('DOMContentLoaded', fetchOverallProductivity);
+

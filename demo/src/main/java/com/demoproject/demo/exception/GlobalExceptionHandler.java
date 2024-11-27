@@ -1,3 +1,13 @@
+/*
+ * =============================================================================
+ * Global Exception Handler
+ * =============================================================================
+ * Purpose: Provides centralized exception handling for the entire application
+ * Dependencies: Spring Framework (Web, Security), SLF4J Logger
+ * Author: DemoProject Team
+ * Last Updated: Current Version
+ */
+
 package com.demoproject.demo.exception;
 
 import org.slf4j.Logger;
@@ -16,19 +26,26 @@ import java.time.LocalDateTime;
 import org.springframework.http.MediaType;
 
 /**
- * Global exception handler for the application.
- * This class provides centralized exception handling across all @RequestMapping methods.
+ * Global exception handler that centralizes error handling across the application.
+ * Implements Spring's @ControllerAdvice for cross-cutting exception management.
+ * 
+ * @note All handlers return standardized ErrorDetails for consistent client responses
+ * @note Logging is implemented for critical errors to aid debugging
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    /* ---------------------------- Client Error Handlers ---------------------------- */
+
     /**
-     * Handles IllegalArgumentException.
-     * @param ex The caught exception
-     * @param request The current request
-     * @return ResponseEntity with error details and BAD_REQUEST status
+     * Handles invalid input parameters or business rule violations.
+     * 
+     * @param ex      The IllegalArgumentException containing validation details
+     * @param request The current web request context
+     * @return ResponseEntity<ErrorDetails> with 400 BAD_REQUEST
+     * @note Commonly triggered by invalid user input or parameter validation
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<?> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
@@ -37,10 +54,12 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles AccessDeniedException.
-     * @param ex The caught exception
-     * @param request The current request
-     * @return ResponseEntity with error details and FORBIDDEN status
+     * Manages security access violations.
+     * 
+     * @param ex      The security exception indicating unauthorized access
+     * @param request The current web request context
+     * @return ResponseEntity<ErrorDetails> with 403 FORBIDDEN
+     * @note Triggered when authenticated users lack required permissions
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<?> handleAccessDeniedException(AccessDeniedException ex, WebRequest request) {
@@ -49,10 +68,12 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles DataIntegrityViolationException.
-     * @param ex The caught exception
-     * @param request The current request
-     * @return ResponseEntity with error details and CONFLICT status
+     * Handles database constraint violations and data conflicts.
+     * 
+     * @param ex      The database constraint violation exception
+     * @param request The current web request context
+     * @return ResponseEntity<ErrorDetails> with 409 CONFLICT
+     * @note Common cases: unique constraint violations, foreign key conflicts
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<?> handleDataIntegrityViolationException(DataIntegrityViolationException ex, WebRequest request) {
@@ -60,11 +81,15 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
     }
 
+    /* ---------------------------- Server Error Handlers ---------------------------- */
+
     /**
-     * Handles all uncaught exceptions.
-     * @param ex The caught exception
-     * @param request The current request
-     * @return ResponseEntity with error details and INTERNAL_SERVER_ERROR status
+     * Catches all unhandled exceptions as a last resort.
+     * 
+     * @param ex      The uncaught exception
+     * @param request The current web request context
+     * @return ResponseEntity<ErrorDetails> with 500 INTERNAL_SERVER_ERROR
+     * @note Logs full stack trace for debugging while returning safe message to client
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorDetails> handleGlobalException(Exception ex, WebRequest request) {
@@ -81,9 +106,11 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles SQLException.
-     * @param ex The caught exception
-     * @return ResponseEntity with a generic error message and INTERNAL_SERVER_ERROR status
+     * Handles database-specific exceptions.
+     * 
+     * @param ex The SQL exception from database operations
+     * @return ResponseEntity<String> with 500 INTERNAL_SERVER_ERROR
+     * @note Logs detailed DB error while returning generic message to client
      */
     @ExceptionHandler(SQLException.class)
     public ResponseEntity<String> handleSQLException(SQLException ex) {
@@ -92,20 +119,28 @@ public class GlobalExceptionHandler {
                 .body("An error occurred while processing your request. Please try again later.");
     }
 
+    /* ---------------------------- Resource Handlers ---------------------------- */
+
     /**
-     * Handles NoResourceFoundException.
-     * @param ex The caught exception
-     * @return ResponseEntity with appropriate status based on the resource requested
+     * Manages missing resource requests, including special handling for favicon.
+     * 
+     * @param ex The resource not found exception
+     * @return ResponseEntity with appropriate status (200 OK for favicon, 404 otherwise)
+     * @note Special case handling for favicon.ico to prevent unnecessary 404 logs
      */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<String> handleNoResourceFoundException(NoResourceFoundException ex) {
         if (ex.getMessage().contains("favicon.ico")) {
-            return ResponseEntity.ok().build(); // Return empty OK response for favicon
+            return ResponseEntity.ok().build();
         }
-        // Handle other resource not found exceptions
         return ResponseEntity.notFound().build();
     }
 
-    // TODO: Consider adding more specific exception handlers for other common exceptions
-    // TODO: Implement a mechanism to notify administrators for critical errors
+    /* 
+     * @todo Future Enhancements:
+     * - Add handlers for other common exceptions (MethodNotAllowed, UnsupportedMediaType)
+     * - Implement admin notification system for critical errors
+     * - Consider rate limiting for repeated error responses
+     * - Add metrics collection for error monitoring
+     */
 }

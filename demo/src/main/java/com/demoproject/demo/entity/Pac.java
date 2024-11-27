@@ -1,7 +1,14 @@
+/* ==========================================================================
+ * PAC (Pouch Accuracy Check) Entity Module
+ * 
+ * PURPOSE: Represents a single PAC session with timing and productivity metrics
+ * DEPENDENCIES: JPA, Lombok, Custom DateTime Converter
+ * SCOPE: Core domain entity for PAC tracking
+ * ========================================================================== */
+
 package com.demoproject.demo.entity;
 
 import com.demoproject.demo.config.TruncatedDateTimeConverter;
-
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,11 +17,19 @@ import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
-/**
- * Represents a Pouch Accuracy Check (PAC) entity in the system.
- * This class encapsulates data related to a single PAC session, including
- * user information, timing details, and productivity metrics.
- */
+/* --------------------------------------------------------------------------
+ * Core PAC Entity Definition
+ * 
+ * FUNCTIONALITY:
+ * - Tracks individual PAC session details
+ * - Records timing and productivity metrics
+ * - Links sessions to users and stores
+ * 
+ * IMPORTANT NOTES:
+ * - Uses lazy loading for user relationship
+ * - Automatically sets submission timestamp
+ * - All timestamps truncated to seconds
+ * -------------------------------------------------------------------------- */
 @Entity
 @Table(name = "pac")
 @Data
@@ -22,59 +37,73 @@ import java.time.temporal.ChronoUnit;
 @AllArgsConstructor
 public class Pac {
 
+    /* .... Core Identifiers .... */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /* .... Relationships .... */
     /**
-     * The user who performed this PAC session.
-     * Lazy fetching is used to optimize performance.
+     * @param user The user performing the PAC session
+     * @note Uses lazy fetching for performance optimization
+     * @note Required field - cannot be null
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    /* .... Temporal Data .... */
     /**
-     * The date and time when this PAC was submitted.
-     * Uses a custom converter to truncate the timestamp for consistency.
+     * @param submissionDate When the PAC was recorded
+     * @note Auto-set on creation via @PrePersist
+     * @note Truncated to seconds for consistency
      */
     @Column(name = "submission_date")
     @Convert(converter = TruncatedDateTimeConverter.class)
     private LocalDateTime submissionDate;
 
     /**
-     * The time when the PAC session started.
+     * @param startTime Session start timestamp
+     * @note Must be before endTime
      */
     @Column(name = "start_time")
     private LocalTime startTime;
 
     /**
-     * The time when the PAC session ended.
+     * @param endTime Session completion timestamp
+     * @note Must be after startTime
      */
     @Column(name = "end_time")
     private LocalTime endTime;
 
+    /* .... Metrics .... */
     /**
-     * The number of pouches checked during this PAC session.
+     * @param pouchesChecked Number of pouches verified
+     * @note Used for productivity tracking
      */
     @Column(name = "pouches_checked")
     private Integer pouchesChecked;
 
     /**
-     * The store identifier where this PAC was performed.
+     * @param store Location identifier
+     * @note Required field - cannot be null
      */
     @Column(name = "store", nullable = false)
     private String store;
 
+    /* .... Lifecycle Hooks .... */
     /**
-     * Automatically sets the submission date to the current time
-     * when a new PAC entity is persisted.
+     * Sets submission timestamp on entity creation
+     * @note Truncates to seconds for consistency
      */
     @PrePersist
     protected void onCreate() {
         submissionDate = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
     }
 
-    // TODO: Consider adding a method to calculate the duration of the PAC session
-    // TODO: Implement validation to ensure end time is after start time
+    /* @todo [FEATURE] Add duration calculation method
+     * @todo [VALIDATION] Add start/end time validation
+     * @todo [PERF] Consider indexing frequently queried fields
+     * @todo [SECURITY] Add audit logging for changes
+     */
 }

@@ -1,3 +1,18 @@
+/*
+ * ==========================================================================
+ * UserManagementController.java
+ * --------------------------------------------------------------------------
+ * REST controller handling user management operations including:
+ * - User registration 
+ * - User listing
+ * - User deletion
+ * - Password management
+ * 
+ * @author Not specified
+ * @version 1.0
+ * ==========================================================================
+ */
+
 package com.demoproject.demo.controller;
 
 import com.demoproject.demo.dto.UserDTO;
@@ -24,18 +39,31 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Controller responsible for user management operations.
- * Handles user registration, listing, deletion, and password management.
+ * Provides RESTful endpoints for user administration tasks.
+ *
+ * @note Requires ADMIN role for most operations
+ * @dependency Spring Security for authorization
+ * @dependency Various user-related services for business logic
  */
 @Controller
 @RequestMapping("/users")
 public class UserManagementController {
     private static final Logger logger = LoggerFactory.getLogger(UserManagementController.class);
 
+    /* ---- Service Dependencies ---- */
     private final UserService userService;
     private final PasswordManagementService passwordService;
     private final UserRegistrationService registrationService;
     private final UserDeletionService deletionService;
 
+    /**
+     * Constructor for dependency injection
+     * 
+     * @param userService Core user operations
+     * @param passwordService Password management operations
+     * @param registrationService User registration operations
+     * @param deletionService User deletion operations
+     */
     public UserManagementController(UserService userService,
                                   PasswordManagementService passwordService,
                                   UserRegistrationService registrationService,
@@ -46,8 +74,14 @@ public class UserManagementController {
         this.deletionService = deletionService;
     }
 
+    /* ======== User Registration Operations ======== */
+
     /**
-     * Displays the registration form.
+     * Displays the user registration form
+     *
+     * @param model Spring MVC Model
+     * @returns String View name for registration form
+     * @security Requires ADMIN role
      */
     @GetMapping("/register")
     @PreAuthorize("hasRole('ADMIN')")
@@ -60,7 +94,14 @@ public class UserManagementController {
     }
 
     /**
-     * Handles user registration process.
+     * Processes user registration submission
+     *
+     * @param user User data from form
+     * @param result Validation results
+     * @param redirectAttributes For flash messages
+     * @returns String Redirect URL or form view on error
+     * @throws Various exceptions from registration service
+     * @security Requires ADMIN role
      */
     @PostMapping("/register")
     @PreAuthorize("hasRole('ADMIN')")
@@ -83,8 +124,16 @@ public class UserManagementController {
         }
     }
 
+    /* ======== User Listing Operations ======== */
+
     /**
-     * Displays a paginated list of users for admin users.
+     * Displays paginated list of users
+     *
+     * @param model Spring MVC Model
+     * @param page Page number (0-based)
+     * @param size Items per page
+     * @returns String View name for user list
+     * @security Requires ADMIN role
      */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -98,8 +147,15 @@ public class UserManagementController {
         return "users";
     }
 
+    /* ======== User Deletion Operations ======== */
+
     /**
-     * Handles user deletion for admin users.
+     * Handles user deletion requests
+     *
+     * @param username Username to delete
+     * @returns ResponseEntity Success/error message
+     * @security Requires ADMIN role
+     * @note Returns 500 on deletion errors
      */
     @PostMapping("/delete")
     @PreAuthorize("hasRole('ADMIN')")
@@ -113,8 +169,17 @@ public class UserManagementController {
         }
     }
 
+    /* ======== Password Management Operations ======== */
+
     /**
-     * Handles password change requests.
+     * Processes password change requests
+     *
+     * @param username Target username
+     * @param newPassword New password value
+     * @param authentication Current user's authentication
+     * @returns ResponseEntity Success/error message
+     * @security Requires authentication
+     * @note Users can only change their own password unless ADMIN
      */
     @PostMapping("/change-password")
     @PreAuthorize("isAuthenticated()")

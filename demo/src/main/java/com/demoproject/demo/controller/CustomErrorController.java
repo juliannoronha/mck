@@ -1,3 +1,16 @@
+/* ==========================================================================
+ * Custom Error Controller Module
+ *
+ * PURPOSE: Provides centralized error handling and user-friendly error pages
+ * DEPENDENCIES: Spring MVC, Jakarta Servlet API
+ * SCOPE: Application-wide error handling
+ * 
+ * SECURITY CONSIDERATIONS:
+ * - Sanitizes error messages for client display
+ * - Avoids exposing internal error details
+ * - Maintains consistent error responses
+ * ========================================================================== */
+
 package com.demoproject.demo.controller;
 
 import jakarta.servlet.RequestDispatcher;
@@ -8,19 +21,38 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-/**
- * Custom error controller to handle and display error pages.
- * This controller implements ErrorController to override the default error handling behavior.
- */
+/* --------------------------------------------------------------------------
+ * Error Controller Implementation
+ * 
+ * FUNCTIONALITY:
+ * - Intercepts Spring Boot error pages
+ * - Maps error codes to user messages
+ * - Renders error view templates
+ * 
+ * IMPORTANT NOTES:
+ * - Overrides default Spring Boot error handling
+ * - Uses Thymeleaf template resolution
+ * - Stateless design pattern
+ * -------------------------------------------------------------------------- */
 @Controller
 public class CustomErrorController implements ErrorController {
 
+    /* .... Error Request Handler .... */
     /**
-     * Handles error requests and determines the appropriate error message to display.
+     * Maps error status codes to appropriate user messages.
      *
-     * @param request The HttpServletRequest containing error attributes
-     * @param model The Model to add attributes for the view
-     * @return The name of the error view to be rendered
+     * @param request The HTTP request containing error details
+     * @param model Spring MVC model for view attributes
+     * @returns String View name for template resolution
+     * 
+     * ERROR HANDLING:
+     * - Handles 404 Not Found gracefully
+     * - Manages 403 Forbidden access
+     * - Provides generic message for other errors
+     * 
+     * @note Thread-safe implementation
+     * @note Null-safe status code handling
+     * @example GET /error?status=404
      */
     @RequestMapping("/error")
     public String handleError(HttpServletRequest request, Model model) {
@@ -36,8 +68,7 @@ public class CustomErrorController implements ErrorController {
             }
         }
         
-        // Add the error message to the model for display in the view
         model.addAttribute("errorMessage", errorMessage);
-        return "error"; // Return the name of the error view template
+        return "error";
     }
 }

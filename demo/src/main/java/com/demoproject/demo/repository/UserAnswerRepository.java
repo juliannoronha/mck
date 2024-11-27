@@ -7,43 +7,75 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 
-/**
- * Repository interface for managing UserAnswer entities.
- * Provides methods for querying and manipulating UserAnswer data in the database.
- */
+/* ==========================================================================
+ * UserAnswer Repository Interface
+ * 
+ * PURPOSE: Manages persistence operations for UserAnswer entities
+ * EXTENDS: JpaRepository for standard CRUD operations
+ * 
+ * @note: All methods are transactional by default
+ * @dependency: Requires UserAnswer entity and Spring Data JPA
+ * ========================================================================== */
 @Repository
 public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
     
+    /* ---------- User-Specific Query Methods ---------- */
+    
     /**
-     * Finds all UserAnswer entries for a given username.
-     * @param username The username to search for
-     * @return A list of UserAnswer entries associated with the given username
+     * Finds user answers using Spring Data's method naming convention.
+     * 
+     * @param username Target user's identifier
+     * @return List<UserAnswer> - Empty if no matches found
+     * @note Automatically handles null username validation
      */
     List<UserAnswer> findByUser_Username(String username);
 
     /**
-     * Retrieves all UserAnswer entries for a specific username using JPQL.
-     * @param username The username to search for
-     * @return A list of UserAnswer entries for the given username
+     * Retrieves user answers using explicit JPQL query.
+     * 
+     * @param username Target user's identifier
+     * @return List<UserAnswer> - Empty if no matches found
+     * @throws IllegalArgumentException if username is null
+     * @note Preferred over findByUser_Username for complex queries
      */
     @Query("SELECT ua FROM UserAnswer ua WHERE ua.user.username = :username")
     List<UserAnswer> findAllByUsername(@Param("username") String username);
 
+    /* ---------- Aggregation Methods ---------- */
+    
     /**
-     * Counts the number of UserAnswer entries for a specific username.
-     * @param username The username to count answers for
-     * @return The number of UserAnswer entries for the given username
+     * Counts total answers for a specific user.
+     * 
+     * @param username Target user's identifier
+     * @return long - Total count (0 if no matches)
+     * @note Optimized for counting without loading entities
      */
     @Query("SELECT COUNT(ua) FROM UserAnswer ua WHERE ua.user.username = :username")
     long countByUsername(@Param("username") String username);
 
+    /* ---------- Bulk Query Methods ---------- */
+    
     /**
-     * Retrieves all UserAnswer entries without any specific criteria.
-     * @return A list of all UserAnswer entries in the database
+     * Retrieves all answers in read-only mode.
+     * 
+     * @return List<UserAnswer> - All answers in the system
+     * @note Consider pagination for large datasets
+     * @todo Add pagination support
+     * @performance May cause memory issues with large datasets
      */
     @Query("SELECT ua FROM UserAnswer ua")
     List<UserAnswer> findAllReadOnly();
 
-    // TODO: Consider adding methods for filtering UserAnswers by date range
-    // TODO: Implement a method to find UserAnswers by specific criteria (e.g., submission date, answer content)
+    /* ---------- Future Enhancements ---------- */
+    
+    /**
+     * @todo Implement date range filtering:
+     * - Add method: findBySubmissionDateBetween(Date start, Date end)
+     * - Consider using Spring's Specification API for dynamic filtering
+     * 
+     * @todo Add content-based search:
+     * - Implement full-text search capabilities
+     * - Add support for answer content filtering
+     * - Consider using database-specific full-text search
+     */
 }

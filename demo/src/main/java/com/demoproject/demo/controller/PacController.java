@@ -1,3 +1,16 @@
+/* ==========================================================================
+ * PAC (Pouch Accuracy Check) Controller Module
+ *
+ * PURPOSE: Manages PAC system interactions including submissions and responses
+ * DEPENDENCIES: Spring MVC, Spring Security, PAC Service
+ * SCOPE: Web endpoints for PAC functionality
+ * 
+ * SECURITY CONSIDERATIONS:
+ * - Authentication required for submissions
+ * - Role-based access control for admin functions
+ * - Input validation and sanitization
+ * ========================================================================== */
+
 package com.demoproject.demo.controller;
 
 import com.demoproject.demo.entity.Pac;
@@ -20,10 +33,19 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
-/**
- * Controller responsible for handling responses related to the packmed system.
- * This includes submitting questions, viewing responses, and managing user interactions.
- */
+/* --------------------------------------------------------------------------
+ * PAC Controller Implementation
+ * 
+ * FUNCTIONALITY:
+ * - Question submission handling
+ * - Response management and viewing
+ * - Access control enforcement
+ * 
+ * IMPORTANT NOTES:
+ * - Thread-safe implementation
+ * - Stateless design pattern
+ * - Centralized logging
+ * -------------------------------------------------------------------------- */
 @Controller
 public class PacController {
 
@@ -34,9 +56,13 @@ public class PacController {
         this.pacService = pacService;
     }
 
+    /* .... Question Display Handler .... */
     /**
-     * Displays the questions page for authenticated users.
-     * @return The name of the view to render
+     * Renders the PAC questions interface for authenticated users.
+     *
+     * @returns String View name for template resolution
+     * @secure Requires valid authentication
+     * @example GET /questions
      */
     @GetMapping("/questions")
     @RequiresAuthentication
@@ -44,28 +70,42 @@ public class PacController {
         return "packmed";
     }
 
+    /* .... Question Submission Handler .... */
     /**
-     * Handles the submission of questions from authenticated users.
-     * @param pacData Map containing the PAC (Pouch Accuracy Check) data
-     * @param authentication The authentication object of the current user
-     * @return ResponseEntity with the result of the submission
+     * Processes PAC data submissions from authenticated users.
+     *
+     * @param pacData Map of PAC form data (store, times, counts)
+     * @param authentication Current user's authentication context
+     * @returns ResponseEntity with submission status
+     * 
+     * @secure Requires valid authentication
+     * @throws Exception on parsing or validation errors
+     * 
+     * VALIDATION:
+     * - Authentication state verification
+     * - Required field presence
+     * - Time format validation
+     * - Numeric value parsing
      */
     @PostMapping("/submit-questions")
     @RequiresAuthentication
     @ResponseBody
-    public ResponseEntity<String> submitQuestions(@RequestBody Map<String, String> pacData, Authentication authentication) {
+    public ResponseEntity<String> submitQuestions(@RequestBody Map<String, String> pacData, 
+            Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             logger.warn("Unauthorized access attempt to submit questions");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                               .body("User not authenticated");
         }
 
         try {
-            // Parse and create Pac object from submitted data
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
             Pac pac = new Pac();
             pac.setStore(pacData.get("store"));
-            pac.setStartTime(LocalTime.parse(pacData.get("startTime").split("T")[1], formatter));
-            pac.setEndTime(LocalTime.parse(pacData.get("endTime").split("T")[1], formatter));
+            pac.setStartTime(LocalTime.parse(pacData.get("startTime").split("T")[1], 
+                    formatter));
+            pac.setEndTime(LocalTime.parse(pacData.get("endTime").split("T")[1], 
+                    formatter));
             pac.setPouchesChecked(Integer.parseInt(pacData.get("pouchesChecked")));
 
             pacService.submitPac(pac, authentication.getName());
@@ -73,14 +113,24 @@ public class PacController {
             return ResponseEntity.ok("Questions submitted successfully");
         } catch (Exception e) {
             logger.error("Error submitting questions", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error submitting questions: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                               .body("Error submitting questions: " + e.getMessage());
         }
     }
 
+    /* .... Response Management .... */
     /**
-     * Deletes a response. Only accessible by ADMIN or MODERATOR roles.
-     * @param id The ID of the response to delete
-     * @return ResponseEntity with the result of the deletion
+     * Deletes a PAC response record.
+     *
+     * @param id Response identifier
+     * @returns ResponseEntity with deletion status
+     * 
+     * @secure Requires ADMIN or MODERATOR role
+     * @throws Exception on deletion errors
+     * 
+     * VALIDATION:
+     * - Record existence check
+     * - Permission verification
      */
     @PostMapping("/delete-response")
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
@@ -91,45 +141,53 @@ public class PacController {
                 return ResponseEntity.ok("Response deleted successfully.");
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                     .body("Response not found with id: " + id);
+                                   .body("Response not found with id: " + id);
             }
         } catch (Exception e) {
             logger.error("Error deleting response", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                 .body("Error deleting response: " + e.getMessage());
+                               .body("Error deleting response: " + e.getMessage());
         }
     }
 
+    /* .... Response Viewing Interface .... */
     /**
-     * Displays a paginated and filtered list of responses. Only accessible by ADMIN or MODERATOR roles.
-     * @param model The Model object to add attributes
-     * @param page The page number (default 0)
-     * @param size The page size (default 10)
-     * @param nameFilter Optional filter for user name
-     * @param store Optional filter for store
-     * @param month Optional filter for month
-     * @return The name of the view to render
+     * Displays filtered and paginated PAC responses.
+     *
+     * @param model View model for template attributes
+     * @param page Page number (zero-based)
+     * @param size Results per page
+     * @param nameFilter Optional username filter
+     * @param store Optional store filter
+     * @param month Optional month filter
+     * @returns String View name for template resolution
+     * 
+     * @secure Requires ADMIN or MODERATOR role
+     * @throws NumberFormatException on invalid numeric input
+     * 
+     * PERFORMANCE:
+     * - Paginated results
+     * - Optimized sorting
+     * - Filtered queries
      */
     @GetMapping("/view-responses")
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
     public String viewResponses(Model model, 
-                            @RequestParam(defaultValue = "0") int page, 
-                            @RequestParam(defaultValue = "10") int size,
-                            @RequestParam(required = false) String nameFilter,
-                            @RequestParam(required = false) String store,
-                            @RequestParam(required = false) String month) {
+            @RequestParam(defaultValue = "0") int page, 
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String nameFilter,
+            @RequestParam(required = false) String store,
+            @RequestParam(required = false) String month) {
         try {
-            // Parse month filter if provided
-            Integer monthValue = (month != null && !month.isEmpty() && !month.equals("null")) 
-                ? Integer.parseInt(month) : null;
+            Integer monthValue = (month != null && !month.isEmpty() && 
+                    !month.equals("null")) ? Integer.parseInt(month) : null;
 
-            // Create pageable object with sorting
-            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "submissionDate"));
+            Pageable pageable = PageRequest.of(page, size, 
+                    Sort.by(Sort.Direction.DESC, "submissionDate"));
             
             Page<Pac> responsesPage = pacService.getAllPacsWithFilters(
                 pageable, nameFilter, store, monthValue);
             
-            // Add attributes to the model for rendering in the view
             model.addAttribute("responses", responsesPage);
             model.addAttribute("nameFilter", nameFilter);
             model.addAttribute("selectedStore", store);
@@ -145,6 +203,10 @@ public class PacController {
         }
     }
 
-    // TODO: Consider adding an endpoint for exporting responses to CSV or Excel
-    // TODO: Implement caching for frequently accessed response data to improve performance
+    /* TODO: Future Enhancements
+     * - Add CSV/Excel export functionality
+     * - Implement response caching
+     * - Add batch operations for admins
+     * - Enhance filtering capabilities
+     */
 }

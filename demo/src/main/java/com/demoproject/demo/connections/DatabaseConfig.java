@@ -1,12 +1,23 @@
+/* ==========================================================================
+ * Database Configuration Module
+ *
+ * PURPOSE: Configures and manages HikariCP database connection pool
+ * DEPENDENCIES: HikariCP, Metrics, Spring Framework
+ * SCOPE: Application-wide database connectivity
+ * 
+ * SECURITY CONSIDERATIONS:
+ * - Credentials loaded from external configuration
+ * - Connection pool limits prevent resource exhaustion
+ * - Leak detection enabled
+ * ========================================================================== */
+
 package com.demoproject.demo.connections;
 
 import javax.sql.DataSource;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-
 import com.codahale.metrics.MetricRegistry;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -14,6 +25,7 @@ import com.zaxxer.hikari.HikariDataSource;
 @Configuration
 public class DatabaseConfig {
     
+    /* .... Configuration Properties .... */
     @Value("${spring.datasource.url}")
     private String dbUrl;
     
@@ -23,6 +35,22 @@ public class DatabaseConfig {
     @Value("${spring.datasource.password}")
     private String dbPassword;
     
+    /* --------------------------------------------------------------------------
+     * HikariCP Configuration
+     * 
+     * @returns Configured HikariConfig instance
+     * 
+     * POOL SETTINGS:
+     * - Maximum 10 connections to prevent resource exhaustion
+     * - Minimum 2 idle connections for performance
+     * - 10 minute idle timeout for connection reuse
+     * - 20 second connection timeout for fast failure
+     * 
+     * MONITORING:
+     * - Leak detection at 30 seconds
+     * - Metrics registration enabled
+     * - MBeans exposed for monitoring
+     * -------------------------------------------------------------------------- */
     @Bean
     public HikariConfig hikariConfig() {
         HikariConfig config = new HikariConfig();
@@ -30,27 +58,27 @@ public class DatabaseConfig {
         config.setUsername(dbUsername);
         config.setPassword(dbPassword);
         
-        // Optimized connection pool settings
-        config.setMaximumPoolSize(10);          // Reduced to prevent resource exhaustion
-        config.setMinimumIdle(2);               // Reduced to optimize resource usage
-        config.setIdleTimeout(600000);          // Increased to 10 minutes for better connection reuse
-        config.setConnectionTimeout(20000);      // Reduced to fail fast
-        config.setMaxLifetime(1200000);         // Reduced to 20 minutes to prevent stale connections
-        config.setLeakDetectionThreshold(30000); // Reduced to 30 seconds for faster leak detection
+        /* Connection Pool Settings */
+        config.setMaximumPoolSize(10);          
+        config.setMinimumIdle(2);               
+        config.setIdleTimeout(600000);          
+        config.setConnectionTimeout(20000);      
+        config.setMaxLifetime(1200000);         
+        config.setLeakDetectionThreshold(30000); 
         
-        // Connection testing and performance settings
+        /* Connection Testing & Performance */
         config.setConnectionTestQuery("SELECT 1");
         config.setAutoCommit(true);
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
         
-        // Added health check and monitoring properties
+        /* Monitoring Configuration */
         config.addDataSourceProperty("registerMbeans", "true");
         config.setPoolName("MainHikariPool");
-        config.setMetricRegistry(new MetricRegistry()); // Requires metrics dependency
+        config.setMetricRegistry(new MetricRegistry());
         
-        // Enhanced performance properties
+        /* Performance Optimizations */
         config.addDataSourceProperty("useServerPrepStmts", "true");
         config.addDataSourceProperty("rewriteBatchedStatements", "true");
         config.addDataSourceProperty("maintainTimeStats", "false");
@@ -58,9 +86,21 @@ public class DatabaseConfig {
         return config;
     }
     
+    /* --------------------------------------------------------------------------
+     * Primary DataSource Configuration
+     * 
+     * @returns HikariDataSource configured as primary application data source
+     * @note Marked as @Primary for auto-injection when multiple sources exist
+     * -------------------------------------------------------------------------- */
     @Bean
     @Primary
     public DataSource dataSource() {
         return new HikariDataSource(hikariConfig());
     }
+
+    /* @todo [MONITOR] Add connection pool metrics logging
+     * @todo [SECURITY] Implement connection encryption
+     * @todo [PERF] Tune pool sizes based on metrics
+     * @todo [RESILIENCE] Add connection retry logic
+     */
 }

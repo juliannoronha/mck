@@ -1,3 +1,16 @@
+/* =============================================================================
+ * User Productivity Service
+ * =============================================================================
+ * PURPOSE: Manages user productivity metrics, caching, and real-time updates
+ * DEPENDENCIES: 
+ * - Spring Framework
+ * - Jackson ObjectMapper
+ * - JPA/Hibernate
+ * - Server-Sent Events (SSE)
+ * 
+ * @author DemoProject Team
+ * @version 1.0
+ */
 package com.demoproject.demo.pacmedproductivity;
 
 import com.demoproject.demo.entity.Pac;
@@ -27,15 +40,13 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
-/**
- * Service class for managing user productivity data and real-time updates.
- * This class handles calculations, caching, and Server-Sent Events (SSE) for productivity metrics.
- */
+/* -----------------------------------------------------------------------------
+ * Core Service Configuration
+ * -------------------------------------------------------------------------- */
 @Service
 public class UserProductivityService {
 
     private final PacRepository pacRepository;
-    
     private final ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
@@ -45,23 +56,28 @@ public class UserProductivityService {
     private EntityManager entityManager;
 
     /**
-     * Constructs a new UserProductivityService with necessary dependencies.
-     *
-     * @param pacRepository Repository for PAC (Pouch Accuracy Check) data
-     * @param objectMapper JSON object mapper for data serialization
+     * Service constructor
+     * @param pacRepository Data access for PAC records
+     * @param objectMapper JSON serialization
      */
     public UserProductivityService(PacRepository pacRepository, ObjectMapper objectMapper) {
         this.pacRepository = pacRepository;
         this.objectMapper = objectMapper;
     }
 
+    /* -----------------------------------------------------------------------------
+     * SSE Connection Management 
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Establishes an SSE connection for real-time productivity updates.
-     *
-     * @return SseEmitter for the established connection
+     * Establishes SSE connection for real-time updates
+     * @param emitter SSE emitter instance
+     * @returns Configured emitter
+     * @throws IOException on connection errors
      */
     @Transactional
     public SseEmitter subscribeToProductivityUpdates(SseEmitter emitter) {
+        // Configure emitter lifecycle handlers
         emitter.onTimeout(() -> {
             emitters.remove(emitter);
             emitter.complete();
@@ -89,17 +105,12 @@ public class UserProductivityService {
     }
 
     /**
-     * Establishes an SSE connection for overall productivity updates.
-     *
-     * @return SseEmitter for the established connection
+     * Establishes SSE connection for overall metrics
+     * @returns Configured emitter for overall updates
      */
     public SseEmitter subscribeToOverallProductivityUpdates() {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
         
-        // Similar setup as in subscribeToProductivityUpdates
-        // ...
-
-        // Send initial overall productivity data
         try {
             UserProductivityDTO overallProductivity = getOverallProductivity();
             emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(overallProductivity)));
@@ -111,12 +122,16 @@ public class UserProductivityService {
         return emitter;
     }
 
+    /* -----------------------------------------------------------------------------
+     * Productivity Data Access
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Retrieves paginated user productivity data with caching.
-     *
-     * @param page Page number
-     * @param size Page size
-     * @return Page of UserProductivityDTO objects
+     * Retrieves paginated productivity data
+     * @param page Zero-based page number
+     * @param size Results per page
+     * @returns Page of productivity DTOs
+     * @note Results are cached by page/size
      */
     @Cacheable(value = "allUserProductivity", key = "#page + '-' + #size")
     @Transactional(readOnly = true)
@@ -128,9 +143,8 @@ public class UserProductivityService {
     }
 
     /**
-     * Calculates and retrieves overall productivity metrics.
-     *
-     * @return UserProductivityDTO representing overall productivity
+     * Calculates overall productivity metrics
+     * @returns Aggregated productivity DTO
      */
     @Transactional(readOnly = true)
     public UserProductivityDTO getOverallProductivity() {
@@ -144,7 +158,15 @@ public class UserProductivityService {
         return calculateOverallProductivity(allProductivity);
     }
 
-    // Helper methods for DTO mapping and calculations
+    /* -----------------------------------------------------------------------------
+     * Data Mapping & Calculations
+     * -------------------------------------------------------------------------- */
+
+    /**
+     * Maps PAC records to productivity DTO
+     * @param entry Map entry of username and PAC records
+     * @returns Mapped productivity DTO
+     */
     private UserProductivityDTO mapToUserProductivityDTO(Map.Entry<String, List<Pac>> entry) {
         String username = entry.getKey();
         List<Pac> userPacs = entry.getValue();
@@ -161,6 +183,11 @@ public class UserProductivityService {
         return new UserProductivityDTO(username, totalSubmissions, totalPouchesChecked, avgTimePerPouch, avgPouchesPerHour, null);
     }
 
+    /**
+     * Calculates overall productivity from individual metrics
+     * @param allProductivity List of individual productivity DTOs
+     * @returns Aggregated productivity DTO
+     */
     private UserProductivityDTO calculateOverallProductivity(List<UserProductivityDTO> allProductivity) {
         long totalSubmissions = allProductivity.stream().mapToLong(UserProductivityDTO::getTotalSubmissions).sum();
         long totalPouchesChecked = allProductivity.stream().mapToLong(UserProductivityDTO::getTotalPouchesChecked).sum();
@@ -170,8 +197,12 @@ public class UserProductivityService {
         return new UserProductivityDTO("Overall", totalSubmissions, totalPouchesChecked, avgTimePerPouch, avgPouchesPerHour, null);
     }
 
+    /* -----------------------------------------------------------------------------
+     * Real-time Update Notifications
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Notifies all connected clients about productivity updates.
+     * Broadcasts productivity updates to all clients
      */
     public void notifyProductivityUpdate() {
         UserProductivityDTO overallProductivity = getOverallProductivity();
@@ -179,7 +210,7 @@ public class UserProductivityService {
     }
 
     /**
-     * Sends overall productivity update to all connected clients.
+     * Broadcasts overall metrics to all clients
      */
     public void sendOverallProductivityUpdate() {
         UserProductivityDTO overallProductivity = getOverallProductivity();
@@ -187,9 +218,9 @@ public class UserProductivityService {
     }
 
     /**
-     * Sends updates to all connected SSE clients.
-     *
-     * @param data Data to be sent to clients
+     * Sends data to all connected SSE clients
+     * @param data Data to broadcast
+     * @note Handles client disconnections
      */
     private void sendUpdateToEmitters(Object data) {
         List<SseEmitter> deadEmitters = new ArrayList<>();
@@ -213,7 +244,16 @@ public class UserProductivityService {
         emitters.removeAll(deadEmitters);
     }
 
-    // Helper methods for DTO mapping and formatting
+    /* -----------------------------------------------------------------------------
+     * Data Transformation
+     * -------------------------------------------------------------------------- */
+
+    /**
+     * Maps query results to productivity DTO
+     * @param result Query result array
+     * @returns Mapped productivity DTO
+     * @note Handles null/invalid data
+     */
     private UserProductivityDTO mapToUserProductivityDTO(Object[] result) {
         try {
             String username = (String) result[0];
@@ -245,11 +285,14 @@ public class UserProductivityService {
         }
     }
 
+    /* -----------------------------------------------------------------------------
+     * User-specific Productivity
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Retrieves productivity data for a specific user.
-     *
-     * @param username Username of the user
-     * @return Map containing productivity metrics
+     * Gets productivity metrics for specific user
+     * @param username Target username
+     * @returns Map of productivity metrics
      */
     public Map<String, Object> getUserProductivity(String username) {
         String jpql = "SELECT COUNT(p) as totalSubmissions, " +
@@ -269,7 +312,6 @@ public class UserProductivityService {
         double avgTimePerPouch = totalPouchesChecked > 0 ? totalSeconds / totalPouchesChecked : 0;
         double avgPouchesPerHour = totalSeconds > 0 ? (totalPouchesChecked * 3600.0) / totalSeconds : 0;
         
-        // Return productivity metrics
         return Map.of(
             "totalSubmissions", totalSubmissions,
             "totalPouchesChecked", totalPouchesChecked,
@@ -278,24 +320,34 @@ public class UserProductivityService {
         );
     }
 
+    /* -----------------------------------------------------------------------------
+     * Cache Management
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Updates user productivity and evicts the cache.
+     * Updates productivity and invalidates cache
      */
     @CacheEvict(value = "allUserProductivity", allEntries = true)
     @Transactional
     public void updateUserProductivity() {
         logger.info("Updating user productivity and evicting cache");
-        // Add any necessary update logic here
     }
 
+    /* -----------------------------------------------------------------------------
+     * Productivity Updates
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Sends productivity updates to all connected clients.
+     * Broadcasts productivity data to all clients
      */
     public void sendProductivityUpdate() {
         Page<UserProductivityDTO> users = getAllUserProductivity(0, Integer.MAX_VALUE);
         sendUpdateToEmitters(users);
     }
 
+    /**
+     * Cleanup on service shutdown
+     */
     @PreDestroy
     public void cleanup() {
         emitters.forEach(emitter -> {
@@ -308,11 +360,14 @@ public class UserProductivityService {
         emitters.clear();
     }
 
+    /* -----------------------------------------------------------------------------
+     * Public API Methods
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Retrieves productivity data for a specific user.
-     *
-     * @param username The username of the user
-     * @return A map containing productivity metrics for the user
+     * Gets user-specific productivity metrics
+     * @param username Target username
+     * @returns Map of productivity metrics
      */
     public Map<String, Object> getUserProductivityMetrics(String username) {
         logger.info("Retrieving productivity data for user: {}", username);
@@ -320,9 +375,8 @@ public class UserProductivityService {
     }
 
     /**
-     * Retrieves productivity data for all users.
-     *
-     * @return A list of UserProductivityDTO objects containing productivity data for all users
+     * Gets productivity data for all users
+     * @returns List of productivity DTOs
      */
     public List<UserProductivityDTO> getAllUserProductivityMetrics() {
         logger.info("Retrieving productivity data for all users.");
@@ -330,27 +384,29 @@ public class UserProductivityService {
     }
 
     /**
-     * Retrieves paginated productivity data for all users.
-     *
-     * @param page The page number (zero-based)
-     * @param size The size of each page
-     * @return A Page of UserProductivityDTO objects
+     * Gets paginated productivity data
+     * @param page Page number (zero-based)
+     * @param size Page size
+     * @returns Page of productivity DTOs
      */
     public Page<UserProductivityDTO> getAllUserProductivityMetrics(int page, int size) {
         logger.info("Retrieving productivity data for all users. Page: {}, Size: {}", page, size);
         return getAllUserProductivity(page, size);
     }
 
+    /**
+     * Removes SSE emitter
+     * @param emitter Emitter to remove
+     */
     public void removeEmitter(SseEmitter emitter) {
         emitters.remove(emitter);
         logger.debug("Removed SSE emitter");
     }
 
     /**
-     * Checks if a user exists in the system.
-     *
-     * @param username The username to check
-     * @return boolean indicating if the user exists
+     * Checks if user exists
+     * @param username Username to check
+     * @returns True if user exists
      */
     @Transactional(readOnly = true)
     public boolean userExists(String username) {

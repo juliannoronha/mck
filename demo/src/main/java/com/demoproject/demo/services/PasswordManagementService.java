@@ -1,3 +1,23 @@
+/* =============================================================================
+ * Password Management Service
+ * =============================================================================
+ * PURPOSE: Provides secure password management operations for users
+ * 
+ * CORE FUNCTIONALITY:
+ * - Password changes with validation
+ * - Secure password encoding
+ * - Transactional user updates
+ * 
+ * DEPENDENCIES:
+ * - Spring Security (PasswordEncoder)
+ * - UserRepository for persistence
+ * - Spring Transaction management
+ * 
+ * SECURITY NOTES:
+ * - Uses cryptographic password hashing
+ * - Validates password requirements
+ * - Maintains transactional integrity
+ * ============================================================================= */
 package com.demoproject.demo.services;
 
 import org.springframework.stereotype.Service;
@@ -6,59 +26,76 @@ import com.demoproject.demo.repository.UserRepository;
 import com.demoproject.demo.entity.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-/**
- * Service class for managing user password operations.
- * This class provides functionality for changing user passwords securely.
- */
 @Service
 public class PasswordManagementService {
+
+    /* --------------------------------------------------------------------------
+     * Service Dependencies
+     * -------------------------------------------------------------------------- */
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     /**
-     * Constructs a new PasswordManagementService with necessary dependencies.
+     * Initializes password management service with required components.
      * 
-     * @param userRepository Repository for user data operations
-     * @param passwordEncoder Encoder for secure password hashing
+     * @param userRepository Data access for user operations
+     * @param passwordEncoder Security component for password hashing
+     * @note Both dependencies are required and must be non-null
      */
-    public PasswordManagementService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public PasswordManagementService(UserRepository userRepository, 
+                                   PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
+    /* --------------------------------------------------------------------------
+     * Password Operations
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Changes the password for a given user.
+     * Updates user password with security validation.
      * 
-     * @param username The username of the user whose password is to be changed
-     * @param newPassword The new password to set
-     * @throws RuntimeException if the user is not found
-     * @throws IllegalArgumentException if the new password is empty or null
+     * @param username Target user identifier
+     * @param newPassword Replacement password value
+     * @throws RuntimeException User not found in system
+     * @throws IllegalArgumentException Invalid password provided
+     * @security Ensures password hashing before storage
+     * @performance Single transaction scope
      */
     @Transactional
     public void changePassword(String username, String newPassword) {
-        // Retrieve user or throw exception if not found
+        // Locate target user account
         User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Validate new password
+        // Validate password requirements
         if (newPassword == null || newPassword.trim().isEmpty()) {
             throw new IllegalArgumentException("New password cannot be empty");
         }
 
-        // TODO: Implement additional password validation rules
-        // Consider checking password strength, length, complexity, etc.
+        /* @todo Enhanced password validation:
+         * - Minimum length requirements
+         * - Complexity rules (special chars, numbers)
+         * - Dictionary attack prevention
+         * - Password history verification
+         */
 
-        // Encode and set the new password
+        // Process and persist password change
         String encodedPassword = passwordEncoder.encode(newPassword);
         user.setPassword(encodedPassword);
-
-        // Persist the updated user information
         userRepository.save(user);
     }
 
-    // TODO: Implement additional password-related methods
-    // Examples:
-    // - Password strength checker
-    // - Password reset functionality
-    // - Password expiration management
+    /* --------------------------------------------------------------------------
+     * Future Enhancements
+     * -------------------------------------------------------------------------- */
+
+    /* @todo Security improvements:
+     * - Password strength scoring
+     * - Automated password expiration
+     * - Multi-factor authentication support
+     * - Password reset workflows
+     * - Brute force protection
+     * - Audit logging for password changes
+     */
 }

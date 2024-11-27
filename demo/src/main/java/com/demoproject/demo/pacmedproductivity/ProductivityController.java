@@ -1,3 +1,12 @@
+/* =============================================================================
+ * Productivity Controller Module
+ * =============================================================================
+ * PURPOSE: Handles all productivity-related HTTP endpoints and data streaming
+ * DEPENDENCIES: Spring Framework, UserProductivityService, PacRepository
+ * AUTHOR: DemoProject Team
+ * LAST UPDATED: Current Version
+ */
+
 package com.demoproject.demo.pacmedproductivity;
 
 import com.demoproject.demo.repository.PacRepository;
@@ -35,9 +44,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
-/**
- * Controller responsible for handling productivity-related requests.
- * This class provides endpoints for retrieving and streaming productivity data.
+/* -----------------------------------------------------------------------------
+ * Core Controller Definition
+ * -----------------------------------------------------------------------------
+ * FUNCTIONALITY:
+ * - REST endpoints for productivity data
+ * - Server-sent events for real-time updates
+ * - Caching and pagination support
+ * - Security and role-based access
  */
 @Controller
 public class ProductivityController {
@@ -47,22 +61,30 @@ public class ProductivityController {
     private final PacRepository pacRepository;
     private final ThreadPoolTaskExecutor taskExecutor;
 
+    /* .... Constructor .... */
     /**
-     * Constructor for ProductivityController.
-     * @param userProductivityService Service for handling user productivity operations
-     * @param userService Service for handling user-related operations
-     * @param pacRepository Repository for handling Pac-related operations
-     * @param taskExecutor ThreadPoolTaskExecutor for handling SSE connections
+     * @param userProductivityService Handles productivity calculations
+     * @param userService User management operations
+     * @param pacRepository Data access for PAC records
+     * @param taskExecutor Manages async SSE connections
+     * @note All parameters are required and non-null
      */
-    public ProductivityController(UserProductivityService userProductivityService, UserService userService, PacRepository pacRepository, ThreadPoolTaskExecutor taskExecutor) {
+    public ProductivityController(UserProductivityService userProductivityService, 
+                                UserService userService, 
+                                PacRepository pacRepository, 
+                                ThreadPoolTaskExecutor taskExecutor) {
         this.userProductivityService = userProductivityService;
         this.pacRepository = pacRepository;
         this.taskExecutor = taskExecutor;
     }
 
+    /* .... API Endpoints .... */
+    
     /**
-     * Retrieves overall productivity data.
-     * @return ResponseEntity containing overall productivity data
+     * @returns Overall productivity metrics with chart data
+     * @throws Exception on data access errors
+     * @note Cached response unless null
+     * @security Requires ADMIN or MODERATOR role
      */
     @Operation(summary = "Get overall productivity metrics")
     @ApiResponses(value = {
@@ -102,17 +124,17 @@ public class ProductivityController {
     }
 
     /**
-     * Displays user productivity page with paginated results.
-     * @param model Model object for adding attributes
-     * @param page Page number (default: 0)
-     * @param size Number of items per page (default: 10)
-     * @return Name of the view to render
+     * @param model View model for Thymeleaf template
+     * @param page Zero-based page index
+     * @param size Results per page
+     * @returns Template name for view resolution
+     * @note Supports pagination with default size of 10
      */
     @GetMapping("/user-productivity")
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
     public String userProductivity(Model model, 
-                                   @RequestParam(defaultValue = "0") int page, 
-                                   @RequestParam(defaultValue = "10") int size) {
+                                 @RequestParam(defaultValue = "0") int page, 
+                                 @RequestParam(defaultValue = "10") int size) {
         logger.info("Fetching user productivity for all users. Page: {}, Size: {}", page, size);
         Page<UserProductivityDTO> usersPage = userProductivityService.getAllUserProductivity(page, size);
         logger.debug("Retrieved {} user productivity records", usersPage.getContent().size());
@@ -121,14 +143,16 @@ public class ProductivityController {
     }
 
     /**
-     * Retrieves productivity data for a specific user.
-     * @param username Username of the user
-     * @return ResponseEntity containing user's productivity data
+     * @param username Target user (alphanumeric + underscore/hyphen, 3-50 chars)
+     * @returns User's productivity metrics
+     * @throws 404 if user not found
+     * @security Requires ADMIN or MODERATOR role
      */
     @GetMapping("/api/user-productivity/{username}")
     @ResponseBody
     @PreAuthorize("hasAnyRole('ADMIN', 'MODERATOR')")
-    public ResponseEntity<Map<String, Object>> getUserProductivity(@PathVariable @Pattern(regexp = "^[a-zA-Z0-9_-]{3,50}$") String username) {
+    public ResponseEntity<Map<String, Object>> getUserProductivity(
+            @PathVariable @Pattern(regexp = "^[a-zA-Z0-9_-]{3,50}$") String username) {
         if (!userProductivityService.userExists(username)) {
             logger.warn("Attempted to access non-existent user: {}", username);
             return ResponseEntity.notFound().build();
@@ -139,9 +163,12 @@ public class ProductivityController {
         return ResponseEntity.ok(productivity);
     }
 
+    /* .... SSE Streaming Endpoints .... */
+
     /**
-     * Establishes a Server-Sent Events connection for streaming user productivity updates.
-     * @return SseEmitter for streaming updates
+     * @returns SSE emitter for real-time productivity updates
+     * @note Manages emitter lifecycle with cleanup
+     * @performance Uses ThreadPoolTaskExecutor for async handling
      */
     @GetMapping(value = "/api/user-productivity-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamUserProductivity() {
@@ -170,10 +197,10 @@ public class ProductivityController {
     }
 
     /**
-     * Retrieves paginated productivity data for all users.
-     * @param page Page number (default: 0)
-     * @param size Number of items per page (default: 10)
-     * @return ResponseEntity containing paginated user productivity data
+     * @param page Zero-based page index
+     * @param size Results per page
+     * @returns Paginated productivity data for all users
+     * @security Requires ADMIN or MODERATOR role
      */
     @GetMapping("/api/all-user-productivity")
     @ResponseBody
@@ -188,8 +215,8 @@ public class ProductivityController {
     }
 
     /**
-     * Establishes a Server-Sent Events connection for streaming overall productivity updates.
-     * @return SseEmitter for streaming updates
+     * @returns SSE emitter for overall productivity updates
+     * @note Managed by UserProductivityService
      */
     @GetMapping(value = "/api/overall-productivity-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamOverallProductivity() {
@@ -197,9 +224,13 @@ public class ProductivityController {
         return userProductivityService.subscribeToOverallProductivityUpdates();
     }
 
-    // TODO: Consider adding endpoints for productivity analytics and reporting
-    // TODO: Implement caching strategy for frequently accessed productivity data
+    /* .... Helper Methods .... */
 
+    /**
+     * @returns Chart data for last 7 days
+     * @throws RuntimeException on data generation failure
+     * @note Generates sample data if no real data available
+     */
     private Map<String, Object> generateChartData() {
         try {
             Map<String, Object> chartData = new HashMap<>();
@@ -246,6 +277,10 @@ public class ProductivityController {
         }
     }
 
+    /**
+     * Scheduled cache cleanup every 5 minutes
+     * @note Prevents stale productivity data
+     */
     @CacheEvict(value = "overallProductivity", allEntries = true)
     @Scheduled(fixedRate = 300000) // 5 minutes
     public void clearProductivityCache() {

@@ -1,3 +1,14 @@
+/* =============================================================================
+ * User Repository Interface
+ * =============================================================================
+ * PURPOSE: Manages persistence operations for User entities
+ * EXTENDS: JpaRepository for standard CRUD operations
+ * 
+ * @dependency Spring Data JPA
+ * @dependency User entity
+ * @note All methods are transactional by default
+ * @performance Consider caching for frequently accessed users
+ */
 package com.demoproject.demo.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,39 +19,50 @@ import com.demoproject.demo.entity.User;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repository interface for managing User entities.
- * 
- * This interface extends JpaRepository to provide CRUD operations for User objects,
- * as well as custom query methods for specific user-related operations.
- *
- * @see User
- * @see JpaRepository
- */
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
     
+    /* -----------------------------------------------------------------------------
+     * Core User Queries
+     * -------------------------------------------------------------------------- */
+    
     /**
-     * Finds a user by their username.
+     * Finds user by exact username match
      * 
-     * This method performs a case-sensitive search for the exact username match.
-     * 
-     * @param username The username to search for (case-sensitive)
-     * @return An Optional containing the User if found, or an empty Optional if not found
+     * @param username Target username (case-sensitive)
+     * @returns Optional<User> - Empty if not found
+     * @note Consider adding case-insensitive variant if needed
+     * @performance Indexed lookup, O(1) expected
      */
     Optional<User> findByUsername(String username);
     
+    /* -----------------------------------------------------------------------------
+     * Aggregate Queries
+     * -------------------------------------------------------------------------- */
+    
     /**
-     * Retrieves all users who have submitted at least one UserAnswer.
+     * Retrieves active users with submissions
      * 
-     * This query uses a DISTINCT clause to ensure each user is returned only once,
-     * regardless of how many submissions they have made.
-     *
-     * @return A List of User objects who have made submissions
+     * @returns List<User> - Users with at least one answer
+     * @note Uses DISTINCT to prevent duplicates
+     * @performance May need pagination for large datasets
+     * @todo Consider adding date range parameter
      */
     @Query("SELECT DISTINCT ua.user FROM UserAnswer ua")
     List<User> findUsersWithSubmissions();
 
-    // TODO: Implement a method to find users by role
-    // TODO: Add a query to retrieve users who haven't logged in for a specific period
+    /* -----------------------------------------------------------------------------
+     * Future Enhancements
+     * -------------------------------------------------------------------------- */
+    
+    /**
+     * @todo Role-based queries:
+     * - Add findByRole(Role role)
+     * - Consider hierarchical role support
+     * 
+     * @todo Activity tracking:
+     * - Add findInactiveUsers(Duration duration)
+     * - Track last login timestamps
+     * - Implement session management
+     */
 }

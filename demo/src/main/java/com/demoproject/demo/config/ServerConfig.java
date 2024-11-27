@@ -1,3 +1,11 @@
+/* ==========================================================================
+ * Server Configuration Module
+ * 
+ * PURPOSE: Configures embedded Tomcat server with HTTP/HTTPS connectors
+ * DEPENDENCIES: Apache Tomcat, Spring Boot, SLF4J
+ * SCOPE: Application-wide server configuration
+ * ========================================================================== */
+
 package com.demoproject.demo.config;
 
 import org.apache.catalina.connector.Connector;
@@ -13,15 +21,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.catalina.LifecycleException;
 
-/**
- * Server configuration class for setting up Tomcat servlet container.
- * This class configures HTTP and HTTPS connectors for the server.
- */
+/* --------------------------------------------------------------------------
+ * Core Server Configuration
+ * 
+ * FUNCTIONALITY:
+ * - Configures embedded Tomcat server
+ * - Sets up HTTP to HTTPS redirection
+ * - Manages connection pooling and timeouts
+ * - Handles graceful connector shutdown
+ * 
+ * SECURITY CONSIDERATIONS:
+ * - Forces HTTPS for all secure traffic
+ * - Configurable connection limits
+ * - Timeout protection against hung connections
+ * -------------------------------------------------------------------------- */
 @Configuration
 public class ServerConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerConfig.class);
 
+    /* .... Server Properties .... */
     @Value("${server.tomcat.max-connections:10000}")
     private int maxConnections;
 
@@ -31,14 +50,25 @@ public class ServerConfig {
     @Value("${server.tomcat.connection-timeout:20000}")
     private int connectionTimeout;
 
+    /* .... Server Factory Configuration .... */
     /**
-     * Creates and configures a ServletWebServerFactory bean.
+     * Creates and configures the main servlet container factory.
+     *
+     * @return Configured TomcatServletWebServerFactory
      * 
-     * @return A configured TomcatServletWebServerFactory with additional connectors.
+     * FEATURES:
+     * - Graceful connector shutdown
+     * - HTTP to HTTPS redirection
+     * - Connection pool management
+     * 
+     * EDGE CASES:
+     * - Handles shutdown errors gracefully
+     * - Manages connection cleanup
      */
     @Bean
     public ServletWebServerFactory servletContainer() {
         TomcatServletWebServerFactory tomcat = new TomcatServletWebServerFactory();
+        
         tomcat.addConnectorCustomizers(connector -> {
             connector.addLifecycleListener(new LifecycleListener() {
                 @Override
@@ -53,14 +83,23 @@ public class ServerConfig {
                 }
             });
         });
+        
         tomcat.addAdditionalTomcatConnectors(createRedirectConnector());
         return tomcat;
     }
 
+    /* .... HTTP Connector Configuration .... */
     /**
-     * Creates a Connector for HTTP that redirects to HTTPS.
+     * Creates HTTP connector that redirects to HTTPS.
+     *
+     * @return Configured HTTP connector
      * 
-     * @return A configured Connector for HTTP redirection.
+     * CONFIGURATION:
+     * - Port: 8080 (HTTP)
+     * - Redirect Port: 8443 (HTTPS)
+     * - Connection Timeout: 20s
+     * - Max Threads: 150
+     * - Accept Queue: 100
      */
     private Connector createRedirectConnector() {
         Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
@@ -68,12 +107,15 @@ public class ServerConfig {
         connector.setPort(8080);
         connector.setSecure(false);
         connector.setRedirectPort(8443);
-        connector.setProperty("connectionTimeout", "20000");
+        connector.setProperty("connectionTimeout", String.valueOf(connectionTimeout));
         connector.setProperty("maxThreads", "150");
-        connector.setProperty("acceptCount", "100");
+        connector.setProperty("acceptCount", String.valueOf(acceptCount));
         return connector;
     }
 
-    // TODO: Consider adding configuration for HTTPS connector
-    // TODO: Implement rate limiting for DDoS protection
+    /* @todo [SECURITY] Add HTTPS connector configuration
+     * @todo [RESILIENCE] Implement rate limiting for DDoS protection
+     * @todo [MONITOR] Add connection pool metrics
+     * @todo [PERF] Tune thread pool settings based on load testing
+     */
 }

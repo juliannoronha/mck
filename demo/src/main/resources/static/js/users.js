@@ -1,14 +1,38 @@
-var currentUsername = '';
-var csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-var csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+/* =============================================================================
+ * User Management Module
+ * 
+ * PURPOSE: Handles user deletion and search functionality with modal confirmation
+ * 
+ * DEPENDENCIES:
+ * - CSRF tokens from meta tags
+ * - DOM elements: deleteModal, searchInput, usersTable
+ * - Fetch API for AJAX requests
+ * 
+ * SECURITY:
+ * - CSRF protection
+ * - Input sanitization via encodeURIComponent
+ * - Modal confirmation for destructive actions
+ * ============================================================================= */
 
-// Function to show delete confirmation modal
+/* ------------------------------------------------------------------------- 
+ * Core Variables & Security
+ * --------------------------------------------------------------------- */
+let currentUsername = '';
+const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+/* ------------------------------------------------------------------------- 
+ * Modal Management Functions
+ * @note Handles user deletion confirmation flow
+ * --------------------------------------------------------------------- */
 function showDeleteConfirmation(username) {
     currentUsername = username;
     document.getElementById('deleteModal').style.display = 'block';
 }
 
-// Event listener for confirm delete button
+/* ------------------------------------------------------------------------- 
+ * Event Listeners for Modal Actions
+ * --------------------------------------------------------------------- */
 document.getElementById('confirmDelete').addEventListener('click', async function() {
     try {
         const response = await fetch('/users/delete?username=' + encodeURIComponent(currentUsername), {
@@ -29,20 +53,21 @@ document.getElementById('confirmDelete').addEventListener('click', async functio
     }
 });
 
-// Event listener for cancel delete button
 document.getElementById('cancelDelete').addEventListener('click', function() {
     document.getElementById('deleteModal').style.display = 'none';
 });
 
-// Close modal when clicking outside of it
 window.onclick = function(event) {
-    var modal = document.getElementById('deleteModal');
+    const modal = document.getElementById('deleteModal');
     if (event.target == modal) {
         modal.style.display = 'none';
     }
 }
 
-// Add this new code for live search functionality
+/* ------------------------------------------------------------------------- 
+ * Live Search Implementation
+ * @note Uses real-time filtering without server requests
+ * --------------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const usersTable = document.getElementById('usersTable');
@@ -51,24 +76,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchHandler = function() {
         const searchTerm = searchInput.value.toLowerCase();
 
+        // Skip header row (i=1)
         for (let i = 1; i < rows.length; i++) {
             const username = rows[i].getElementsByTagName('td')[0].textContent.toLowerCase();
-            if (username.includes(searchTerm)) {
-                rows[i].style.display = '';
-            } else {
-                rows[i].style.display = 'none';
-            }
+            rows[i].style.display = username.includes(searchTerm) ? '' : 'none';
         }
     };
     
     searchInput.addEventListener('keyup', searchHandler);
     
-    // Cleanup function
+    // Cleanup event listeners on page unload
     window.addEventListener('unload', function() {
         searchInput.removeEventListener('keyup', searchHandler);
     });
 });
 
+/* ------------------------------------------------------------------------- 
+ * User Deletion API
+ * @param {string} username - Username of account to delete
+ * @throws {Error} When network request fails
+ * --------------------------------------------------------------------- */
 function deleteUser(username) {
     const token = document.querySelector('meta[name="_csrf"]').getAttribute('content');
     const header = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
@@ -94,5 +121,3 @@ function deleteUser(username) {
         alert('Error deleting user: ' + error.message);
     });
 }
-
-/*]]>*/

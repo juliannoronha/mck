@@ -1,3 +1,22 @@
+/* =============================================================================
+ * User Deletion Service
+ * =============================================================================
+ * PURPOSE: Manages secure deletion of user accounts from the system
+ * 
+ * CORE FUNCTIONALITY:
+ * - Safe user deletion with role validation
+ * - Transactional integrity
+ * - Admin protection
+ * 
+ * DEPENDENCIES:
+ * - Spring Framework (Service, Transactional)
+ * - UserRepository for persistence
+ * - User entity
+ * 
+ * SECURITY NOTES:
+ * - Prevents deletion of admin accounts
+ * - Validates user existence before deletion
+ * ============================================================================= */
 package com.demoproject.demo.services;
 
 import org.springframework.stereotype.Service;
@@ -6,30 +25,37 @@ import com.demoproject.demo.repository.UserRepository;
 import com.demoproject.demo.entity.User;
 import java.util.Optional;
 
-/**
- * Service responsible for handling user deletion operations.
- * This class provides functionality to safely delete users from the system.
- */
 @Service
 public class UserDeletionService {
+
+    /* --------------------------------------------------------------------------
+     * Service Dependencies
+     * -------------------------------------------------------------------------- */
     private final UserRepository userRepository;
 
     /**
-     * Constructs a new UserDeletionService with the necessary repository.
+     * Initializes deletion service with required data access.
      * 
-     * @param userRepository The repository used for user data operations
+     * @param userRepository Data access for user operations
+     * @note Repository must be non-null
      */
     public UserDeletionService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
+    /* --------------------------------------------------------------------------
+     * Deletion Operations
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Deletes a user from the system based on their username.
-     * This method ensures that admin users cannot be deleted.
+     * Executes user deletion with security validation.
      * 
-     * @param username The username of the user to be deleted
-     * @throws IllegalStateException if the user is an admin
-     * @throws IllegalArgumentException if the user is not found
+     * @param username Target user identifier
+     * @throws IllegalStateException Admin deletion attempted
+     * @throws IllegalArgumentException User not found
+     * @security Prevents admin deletion
+     * @performance Single transaction scope
+     * @note Consider audit logging before deletion
      */
     @Transactional
     public void deleteUser(String username) {
@@ -38,18 +64,27 @@ public class UserDeletionService {
         if (userOptional.isPresent()) {
             User user = userOptional.get();
             
-            // Prevent deletion of admin users
+            // Security: Block admin deletion
             if ("ADMIN".equals(user.getRole())) {
                 throw new IllegalStateException("Admin users cannot be deleted");
             }
             
-            // Perform the actual user deletion
+            // Execute deletion within transaction
             userRepository.delete(user);
         } else {
             throw new IllegalArgumentException("User not found: " + username);
         }
     }
 
-    // TODO: Implement a method to handle cascading deletions (e.g., user's posts, comments)
-    // TODO: Add an audit log for user deletions
+    /* --------------------------------------------------------------------------
+     * Future Enhancements
+     * -------------------------------------------------------------------------- */
+
+    /* @todo Implementation needs:
+     * - Cascading deletion support
+     * - Audit logging integration
+     * - Soft deletion option
+     * - Backup before deletion
+     * - Rate limiting for bulk operations
+     */
 }

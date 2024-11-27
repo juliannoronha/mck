@@ -1,3 +1,11 @@
+/* ==========================================================================
+ * User Entity Module
+ * 
+ * PURPOSE: Core domain entity representing system users and their permissions
+ * DEPENDENCIES: JPA, Lombok, Custom Entity Relationships
+ * SCOPE: Primary user management and authentication
+ * ========================================================================== */
+
 package com.demoproject.demo.entity;
 
 import jakarta.persistence.*;
@@ -7,17 +15,27 @@ import lombok.AllArgsConstructor;
 import java.util.List;
 import java.util.ArrayList;
 
-/**
- * Represents a User entity in the system.
- * This class encapsulates user data, including authentication details and associated entities.
- */
+/* --------------------------------------------------------------------------
+ * Core User Entity Definition
+ * 
+ * FUNCTIONALITY:
+ * - Manages user identity and authentication
+ * - Handles role-based access control
+ * - Maintains relationships with user activities
+ * 
+ * IMPORTANT NOTES:
+ * - Uses "users" table to avoid SQL keyword conflicts
+ * - Implements cascading deletion of child entities
+ * - Requires unique usernames
+ * -------------------------------------------------------------------------- */
 @Entity
-@Table(name = "users") // "user" is often a reserved keyword, so we use "users"
-@Data // Lombok: Generates getters, setters, toString, equals, and hashCode methods
-@NoArgsConstructor // Lombok: Generates a no-args constructor
-@AllArgsConstructor // Lombok: Generates an all-args constructor
+@Table(name = "users")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
+    /* .... Core Identifiers .... */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,29 +46,50 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    /* .... Access Control .... */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
 
+    /* .... Entity Relationships .... */
+    /**
+     * @note Cascading delete of associated answers
+     * @note Orphan removal ensures cleanup
+     */
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserAnswer> userAnswers;
 
+    /**
+     * @note Initialized to prevent NPE
+     * @note Maintains PAC session history
+     */
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Pac> pacs = new ArrayList<>();
 
+    /* .... Role Enumeration .... */
     /**
-     * Enum representing the possible roles a user can have in the system.
+     * System roles defining user permissions
+     * 
+     * HIERARCHY (highest to lowest):
+     * - ADMIN: Full system access
+     * - MODERATOR: User management
+     * - CHECKER: PAC operations
+     * - SHIPPING: Shipping operations
+     * - INVENTORY: Stock management
+     * - USER: Basic access
      */
     public enum Role {
         ADMIN, MODERATOR, USER, CHECKER, SHIPPING, INVENTORY
     }
 
+    /* .... Constructors .... */
     /**
-     * Constructs a new User with the given username, password, and role.
+     * Creates new user with basic attributes
      * 
-     * @param username The user's unique username
-     * @param password The user's password (should be encrypted before storage)
-     * @param role The user's role in the system (case-insensitive)
+     * @param username Unique identifier (case-sensitive)
+     * @param password Unhashed password (encrypt before storage)
+     * @param role Case-insensitive role name
+     * @throws IllegalArgumentException for invalid role
      */
     public User(String username, String password, String role) {
         this.username = username;
@@ -58,26 +97,25 @@ public class User {
         this.role = Role.valueOf(role.toUpperCase());
     }
 
-    // Note: Most getters and setters are handled by Lombok's @Data annotation
-
+    /* .... Role Management .... */
     /**
-     * Gets the role of the user.
-     * 
-     * @return The user's role
+     * @returns Current user role
      */
     public Role getRole() {
         return this.role;
     }
 
     /**
-     * Sets the role of the user.
-     * 
-     * @param role The new role to assign to the user
+     * @param role New role to assign
+     * @note Consider adding role transition validation
      */
     public void setRole(Role role) {
         this.role = role;
     }
 
-    // TODO: Consider adding methods for password encryption and validation
-    // TODO: Implement user activity tracking (e.g., last login date)
+    /* @todo [SECURITY] Add password hashing and validation
+     * @todo [AUDIT] Implement user activity tracking
+     * @todo [PERF] Consider lazy loading for large collections
+     * @todo [VALIDATION] Add username format constraints
+     */
 }

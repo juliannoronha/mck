@@ -1,3 +1,11 @@
+/* ==========================================================================
+ * UserAnswer Entity Module
+ * 
+ * PURPOSE: Represents user responses/answers in the system
+ * DEPENDENCIES: JPA, Lombok, User Entity
+ * SCOPE: Core domain entity for answer tracking
+ * ========================================================================== */
+
 package com.demoproject.demo.entity;
 
 import jakarta.persistence.*;
@@ -6,15 +14,19 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-/**
- * Represents a user's answer in the system.
+/* --------------------------------------------------------------------------
+ * Core UserAnswer Entity Definition
  * 
- * This entity is mapped to the 'user_answer' table in the database.
- * It contains information about the answer, including its unique identifier,
- * associated name, submission date, and the user who provided the answer.
- *
- * @see User
- */
+ * FUNCTIONALITY:
+ * - Stores user answer submissions
+ * - Links answers to users
+ * - Tracks submission timing
+ * 
+ * IMPORTANT NOTES:
+ * - Uses lazy loading for user relationship
+ * - Requires user association
+ * - Name field used as title/description
+ * -------------------------------------------------------------------------- */
 @Entity
 @Table(name = "user_answer")
 @Data
@@ -22,39 +34,39 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class UserAnswer {
 
-    /**
-     * Unique identifier for the user answer.
-     * Automatically generated using identity strategy.
-     */
+    /* .... Core Identifiers .... */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /* .... Answer Details .... */
     /**
-     * The name associated with this user answer.
-     * This could represent the title or a brief description of the answer.
+     * @param name Title/description of the answer
+     * @note Used for quick identification
+     * @todo Add validation constraints
      */
     private String name;
 
     /**
-     * The date when the answer was submitted.
-     * Stored as a LocalDate for easy date manipulations.
+     * @param submissionDate When answer was provided
+     * @note Stored as LocalDate for date-only operations
+     * @todo Add validation for future dates
      */
     private LocalDate submissionDate;
 
+    /* .... Relationships .... */
     /**
-     * The user who provided this answer.
-     * This field establishes a Many-to-One relationship with the User entity.
-     * 
-     * The fetch type is set to LAZY to optimize performance by loading
-     * the associated User only when explicitly accessed.
+     * @param user The user who submitted this answer
+     * @note Uses lazy fetching for performance
+     * @note Required field - cannot be null
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 
-    // TODO: Consider adding a field for the actual answer content
-    // private String answerContent;
-
-    // TODO: Implement validation for the name and submissionDate fields
+    /* @todo [FEATURE] Add answer content field with validation
+     * @todo [VALIDATION] Implement name/date constraints
+     * @todo [AUDIT] Add modification tracking
+     * @todo [PERF] Consider indexing frequently queried fields
+     */
 }

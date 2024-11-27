@@ -1,15 +1,39 @@
+/* =============================================================================
+ * Response Management Module
+ * 
+ * PURPOSE: Handles response data filtering, display, and deletion with real-time 
+ * updates and pagination
+ * 
+ * DEPENDENCIES:
+ * - CSRF tokens from meta tags
+ * - DOM elements: filters, table, pagination
+ * - Fetch API for AJAX requests
+ * 
+ * SECURITY:
+ * - Input validation and sanitization
+ * - CSRF protection
+ * - XSS prevention via escapeHtml
+ * ============================================================================= */
+
 let isInitialized = false;
 
 document.addEventListener('DOMContentLoaded', function() {
+    /* ------------------------------------------------------------------------- 
+     * Initialization & Cleanup
+     * --------------------------------------------------------------------- */
     if (isInitialized) {
         cleanup();
     }
     isInitialized = true;
 
+    // Security check for HTTPS
     if (window.location.protocol !== 'https:') {
         console.warn('This page is not being served over HTTPS. Some features may not work correctly.');
     }
 
+    /* ------------------------------------------------------------------------- 
+     * Core Element References
+     * --------------------------------------------------------------------- */
     const table = document.getElementById('responsesTable');
     const nameFilter = document.getElementById('nameFilter');
     const submitNameFilterBtn = document.getElementById('submitNameFilter');
@@ -17,6 +41,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const monthFilter = document.getElementById('monthFilter');
     const resetFilterBtn = document.getElementById('resetFilter');
 
+    /* ------------------------------------------------------------------------- 
+     * Event Handlers
+     * --------------------------------------------------------------------- */
     table.addEventListener('click', function(e) {
         if (e.target.classList.contains('delete-btn')) {
             if (confirm('Are you sure you want to delete this response?')) {
@@ -25,6 +52,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    /* ------------------------------------------------------------------------- 
+     * Table Management Functions
+     * @note Handles dynamic table updates and pagination
+     * --------------------------------------------------------------------- */
     function updateTable(data) {
         const fragment = document.createDocumentFragment();
         data.content.forEach(response => {
@@ -46,6 +77,10 @@ document.addEventListener('DOMContentLoaded', function() {
         updatePagination(data);
     }
 
+    /* ------------------------------------------------------------------------- 
+     * Pagination Functions
+     * @note Handles page navigation and display
+     * --------------------------------------------------------------------- */
     function updatePagination(data) {
         const paginationContainer = document.querySelector('.pagination-container');
         if (paginationContainer) {
@@ -71,6 +106,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return html;
     }
 
+    /* ------------------------------------------------------------------------- 
+     * Utility Functions
+     * --------------------------------------------------------------------- */
     function formatDate(dateString) {
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         return new Date(dateString).toLocaleDateString(undefined, options);
@@ -88,12 +126,21 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
+    /* ------------------------------------------------------------------------- 
+     * Filter Event Handlers
+     * @note Uses debouncing for performance
+     * --------------------------------------------------------------------- */
     const debouncedFetchFilteredResults = debounce(fetchFilteredResults, 300);
 
     nameFilter.addEventListener('input', debouncedFetchFilteredResults);
     storeFilter.addEventListener('change', debouncedFetchFilteredResults);
     monthFilter.addEventListener('change', debouncedFetchFilteredResults);
 
+    /* ------------------------------------------------------------------------- 
+     * Data Fetching & Updates
+     * @param {number} page - Page number to fetch (default: 0)
+     * @throws {Error} When fetch fails or response is invalid
+     * --------------------------------------------------------------------- */
     function fetchFilteredResults(page = 0) {
         if (!validateFilters()) {
             return;
@@ -180,6 +227,11 @@ document.addEventListener('DOMContentLoaded', function() {
     attachPaginationListeners();
 });
 
+/* ------------------------------------------------------------------------- 
+ * User Feedback Functions
+ * @param {string} message - Message to display
+ * @param {boolean} isError - Whether message is an error
+ * --------------------------------------------------------------------- */
 function showMessage(message, isError = false) {
     const messageBubble = document.getElementById('messageBubble');
     const messageText = document.getElementById('messageText');
@@ -191,6 +243,11 @@ function showMessage(message, isError = false) {
     }, 5000);
 }
 
+/* ------------------------------------------------------------------------- 
+ * Response Management Functions
+ * @param {number} id - ID of response to delete
+ * @throws {Error} When CSRF tokens missing or deletion fails
+ * --------------------------------------------------------------------- */
 function deleteResponse(id) {
     // Validate ID
     if (!id || isNaN(id) || id < 1) {
@@ -227,6 +284,9 @@ function deleteResponse(id) {
     });
 }
 
+/* ------------------------------------------------------------------------- 
+ * Security Functions
+ * --------------------------------------------------------------------- */
 function escapeHtml(unsafe) {
     return unsafe
         .replace(/&/g, "&amp;")
@@ -242,6 +302,10 @@ function cleanup() {
     monthFilter.removeEventListener('change', debouncedFetchFilteredResults);
 }
 
+/* ------------------------------------------------------------------------- 
+ * Input Validation
+ * @returns {boolean} Whether all filters are valid
+ * --------------------------------------------------------------------- */
 function validateFilters() {
     const nameFilter = document.getElementById('nameFilter');
     const storeFilter = document.getElementById('storeFilter');

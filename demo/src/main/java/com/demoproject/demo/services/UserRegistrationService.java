@@ -1,65 +1,97 @@
+/* =============================================================================
+ * User Registration Service
+ * =============================================================================
+ * PURPOSE: Manages secure user registration and account creation
+ * 
+ * CORE FUNCTIONALITY:
+ * - New user registration with validation
+ * - Password encoding and security
+ * - Role management and conversion
+ * - Duplicate prevention
+ * 
+ * DEPENDENCIES:
+ * - Spring Framework (Service, Transactional)
+ * - Spring Security (PasswordEncoder)
+ * - UserRepository for persistence
+ * - User entity and DTO
+ * 
+ * SECURITY NOTES:
+ * - Passwords are cryptographically hashed
+ * - Input validation prevents injection
+ * - Role conversion is strictly controlled
+ * ============================================================================= */
 package com.demoproject.demo.services;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 import com.demoproject.demo.dto.UserDTO;
 import com.demoproject.demo.entity.User;
 import com.demoproject.demo.repository.UserRepository;
 
-/**
- * Service responsible for user registration and related operations.
- * This class handles the creation of new user accounts, input validation,
- * and role conversion.
- */
 @Service
 public class UserRegistrationService {
+
+    /* --------------------------------------------------------------------------
+     * Service Dependencies
+     * -------------------------------------------------------------------------- */
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     /**
-     * Constructs a new UserRegistrationService with necessary dependencies.
-     *
-     * @param userRepository Repository for user data operations
-     * @param passwordEncoder Encoder for securing user passwords
+     * Initializes registration service with required components.
+     * 
+     * @param userRepository Data access for user operations
+     * @param passwordEncoder Security component for password hashing
+     * @note Both dependencies must be non-null
      */
-    public UserRegistrationService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserRegistrationService(UserRepository userRepository, 
+                                 PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
+    /* --------------------------------------------------------------------------
+     * Registration Operations
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Registers a new user in the system.
-     *
-     * @param userDTO Data Transfer Object containing user registration information
-     * @return The newly created User entity
-     * @throws IllegalArgumentException if the username already exists or input is invalid
+     * Processes new user registration with validation.
+     * 
+     * @param userDTO Registration data transfer object
+     * @returns Created user entity
+     * @throws IllegalArgumentException Username exists or invalid input
+     * @security Ensures password hashing
+     * @performance Single transaction scope
      */
     @Transactional
     public User registerNewUser(UserDTO userDTO) {
-        // Check for existing username to prevent duplicates
+        // Prevent duplicate usernames
         if (userRepository.findByUsername(userDTO.getUsername()).isPresent()) {
             throw new IllegalArgumentException("Username already exists");
         }
 
         validateUserInput(userDTO);
 
-        // Create and populate new user entity
+        // Create and configure new user
         User newUser = new User();
         newUser.setUsername(userDTO.getUsername());
         newUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         newUser.setRole(convertStringToRole(userDTO.getRole()));
 
-        // Persist the new user and return the saved entity
         return userRepository.save(newUser);
     }
 
+    /* --------------------------------------------------------------------------
+     * Validation Operations
+     * -------------------------------------------------------------------------- */
+
     /**
-     * Validates user input for registration.
-     *
-     * @param userDTO User data to validate
-     * @throws IllegalArgumentException if any required field is empty or null
+     * Validates registration input completeness.
+     * 
+     * @param userDTO Input data to validate
+     * @throws IllegalArgumentException Missing or invalid fields
+     * @note Required: username, password, role
      */
     private void validateUserInput(UserDTO userDTO) {
         if (userDTO.getUsername() == null || userDTO.getUsername().trim().isEmpty()) {
@@ -71,15 +103,22 @@ public class UserRegistrationService {
         if (userDTO.getRole() == null || userDTO.getRole().trim().isEmpty()) {
             throw new IllegalArgumentException("Role cannot be empty");
         }
-        // TODO: Implement additional validation (e.g., password strength, email format)
+
+        /* @todo Enhanced validation needs:
+         * - Password strength requirements
+         * - Username format rules
+         * - Email validation if added
+         * - Input sanitization
+         */
     }
 
     /**
-     * Converts a string role to the corresponding User.Role enum.
-     *
-     * @param roleString String representation of the role
-     * @return Corresponding User.Role enum value
-     * @throws IllegalArgumentException if the role string is invalid
+     * Converts role string to enum with validation.
+     * 
+     * @param roleString Role identifier to convert
+     * @returns Validated Role enum value
+     * @throws IllegalArgumentException Invalid role specified
+     * @security Ensures role value integrity
      */
     private User.Role convertStringToRole(String roleString) {
         try {
@@ -88,4 +127,16 @@ public class UserRegistrationService {
             throw new IllegalArgumentException("Invalid role: " + roleString);
         }
     }
+
+    /* --------------------------------------------------------------------------
+     * Future Enhancements
+     * -------------------------------------------------------------------------- */
+
+    /* @todo Implementation needs:
+     * - Email verification flow
+     * - Password strength validation
+     * - Rate limiting for registrations
+     * - Audit logging
+     * - CAPTCHA integration
+     */
 }

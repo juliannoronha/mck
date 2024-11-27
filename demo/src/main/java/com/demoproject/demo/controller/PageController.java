@@ -1,3 +1,16 @@
+/* ==========================================================================
+ * Page Controller Module
+ *
+ * PURPOSE: Manages page navigation and routing for web application
+ * DEPENDENCIES: Spring MVC, Spring Security
+ * SCOPE: Web page endpoints and view resolution
+ * 
+ * SECURITY CONSIDERATIONS:
+ * - Authentication required for most pages
+ * - Role-based access control
+ * - Session validation
+ * ========================================================================== */
+
 package com.demoproject.demo.controller;
 
 import org.springframework.stereotype.Controller;
@@ -9,42 +22,66 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Controller responsible for handling page navigation and routing.
- */
+/* --------------------------------------------------------------------------
+ * Page Controller Implementation
+ * 
+ * FUNCTIONALITY:
+ * - Root URL redirection
+ * - View resolution for authenticated pages
+ * - Role-based page access control
+ * 
+ * IMPORTANT NOTES:
+ * - Thread-safe implementation
+ * - Stateless design pattern
+ * - Centralized logging
+ * -------------------------------------------------------------------------- */
 @Controller
 public class PageController {
     private static final Logger logger = LoggerFactory.getLogger(PageController.class);
 
+    /* .... Root Navigation .... */
     /**
-     * Handles the root URL request.
-     * @return Redirects to the home page
+     * Handles root URL redirection to home page.
+     * 
+     * @returns String View redirect path
+     * @example GET /
      */
     @GetMapping("/")
     public String root() {
         return "redirect:/home";
     }
 
+    /* .... Home Page Handler .... */
     /**
-     * Displays the home page for authenticated users.
-     * @param model The Model object to add attributes
-     * @return The name of the home view or redirects to login if not authenticated
+     * Manages home page access and authentication.
+     *
+     * @param model Spring MVC model for view attributes
+     * @returns String View name or login redirect
+     * 
+     * SECURITY:
+     * - Validates authentication state
+     * - Handles anonymous users
+     * - Sets user context
      */
     @GetMapping("/home")
     public String home(Model model) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
+        if (auth == null || !auth.isAuthenticated() || 
+            auth.getPrincipal().equals("anonymousUser")) {
             return "redirect:/login";
         }
         model.addAttribute("username", auth.getName());
         return "home";
     }
 
+    /* .... Internal Tools Section .... */
     /**
-     * Displays the packmed page for authorized users.
-     * @param model The Model object to add attributes
-     * @param authentication The Authentication object for the current user
-     * @return The name of the packmed view
+     * Packmed page access controller.
+     *
+     * @param model Spring MVC model for view attributes
+     * @param authentication Current user's authentication context
+     * @returns String View name for template resolution
+     * @secure Requires CHECKER, ADMIN, or MODERATOR role
      */
     @GetMapping("/packmed")
     @PreAuthorize("hasAnyRole('CHECKER', 'ADMIN', 'MODERATOR')")
@@ -56,10 +93,12 @@ public class PageController {
     }
 
     /**
-     * Displays the wellca page for authorized users.
-     * @param model The Model object to add attributes
-     * @param authentication The Authentication object for the current user
-     * @return The name of the wellca view
+     * Wellca page access controller.
+     *
+     * @param model Spring MVC model for view attributes
+     * @param authentication Current user's authentication context
+     * @returns String View name for template resolution
+     * @secure Requires CHECKER, ADMIN, or MODERATOR role
      */
     @GetMapping("/wellca")
     @PreAuthorize("hasAnyRole('CHECKER', 'ADMIN', 'MODERATOR')")
@@ -70,11 +109,14 @@ public class PageController {
         return "wellca";
     }
 
+    /* .... NBA Statistics Section .... */
     /**
-     * Displays the NBA player stats page for authorized users.
-     * @param model The Model object to add attributes
-     * @param authentication The Authentication object for the current user
-     * @return The name of the nbaplayers view
+     * NBA player statistics page controller.
+     *
+     * @param model Spring MVC model for view attributes
+     * @param authentication Current user's authentication context
+     * @returns String View name for template resolution
+     * @secure Requires USER, ADMIN, or MODERATOR role
      */
     @GetMapping("/nbaplayers")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'MODERATOR')")
@@ -86,10 +128,12 @@ public class PageController {
     }
 
     /**
-     * Displays the NBA team stats page for authorized users.
-     * @param model The Model object to add attributes
-     * @param authentication The Authentication object for the current user
-     * @return The name of the nbateams view
+     * NBA team statistics page controller.
+     *
+     * @param model Spring MVC model for view attributes
+     * @param authentication Current user's authentication context
+     * @returns String View name for template resolution
+     * @secure Requires USER, ADMIN, or MODERATOR role
      */
     @GetMapping("/nbateams")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'MODERATOR')")
@@ -101,7 +145,12 @@ public class PageController {
     }
 
     /**
-     * Displays the NBA betting stats page for authorized users.
+     * NBA betting statistics page controller.
+     *
+     * @param model Spring MVC model for view attributes
+     * @param authentication Current user's authentication context
+     * @returns String View name for template resolution
+     * @secure Requires USER, ADMIN, or MODERATOR role
      */
     @GetMapping("/nbabets")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'MODERATOR')")

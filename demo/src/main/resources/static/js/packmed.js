@@ -1,16 +1,41 @@
+/* =============================================================================
+ * PacMed Form Controller Module
+ * 
+ * PURPOSE: Manages form validation, submission, and data visualization for 
+ * medication pouch checking workflow
+ * 
+ * DEPENDENCIES:
+ * - Chart.js for data visualization
+ * - Server-sent events (SSE) for real-time updates
+ * - CSRF token from meta tag
+ * 
+ * ARCHITECTURE:
+ * - Form validation and submission
+ * - Real-time data updates via SSE
+ * - Chart rendering and management
+ * - Error handling and user feedback
+ * ============================================================================= */
+
 document.addEventListener('DOMContentLoaded', function() {
+    /* ------------------------------------------------------------------------- 
+     * Core Element References & Initialization
+     * --------------------------------------------------------------------- */
     const form = document.getElementById('questionForm');
     const successMessage = document.getElementById('successMessage');
     const startTime = document.getElementById('startTime');
     const endTime = document.getElementById('endTime');
 
+    // Validate CSRF token availability
     const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
     if (!csrfToken) {
         console.error('CSRF token not found');
         return;
     }
 
-    // New time input validation functions
+    /* ------------------------------------------------------------------------- 
+     * Time Input Validation
+     * @note Uses 24-hour format (HH:mm)
+     * --------------------------------------------------------------------- */
     function validateTimeInput(input) {
         const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
         return timeRegex.test(input.value);
@@ -22,6 +47,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    /* ------------------------------------------------------------------------- 
+     * Event Listeners for Time Inputs
+     * --------------------------------------------------------------------- */
     startTime.addEventListener('change', function() {
         if (!validateTimeInput(this)) {
             document.getElementById('startTimeError').textContent = 'Please enter a valid time';
@@ -41,13 +69,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    /* ------------------------------------------------------------------------- 
+     * Form Submission Handler
+     * @note Includes validation and error handling
+     * --------------------------------------------------------------------- */
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // Clear previous error messages
+        // Reset error state
         document.querySelectorAll('.error').forEach(el => el.textContent = '');
 
-        // Validate form inputs
+        // Validate all inputs
         let isValid = true;
         if (!validateTimeInput(startTime)) {
             document.getElementById('startTimeError').textContent = 'Please enter a valid time';
@@ -61,12 +93,11 @@ document.addEventListener('DOMContentLoaded', function() {
             isValid = false;
         }
 
-        if (!isValid) {
-            return;
-        }
+        if (!isValid) return;
 
+        // Prepare form data
         const formData = new FormData(form);
-        const currentDate = new Date().toISOString().split('T')[0]; // Get current date in YYYY-MM-DD format
+        const currentDate = new Date().toISOString().split('T')[0];
         const pacData = {
             store: formData.get('store'),
             startTime: `${currentDate}T${formData.get('startTime')}:00`,
@@ -74,8 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
             pouchesChecked: parseInt(formData.get('pouchesChecked'))
         };
 
-        console.log('Submitting data:', pacData); // Log the data being sent
-
+        // Submit data to server
         fetch('/submit-questions', {
             method: 'POST',
             headers: {
@@ -85,9 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
             body: JSON.stringify(pacData)
         })
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
+            if (!response.ok) throw new Error('Network response was not ok');
             return response.text();
         })
         .then(data => {
@@ -104,6 +132,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    /* ------------------------------------------------------------------------- 
+     * Message Display System
+     * @note Handles both success and error messages
+     * --------------------------------------------------------------------- */
     function showErrorMessage(message) {
         const errorDiv = document.getElementById('errorMessage');
         errorDiv.textContent = message;
@@ -113,7 +145,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
-    // Create a unified message handling system
     function showMessage(message, type = 'error') {
         const messageDiv = document.getElementById(`${type}Message`);
         if (!messageDiv) return;
@@ -125,13 +156,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
+    /* ------------------------------------------------------------------------- 
+     * Form Validation System
+     * --------------------------------------------------------------------- */
     function validateForm() {
         let isValid = true;
         const pouches = document.getElementsByName('pouchesChecked')[0].value;
 
-        // Time validation is now handled by the change event listeners
-
-        // Validate pouches checked
         if (isNaN(pouches) || pouches < 0) {
             document.getElementById('pouchesError').textContent = 'Please enter a valid number';
             isValid = false;
@@ -142,26 +173,21 @@ document.addEventListener('DOMContentLoaded', function() {
         return isValid;
     }
 
+    /* ------------------------------------------------------------------------- 
+     * Data Fetching and Dashboard Updates
+     * --------------------------------------------------------------------- */
     function fetchOverallProductivity() {
         console.log('Fetching productivity data...');
         fetch('/api/overall-productivity')
             .then(response => {
-                console.log('Response status:', response.status);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 return response.json();
             })
             .then(data => {
-                console.log('Data received:', JSON.stringify(data));
                 updateDashboard(data);
-                if (data.chartData) {
-                    createPacMedChart(data.chartData);
-                }
+                if (data.chartData) createPacMedChart(data.chartData);
             })
-            .catch(error => {
-                console.error('Error fetching overall productivity:', error);
-            });
+            .catch(error => console.error('Error fetching overall productivity:', error));
     }
 
     function updateDashboard(data) {
@@ -179,27 +205,29 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
     }
 
+    /* ------------------------------------------------------------------------- 
+     * Server-Sent Events (SSE) Connection
+     * @note Maintains real-time updates with automatic reconnection
+     * --------------------------------------------------------------------- */
     let eventSource = null;
 
     function setupSSEConnection() {
-        if (eventSource) {
-            eventSource.close();
-        }
+        if (eventSource) eventSource.close();
+        
         eventSource = new EventSource('/api/overall-productivity-stream');
         eventSource.onmessage = function(event) {
             try {
                 const data = JSON.parse(event.data);
                 if (Array.isArray(data)) {
-                    // Handle individual user productivity updates
-                    // You can implement this if needed
+                    // Handle individual updates
                 } else {
-                    // Handle overall productivity update
                     updateDashboard(data);
                 }
             } catch (error) {
                 console.error('Error parsing SSE data:', error);
             }
         };
+
         eventSource.onerror = function(error) {
             console.error('Error in SSE connection:', error);
             eventSource.close();
@@ -207,46 +235,45 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    setupSSEConnection();
-
+    /* ------------------------------------------------------------------------- 
+     * Real-time Form Validation
+     * @note Uses debouncing to prevent excessive validation calls
+     * --------------------------------------------------------------------- */
     function validateInput(input) {
         const errorId = `${input.id}Error`;
-        const errorElement = document.getElementById(errorId);
-        
-        // If error element doesn't exist, create it
-        if (!errorElement && input.parentElement) {
-            const newErrorElement = document.createElement('div');
-            newErrorElement.id = errorId;
-            newErrorElement.className = 'error';
-            input.parentElement.appendChild(newErrorElement);
-        }
-
-        const currentErrorElement = document.getElementById(errorId);
-        if (!currentErrorElement) return; // Safety check
+        const errorElement = document.getElementById(errorId) || createErrorElement(input, errorId);
+        if (!errorElement) return;
 
         if (input.validity.valid) {
-            currentErrorElement.textContent = '';
+            errorElement.textContent = '';
             input.classList.remove('invalid');
         } else {
-            let errorMessage = '';
-            
-            switch(input.id) {
-                case 'startTime':
-                case 'endTime':
-                    errorMessage = 'Please enter a valid time';
-                    break;
-                case 'store':
-                    errorMessage = 'Please select a store';
-                    break;
-                case 'pouchesChecked':
-                    errorMessage = 'Please enter a valid number';
-                    break;
-                default:
-                    errorMessage = input.validationMessage;
-            }
-            
-            currentErrorElement.textContent = errorMessage;
+            const errorMessage = getErrorMessage(input);
+            errorElement.textContent = errorMessage;
             input.classList.add('invalid');
+        }
+    }
+
+    function createErrorElement(input, errorId) {
+        if (!input.parentElement) return null;
+        const newErrorElement = document.createElement('div');
+        newErrorElement.id = errorId;
+        newErrorElement.className = 'error';
+        input.parentElement.appendChild(newErrorElement);
+        return newErrorElement;
+    }
+
+    function getErrorMessage(input) {
+        switch(input.id) {
+            case 'startTime':
+            case 'endTime':
+                return 'Please enter a valid time';
+            case 'store':
+                return 'Please select a store';
+            case 'pouchesChecked':
+                return 'Please enter a valid number';
+            default:
+                return input.validationMessage;
         }
     }
 
@@ -276,69 +303,68 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    addRealTimeValidation();
-
+    /* ------------------------------------------------------------------------- 
+     * Chart Rendering
+     * @note Uses Chart.js for visualization
+     * --------------------------------------------------------------------- */
     let pacMedChart = null;
 
     function createPacMedChart(data) {
-    console.log('Creating chart with data:', JSON.stringify(data, null, 2));
-    if (!data || !data.labels || !data.pouchesChecked) {
-        console.error('Invalid chart data');
-        return;
-    }
-    const ctx = document.getElementById('pacMedChart');
-    if (!ctx) {
-        console.error('Canvas element not found');
-        return;
-    }
+        if (!data?.labels || !data?.pouchesChecked) {
+            console.error('Invalid chart data');
+            return;
+        }
 
-    pacMedChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.labels,
-            datasets: [{
-                label: 'Pouches Checked',
-                data: data.pouchesChecked,
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
+        const ctx = document.getElementById('pacMedChart');
+        if (!ctx) {
+            console.error('Canvas element not found');
+            return;
+        }
+
+        pacMedChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Pouches Checked',
+                    data: data.pouchesChecked,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
             },
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Pouches Checked (Last 7 Days)',
-                    font: {
-                        size: 16
-                    }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
                 },
-                subtitle: {
-                    display: true,
-                    text: data.pouchesChecked.every(val => val === 0) ? 'Sample data shown (no actual data available)' : '',
-                    color: 'red',
-                    font: {
-                        size: 14,
-                        style: 'italic'
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Pouches Checked (Last 7 Days)',
+                        font: { size: 16 }
+                    },
+                    subtitle: {
+                        display: true,
+                        text: data.pouchesChecked.every(val => val === 0) ? 
+                              'Sample data shown (no actual data available)' : '',
+                        color: 'red',
+                        font: { size: 14, style: 'italic' }
                     }
                 }
             }
-        }
-    });
-}
-
-fetchOverallProductivity();
-
-// Add cleanup
-window.addEventListener('beforeunload', () => {
-    if (eventSource) {
-        eventSource.close();
+        });
     }
-});
+
+    /* ------------------------------------------------------------------------- 
+     * Initialization and Cleanup
+     * --------------------------------------------------------------------- */
+    fetchOverallProductivity();
+    setupSSEConnection();
+    addRealTimeValidation();
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        if (eventSource) eventSource.close();
+    });
 });

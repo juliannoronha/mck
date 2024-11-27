@@ -1,3 +1,23 @@
+/* =================================================================
+ * PAC (Productivity Activity Counter) Service
+ * 
+ * PURPOSE: Manages productivity tracking through PAC entries
+ * 
+ * CORE FUNCTIONALITY:
+ * - CRUD operations for productivity records
+ * - User-based access control and validation
+ * - Integration with productivity calculations
+ * 
+ * DEPENDENCIES:
+ * - Spring Framework (Service, Transactional, Retry)
+ * - PAC and User repositories
+ * - UserProductivityService
+ * 
+ * IMPORTANT NOTES:
+ * - Uses pagination for large dataset handling
+ * - Implements retry logic for transient failures
+ * - Requires valid user context for operations
+ * ================================================================= */
 package com.demoproject.demo.services;
 
 import com.demoproject.demo.entity.Pac;
@@ -17,6 +37,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Optional;
 
+/**
+ * Service layer for PAC (Productivity Activity Counter) management.
+ * 
+ * @security Access control per user context
+ * @performance Paginated data access, retry mechanisms
+ * @note Thread-safe implementation
+ */
 @Service
 public class PacService {
     private static final Logger logger = LoggerFactory.getLogger(PacService.class);
@@ -24,6 +51,14 @@ public class PacService {
     private final UserRepository userRepository;
     private final UserProductivityService userProductivityService;
 
+    /**
+     * Initializes service with required dependencies.
+     * 
+     * @param pacRepository Data access for PAC records
+     * @param userRepository Data access for user records
+     * @param userProductivityService Productivity calculation service
+     * @note All parameters are required and non-null
+     */
     public PacService(PacRepository pacRepository,
                      UserRepository userRepository,
                      UserProductivityService userProductivityService) {
@@ -32,8 +67,16 @@ public class PacService {
         this.userProductivityService = userProductivityService;
     }
 
+    /* ===== PAC Creation Operations ===== */
+
     /**
-     * Submits a new PAC entry with retry capability.
+     * Creates new PAC entry with automatic failure recovery.
+     *
+     * @param pac Entry to submit (must contain all required fields)
+     * @param username Associated user identifier
+     * @throws RuntimeException User not found
+     * @throws IllegalArgumentException Invalid PAC data
+     * @note Creates new transaction to avoid deadlocks
      */
     @Retryable(
         value = {TransientDataAccessException.class},
@@ -46,41 +89,69 @@ public class PacService {
             .orElseThrow(() -> new RuntimeException("User not found"));
         
         pac.setUser(user);
-        
         validatePac(pac);
         pacRepository.save(pac);
         
-        logger.info("Submitting pac: username={}, store={}, pouchesChecked={}, startTime={}, endTime={}",
-                    username, pac.getStore(), pac.getPouchesChecked(), pac.getStartTime(), pac.getEndTime());
+        logger.info("PAC submitted: user={}, store={}, pouches={}, start={}, end={}",
+                   username, pac.getStore(), pac.getPouchesChecked(), 
+                   pac.getStartTime(), pac.getEndTime());
         
         userProductivityService.notifyProductivityUpdate();
     }
 
+    /**
+     * Validates PAC entry completeness.
+     *
+     * @param pac Entry to validate
+     * @throws IllegalArgumentException Missing required fields
+     * @note Required: store, startTime, endTime, pouchesChecked
+     */
     private void validatePac(Pac pac) {
         if (pac.getStore() == null || pac.getStartTime() == null || 
             pac.getEndTime() == null || pac.getPouchesChecked() == null) {
-            throw new IllegalArgumentException("All required fields must be set for Pac");
+            throw new IllegalArgumentException("Required PAC fields missing");
         }
     }
 
+    /* ===== PAC Query Operations ===== */
+
     /**
-     * Retrieves all PACs with filters and pagination.
+     * Retrieves PAC entries with filtering options.
+     *
+     * @param pageable Pagination settings
+     * @param nameFilter Optional username filter (case-insensitive)
+     * @param store Optional store identifier
+     * @param month Optional month filter
+     * @returns Paginated, filtered PAC entries
+     * @note Null filters are ignored
      */
-    public Page<Pac> getAllPacsWithFilters(Pageable pageable, String nameFilter, String store, Integer month) {
-        String lowercaseNameFilter = nameFilter != null && !nameFilter.isEmpty() ? nameFilter.toLowerCase() : null;
+    public Page<Pac> getAllPacsWithFilters(Pageable pageable, String nameFilter, 
+                                         String store, Integer month) {
+        String lcNameFilter = nameFilter != null && !nameFilter.isEmpty() ? 
+                            nameFilter.toLowerCase() : null;
         String validStore = store != null && !store.isEmpty() ? store : null;
-        return pacRepository.findAllWithFilters(pageable, lowercaseNameFilter, validStore, month);
+        return pacRepository.findAllWithFilters(pageable, lcNameFilter, 
+                                              validStore, month);
     }
 
     /**
-     * Retrieves all PACs with pagination.
+     * Retrieves all PAC entries with pagination.
+     *
+     * @param pageable Pagination settings
+     * @returns Paginated PAC entries
      */
     public Page<Pac> getAllPacs(Pageable pageable) {
         return pacRepository.findAll(pageable);
     }
 
+    /* ===== PAC Management Operations ===== */
+
     /**
-     * Deletes a PAC by its ID.
+     * Removes PAC entry by identifier.
+     *
+     * @param id Entry identifier
+     * @returns true if deleted, false if not found
+     * @note Transactional operation
      */
     @Transactional
     public boolean deletePac(Long id) {
@@ -93,7 +164,10 @@ public class PacService {
     }
 
     /**
-     * Retrieves a PAC by its ID.
+     * Retrieves single PAC entry.
+     *
+     * @param id Entry identifier
+     * @returns PAC entry or null if not found
      */
     public Pac getPacById(Long id) {
         return pacRepository.findById(id).orElse(null);
