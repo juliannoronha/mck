@@ -37,18 +37,22 @@ public class UserRegistrationService {
      * -------------------------------------------------------------------------- */
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditLogService auditLogService;
 
     /**
      * Initializes registration service with required components.
      * 
      * @param userRepository Data access for user operations
      * @param passwordEncoder Security component for password hashing
+     * @param auditLogService Service for audit logging
      * @note Both dependencies must be non-null
      */
     public UserRegistrationService(UserRepository userRepository, 
-                                 PasswordEncoder passwordEncoder) {
+                                 PasswordEncoder passwordEncoder,
+                                 AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.auditLogService = auditLogService;
     }
 
     /* --------------------------------------------------------------------------
@@ -79,7 +83,16 @@ public class UserRegistrationService {
         newUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         newUser.setRole(convertStringToRole(userDTO.getRole()));
 
-        return userRepository.save(newUser);
+        User savedUser = userRepository.save(newUser);
+        
+        // Add audit log entry
+        auditLogService.logEvent(
+            "USER_REGISTRATION",
+            "USER",
+            "New user registered: " + userDTO.getUsername() + " with role " + userDTO.getRole()
+        );
+
+        return savedUser;
     }
 
     /* --------------------------------------------------------------------------
