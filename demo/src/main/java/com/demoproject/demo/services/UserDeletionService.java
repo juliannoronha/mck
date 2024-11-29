@@ -32,15 +32,19 @@ public class UserDeletionService {
      * Service Dependencies
      * -------------------------------------------------------------------------- */
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     /**
      * Initializes deletion service with required data access.
      * 
      * @param userRepository Data access for user operations
+     * @param auditLogService Data access for audit logging
      * @note Repository must be non-null
      */
-    public UserDeletionService(UserRepository userRepository) {
+    public UserDeletionService(UserRepository userRepository, 
+                             AuditLogService auditLogService) {
         this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
     }
 
     /* --------------------------------------------------------------------------
@@ -68,6 +72,13 @@ public class UserDeletionService {
             if ("ADMIN".equals(user.getRole())) {
                 throw new IllegalStateException("Admin users cannot be deleted");
             }
+            
+            // Log the deletion event before deleting the user
+            auditLogService.logEvent(
+                "USER_DELETION",
+                "USER",
+                "User deleted: " + username + " with role " + user.getRole()
+            );
             
             // Execute deletion within transaction
             userRepository.delete(user);
