@@ -104,6 +104,11 @@ public class SecurityConfig {
                 .requestMatchers("/packmed", "/api/packmed/**").hasAnyRole("CHECKER", "MODERATOR", "ADMIN")
                 .requestMatchers("/api/user-productivity-stream").hasAnyRole("ADMIN", "MODERATOR")
                 
+                // Audit log access - Admin only
+                .requestMatchers("/audit/**", "/api/audit/**").hasRole("ADMIN")
+                .requestMatchers("/api/audit/logs", "/api/audit/download").hasRole("ADMIN")
+                .requestMatchers("/api/audit/search/**").hasRole("ADMIN")
+                
                 .requestMatchers(HttpMethod.POST, "/submit-questions").authenticated()
                 .anyRequest().authenticated()
             )
