@@ -23,19 +23,19 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
      * 
      * @param pageable Pagination parameters
      * @returns Page<AuditLog> - Empty if no logs exist
-     * @note Default sort by timestamp descending
-     * @performance Uses database-level pagination
      */
-    Page<AuditLog> findAllByOrderByTimestampDesc(Pageable pageable);
+    @Query("SELECT a FROM AuditLog a ORDER BY a.timestamp DESC")
+    Page<AuditLog> getAll(Pageable pageable);
 
     /**
      * Finds audit logs for specific user
      * 
-     * @param performedBy Username of the action performer
+     * @param username Username to filter by
      * @param pageable Pagination parameters
      * @returns Page<AuditLog> - User's audit trail
      */
-    Page<AuditLog> findByPerformedByOrderByTimestampDesc(String performedBy, Pageable pageable);
+    @Query("SELECT a FROM AuditLog a WHERE a.performedBy = :username ORDER BY a.timestamp DESC")
+    Page<AuditLog> getByUser(@Param("username") String username, Pageable pageable);
 
     /**
      * Retrieves logs by category with pagination
@@ -44,7 +44,8 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
      * @param pageable Pagination parameters
      * @returns Page<AuditLog> - Categorized audit entries
      */
-    Page<AuditLog> findByCategoryOrderByTimestampDesc(String category, Pageable pageable);
+    @Query("SELECT a FROM AuditLog a WHERE a.category = :category ORDER BY a.timestamp DESC")
+    Page<AuditLog> getByCategory(@Param("category") String category, Pageable pageable);
 
     /**
      * Finds logs within a date range
@@ -54,7 +55,7 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
      * @returns List<AuditLog> - Matching audit entries
      */
     @Query("SELECT a FROM AuditLog a WHERE a.timestamp BETWEEN :startDate AND :endDate ORDER BY a.timestamp DESC")
-    List<AuditLog> findByDateRange(
+    List<AuditLog> getByDateRange(
         @Param("startDate") LocalDateTime startDate,
         @Param("endDate") LocalDateTime endDate
     );
@@ -62,14 +63,14 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     /**
      * Retrieves recent actions by user
      * 
-     * @param performedBy Username to filter
+     * @param username Username to filter by
      * @param limit Maximum number of records
      * @returns List<AuditLog> - Recent user actions
      */
-    @Query(value = "SELECT a FROM AuditLog a WHERE a.performedBy = :performedBy " +
+    @Query("SELECT a FROM AuditLog a WHERE a.performedBy = :username " +
            "ORDER BY a.timestamp DESC LIMIT :limit")
-    List<AuditLog> findRecentActionsByUser(
-        @Param("performedBy") String performedBy,
+    List<AuditLog> getRecentByUser(
+        @Param("username") String username,
         @Param("limit") int limit
     );
 

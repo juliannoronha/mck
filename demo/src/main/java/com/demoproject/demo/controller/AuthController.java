@@ -21,6 +21,11 @@ import org.springframework.security.core.Authentication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.demoproject.demo.services.AuditLogService;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.http.ResponseEntity;
 
 /* --------------------------------------------------------------------------
  * Authentication Controller Implementation
@@ -83,41 +88,56 @@ public class AuthController {
     }
 
     /**
-     * Handles successful login events.
+     * Renders the audit log view for administrators.
      *
-     * @param authentication Current user's authentication details
-     * @note Automatically called by Spring Security
-     * @security Requires valid authentication
+     * @param model Spring MVC model for view attributes
+     * @param pageable Pagination parameters
+     * @returns String View name for template resolution
+     * 
+     * @security Requires ADMIN role
+     * @note Includes pagination support
+     * @audit Logs audit page access
      */
-    @GetMapping("/login-success")
-    public String loginSuccess(Authentication authentication) {
-        String username = authentication.getName();
+    @GetMapping("/audit")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String viewAuditLogs(Model model, 
+                              @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) 
+                              Pageable pageable) {
+        model.addAttribute("auditLogs", auditLogService.getAll(pageable));
+        
         auditLogService.logEvent(
-            "USER_LOGIN",
-            "AUTH",
-            "Successful login for user: " + username
+            "AUDIT_VIEW",
+            "AUDIT",
+            "Administrator accessed audit logs"
         );
-        logger.info("Successful login for user: {}", username);
-        return "redirect:/dashboard";
+        
+        logger.info("Audit logs accessed by administrator");
+        return "audit";
     }
 
     /**
-     * Handles failed login attempts.
-     *
-     * @param error Error details from Spring Security
-     * @note Automatically called by Spring Security
-     * @security Logs failed attempts for monitoring
+     * Handles audit log clearing request
+     * 
+     * @returns ResponseEntity<Void> HTTP response
+     * @security Requires ADMIN role
+     * @audit Logs the clear action
      */
-    @GetMapping("/login-error")
-    public String loginError(@RequestParam(required = false) String error, Model model) {
-        model.addAttribute("loginError", true);
-        auditLogService.logEvent(
-            "LOGIN_FAILED",
-            "AUTH",
-            "Failed login attempt: " + (error != null ? error : "Unknown error")
-        );
-        logger.warn("Failed login attempt: {}", error);
-        return "login";
+    @PostMapping("/api/audit/clear")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> clearAuditLogs() {
+        try {
+            auditLogService.clearAllLogs();
+            auditLogService.logEvent(
+                "AUDIT_CLEAR",
+                "AUDIT",
+                "Administrator cleared all audit logs"
+            );
+            logger.info("Audit logs cleared by administrator");
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            logger.error("Failed to clear audit logs", e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /* @todo [SECURITY] Add rate limiting for failed attempts

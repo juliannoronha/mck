@@ -174,6 +174,23 @@ function handleNBAClick(event) {
     }
 }
 
+/**
+ * Handles Audit Log access
+ * @param {Event} event - Click event
+ * @security Admin-only access enforced
+ */
+function handleAuditLogClick(event) {
+    event.preventDefault();
+    const auditButton = document.getElementById('auditButton');
+    
+    if (hasAdminRole()) {
+        window.location.href = '/audit';
+    } else {
+        showAccessDeniedMessage();
+        flashButton(auditButton);
+    }
+}
+
 /* -----------------------------------------------------------------------------
  * Role & Access Validation
  * -------------------------------------------------------------------------- */
@@ -197,6 +214,16 @@ function hasRequiredRole() {
 function hasNBAAccess() {
     const userRole = document.body.dataset.userRole;
     return ['ROLE_USER', 'ROLE_ADMIN', 'ROLE_MODERATOR'].includes(userRole);
+}
+
+/**
+ * Admin role validation
+ * @returns {boolean} True if user has admin privileges
+ * @security Enforces admin-only access
+ */
+function hasAdminRole() {
+    const userRole = document.body.dataset.userRole;
+    return ['ROLE_ADMIN'].includes(userRole);
 }
 
 /* -----------------------------------------------------------------------------

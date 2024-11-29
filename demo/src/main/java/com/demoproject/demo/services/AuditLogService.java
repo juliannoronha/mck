@@ -50,6 +50,20 @@ public class AuditLogService {
                    action, currentUser, category);
     }
 
+    /**
+     * Clears all audit log entries
+     * 
+     * @security Requires ADMIN role
+     * @performance Single transaction scope
+     * @audit Self-logging is handled at controller level
+     */
+    @Transactional
+    public void clearAllLogs() {
+        logger.info("Initiating complete audit log clearance");
+        auditLogRepository.deleteAll();
+        logger.info("Audit logs cleared successfully");
+    }
+
     /* --------------------------------------------------------------------------
      * Audit Retrieval Operations
      * -------------------------------------------------------------------------- */
@@ -124,7 +138,7 @@ public class AuditLogService {
      * - Add support for bulk audit operations
      * - Implement audit log archiving
      * - Add audit log search capabilities
-     * - Consider adding audit log analytics
      * - Add support for custom audit fields
+     * - Add audit log retention policy
      */
 }
