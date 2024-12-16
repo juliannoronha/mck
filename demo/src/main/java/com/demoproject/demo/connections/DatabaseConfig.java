@@ -83,6 +83,13 @@ public class DatabaseConfig {
         config.addDataSourceProperty("rewriteBatchedStatements", "true");
         config.addDataSourceProperty("maintainTimeStats", "false");
         
+        /* Connection Cleanup Settings */
+        config.setAutoCommit(true);
+        config.setInitializationFailTimeout(1);
+        config.setValidationTimeout(5000);
+        config.addDataSourceProperty("useDisposableConnectionFacade", "true");
+        config.addDataSourceProperty("closeConnectionWatch", "true");
+        
         return config;
     }
     

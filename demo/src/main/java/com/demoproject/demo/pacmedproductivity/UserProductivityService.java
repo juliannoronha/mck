@@ -19,8 +19,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.annotation.PreDestroy;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,9 +49,6 @@ public class UserProductivityService {
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
     public static final long SSE_TIMEOUT = 300000L; // 5 minutes
-
-    @PersistenceContext
-    private EntityManager entityManager;
 
     /**
      * Service constructor
@@ -294,30 +289,29 @@ public class UserProductivityService {
      * @param username Target username
      * @returns Map of productivity metrics
      */
+    @Transactional(readOnly = true)
     public Map<String, Object> getUserProductivity(String username) {
-        String jpql = "SELECT COUNT(p) as totalSubmissions, " +
-                      "SUM(p.pouchesChecked) as totalPouchesChecked, " +
-                      "SUM(FUNCTION('TIMESTAMPDIFF', SECOND, p.startTime, p.endTime)) as totalSeconds " +
-                      "FROM Pac p WHERE p.user.username = :username";
-        
-        Object[] result = (Object[]) entityManager.createQuery(jpql)
-                .setParameter("username", username)
-                .getSingleResult();
-        
-        // Calculate metrics
-        long totalSubmissions = ((Number) result[0]).longValue();
-        long totalPouchesChecked = ((Number) result[1]).longValue();
-        double totalSeconds = ((Number) result[2]).doubleValue();
-        
-        double avgTimePerPouch = totalPouchesChecked > 0 ? totalSeconds / totalPouchesChecked : 0;
-        double avgPouchesPerHour = totalSeconds > 0 ? (totalPouchesChecked * 3600.0) / totalSeconds : 0;
-        
-        return Map.of(
-            "totalSubmissions", totalSubmissions,
-            "totalPouchesChecked", totalPouchesChecked,
-            "avgPouchesPerHour", avgPouchesPerHour,
-            "avgTimePerPouch", avgTimePerPouch
-        );
+        try {
+            Object[] result = pacRepository.getUserProductivityMetrics(username);
+            
+            // Calculate metrics
+            long totalSubmissions = ((Number) result[0]).longValue();
+            long totalPouchesChecked = ((Number) result[1]).longValue();
+            double totalSeconds = ((Number) result[2]).doubleValue();
+            
+            double avgTimePerPouch = totalPouchesChecked > 0 ? totalSeconds / totalPouchesChecked : 0;
+            double avgPouchesPerHour = totalSeconds > 0 ? (totalPouchesChecked * 3600.0) / totalSeconds : 0;
+            
+            return Map.of(
+                "totalSubmissions", totalSubmissions,
+                "totalPouchesChecked", totalPouchesChecked,
+                "avgPouchesPerHour", avgPouchesPerHour,
+                "avgTimePerPouch", avgTimePerPouch
+            );
+        } catch (Exception e) {
+            logger.error("Error fetching productivity metrics for user: {}", username, e);
+            throw new RuntimeException("Failed to fetch user productivity metrics", e);
+        }
     }
 
     /* -----------------------------------------------------------------------------
@@ -411,10 +405,7 @@ public class UserProductivityService {
     @Transactional(readOnly = true)
     public boolean userExists(String username) {
         try {
-            String jpql = "SELECT COUNT(p) > 0 FROM Pac p WHERE p.user.username = :username";
-            return entityManager.createQuery(jpql, Boolean.class)
-                    .setParameter("username", username)
-                    .getSingleResult();
+            return pacRepository.existsByUsername(username);
         } catch (Exception e) {
             logger.error("Error checking user existence for username: {}", username, e);
             return false;
