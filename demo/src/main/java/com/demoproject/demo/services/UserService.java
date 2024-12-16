@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.demoproject.demo.entity.User;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
@@ -58,6 +59,7 @@ public class UserService {
      * @performance Uses database-level pagination
      * @note Consider caching for frequent access patterns
      */
+    @Transactional(readOnly = true)
     public Page<User> getAllUsers(Pageable pageable) {
         logger.info("Retrieving users page: {}", pageable);
         return userRepository.findAll(pageable);

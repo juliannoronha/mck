@@ -85,18 +85,19 @@ public class PacService {
     )
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void submitPac(Pac pac, String username) {
-        User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        pac.setUser(user);
-        validatePac(pac);
-        pacRepository.save(pac);
-        
-        logger.info("PAC submitted: user={}, store={}, pouches={}, start={}, end={}",
-                   username, pac.getStore(), pac.getPouchesChecked(), 
-                   pac.getStartTime(), pac.getEndTime());
-        
-        userProductivityService.notifyProductivityUpdate();
+        try {
+            User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+            
+            pac.setUser(user);
+            validatePac(pac);
+            pacRepository.save(pac);
+            
+            userProductivityService.notifyProductivityUpdate();
+        } catch (Exception e) {
+            logger.error("Failed to submit PAC", e);
+            throw new RuntimeException("Failed to submit PAC", e);
+        }
     }
 
     /**
@@ -125,6 +126,7 @@ public class PacService {
      * @returns Paginated, filtered PAC entries
      * @note Null filters are ignored
      */
+    @Transactional(readOnly = true)
     public Page<Pac> getAllPacsWithFilters(Pageable pageable, String nameFilter, 
                                          String store, Integer month) {
         String lcNameFilter = nameFilter != null && !nameFilter.isEmpty() ? 
@@ -155,12 +157,17 @@ public class PacService {
      */
     @Transactional
     public boolean deletePac(Long id) {
-        Optional<Pac> pacOpt = pacRepository.findById(id);
-        if (pacOpt.isPresent()) {
-            pacRepository.delete(pacOpt.get());
-            return true;
-        }
-        return false;
+        return pacRepository.findById(id)
+            .map(pac -> {
+                try {
+                    pacRepository.delete(pac);
+                    return true;
+                } catch (Exception e) {
+                    logger.error("Failed to delete PAC: {}", id, e);
+                    throw new RuntimeException("Failed to delete PAC", e);
+                }
+            })
+            .orElse(false);
     }
 
     /**

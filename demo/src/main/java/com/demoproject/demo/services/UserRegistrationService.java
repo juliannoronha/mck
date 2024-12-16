@@ -28,6 +28,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.demoproject.demo.dto.UserDTO;
 import com.demoproject.demo.entity.User;
 import com.demoproject.demo.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class UserRegistrationService {
@@ -38,6 +40,7 @@ public class UserRegistrationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
+    private static final Logger logger = LoggerFactory.getLogger(UserRegistrationService.class);
 
     /**
      * Initializes registration service with required components.
@@ -70,29 +73,33 @@ public class UserRegistrationService {
      */
     @Transactional
     public User registerNewUser(UserDTO userDTO) {
-        // Prevent duplicate usernames
-        if (userRepository.findByUsername(userDTO.getUsername()).isPresent()) {
-            throw new IllegalArgumentException("Username already exists");
+        try {
+            if (userRepository.findByUsername(userDTO.getUsername()).isPresent()) {
+                throw new IllegalArgumentException("Username already exists");
+            }
+
+            validateUserInput(userDTO);
+
+            // Create and configure new user
+            User newUser = new User();
+            newUser.setUsername(userDTO.getUsername());
+            newUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+            newUser.setRole(convertStringToRole(userDTO.getRole()));
+
+            User savedUser = userRepository.save(newUser);
+            
+            // Add audit log entry
+            auditLogService.logEvent(
+                "USER_REGISTRATION",
+                "USER",
+                "New user registered: " + userDTO.getUsername() + " with role " + userDTO.getRole()
+            );
+
+            return savedUser;
+        } catch (Exception e) {
+            logger.error("Failed to register user: {}", userDTO.getUsername(), e);
+            throw new RuntimeException("Failed to register user", e);
         }
-
-        validateUserInput(userDTO);
-
-        // Create and configure new user
-        User newUser = new User();
-        newUser.setUsername(userDTO.getUsername());
-        newUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
-        newUser.setRole(convertStringToRole(userDTO.getRole()));
-
-        User savedUser = userRepository.save(newUser);
-        
-        // Add audit log entry
-        auditLogService.logEvent(
-            "USER_REGISTRATION",
-            "USER",
-            "New user registered: " + userDTO.getUsername() + " with role " + userDTO.getRole()
-        );
-
-        return savedUser;
     }
 
     /* --------------------------------------------------------------------------

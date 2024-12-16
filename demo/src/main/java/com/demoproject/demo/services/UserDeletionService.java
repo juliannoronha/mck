@@ -23,7 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.demoproject.demo.repository.UserRepository;
 import com.demoproject.demo.entity.User;
-import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class UserDeletionService {
@@ -33,6 +34,7 @@ public class UserDeletionService {
      * -------------------------------------------------------------------------- */
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
+    private static final Logger logger = LoggerFactory.getLogger(UserDeletionService.class);
 
     /**
      * Initializes deletion service with required data access.
@@ -63,27 +65,21 @@ public class UserDeletionService {
      */
     @Transactional
     public void deleteUser(String username) {
-        Optional<User> userOptional = userRepository.findByUsername(username);
-        
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
+        try {
+            User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
             
-            // Security: Block admin deletion
             if ("ADMIN".equals(user.getRole())) {
                 throw new IllegalStateException("Admin users cannot be deleted");
             }
             
-            // Log the deletion event before deleting the user
-            auditLogService.logEvent(
-                "USER_DELETION",
-                "USER",
-                "User deleted: " + username + " with role " + user.getRole()
-            );
+            auditLogService.logEvent("USER_DELETION", "USER", 
+                "User deleted: " + username);
             
-            // Execute deletion within transaction
             userRepository.delete(user);
-        } else {
-            throw new IllegalArgumentException("User not found: " + username);
+        } catch (Exception e) {
+            logger.error("Failed to delete user: {}", username, e);
+            throw new RuntimeException("Failed to delete user", e);
         }
     }
 

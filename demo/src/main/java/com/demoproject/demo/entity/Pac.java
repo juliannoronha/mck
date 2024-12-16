@@ -31,7 +31,11 @@ import java.time.temporal.ChronoUnit;
  * - All timestamps truncated to seconds
  * -------------------------------------------------------------------------- */
 @Entity
-@Table(name = "pac")
+@Table(name = "pac", indexes = {
+    @Index(name = "idx_pac_user", columnList = "user_id"),
+    @Index(name = "idx_pac_store", columnList = "store"),
+    @Index(name = "idx_pac_submission_date", columnList = "submission_date")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -99,6 +103,13 @@ public class Pac {
     @PrePersist
     protected void onCreate() {
         submissionDate = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    @PreUpdate
+    protected void validate() {
+        if (startTime != null && endTime != null && endTime.isBefore(startTime)) {
+            throw new IllegalStateException("End time cannot be before start time");
+        }
     }
 
     /* @todo [FEATURE] Add duration calculation method
