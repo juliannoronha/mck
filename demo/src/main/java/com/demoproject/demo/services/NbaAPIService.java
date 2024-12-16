@@ -16,6 +16,8 @@ package com.demoproject.demo.services;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -30,6 +32,7 @@ public class NbaAPIService {
     private final OkHttpClient client;
     private final String apiKey;
     private final String apiHost;
+    private static final Logger logger = LoggerFactory.getLogger(NbaAPIService.class);
     
     /**
      * Constructs NBA API service with required dependencies
@@ -67,7 +70,13 @@ public class NbaAPIService {
                 .addHeader("x-rapidapi-host", apiHost)
                 .build();
                 
-        return client.newCall(request).execute();
+        try (Response response = client.newCall(request).execute()) {
+            // Process response
+            return response;
+        } catch (IOException e) {
+            logger.error("Failed to get player statistics", e);
+            throw new IOException("Failed to get player statistics", e);
+        }
     }
     
     /* -----------------------------------------------------------------------------

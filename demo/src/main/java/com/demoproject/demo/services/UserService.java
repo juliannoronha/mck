@@ -61,8 +61,15 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public Page<User> getAllUsers(Pageable pageable) {
-        logger.info("Retrieving users page: {}", pageable);
-        return userRepository.findAll(pageable);
+        logger.debug("Retrieving users page: {}", pageable);
+        try {
+            Page<User> users = userRepository.findAll(pageable);
+            logger.info("Successfully retrieved {} users", users.getContent().size());
+            return users;
+        } catch (Exception e) {
+            logger.error("Failed to retrieve users", e);
+            throw new RuntimeException("Failed to retrieve users", e);
+        }
     }
 
     /* --------------------------------------------------------------------------

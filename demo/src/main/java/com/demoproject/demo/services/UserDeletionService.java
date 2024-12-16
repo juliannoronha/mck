@@ -65,11 +65,16 @@ public class UserDeletionService {
      */
     @Transactional
     public void deleteUser(String username) {
+        logger.debug("Attempting to delete user: {}", username);
         try {
             User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+                .orElseThrow(() -> {
+                    logger.warn("User not found for deletion: {}", username);
+                    return new IllegalArgumentException("User not found: " + username);
+                });
             
             if ("ADMIN".equals(user.getRole())) {
+                logger.warn("Attempted to delete admin user: {}", username);
                 throw new IllegalStateException("Admin users cannot be deleted");
             }
             
@@ -77,6 +82,7 @@ public class UserDeletionService {
                 "User deleted: " + username);
             
             userRepository.delete(user);
+            logger.info("Successfully deleted user: {}", username);
         } catch (Exception e) {
             logger.error("Failed to delete user: {}", username, e);
             throw new RuntimeException("Failed to delete user", e);

@@ -73,8 +73,10 @@ public class UserRegistrationService {
      */
     @Transactional
     public User registerNewUser(UserDTO userDTO) {
+        logger.debug("Registering new user: {}", userDTO.getUsername());
         try {
             if (userRepository.findByUsername(userDTO.getUsername()).isPresent()) {
+                logger.warn("Username already exists: {}", userDTO.getUsername());
                 throw new IllegalArgumentException("Username already exists");
             }
 
@@ -87,6 +89,7 @@ public class UserRegistrationService {
             newUser.setRole(convertStringToRole(userDTO.getRole()));
 
             User savedUser = userRepository.save(newUser);
+            logger.info("Successfully registered new user: {}", userDTO.getUsername());
             
             // Add audit log entry
             auditLogService.logEvent(

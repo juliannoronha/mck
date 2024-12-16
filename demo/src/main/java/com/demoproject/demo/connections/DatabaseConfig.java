@@ -41,13 +41,15 @@ public class DatabaseConfig {
      * @returns Configured HikariConfig instance
      * 
      * POOL SETTINGS:
-     * - Maximum 10 connections to prevent resource exhaustion
-     * - Minimum 2 idle connections for performance
-     * - 10 minute idle timeout for connection reuse
-     * - 20 second connection timeout for fast failure
+     * - Maximum 20 connections to prevent resource exhaustion
+     * - Minimum 5 idle connections for performance
+     * - 5 minutes idle timeout for connection reuse
+     * - 30 second connection timeout for fast failure
+     * - 1800 seconds max connection lifetime
+     * - 600000 leak detection threshold
      * 
      * MONITORING:
-     * - Leak detection at 30 seconds
+     * - Leak detection at 60 seconds
      * - Metrics registration enabled
      * - MBeans exposed for monitoring
      * -------------------------------------------------------------------------- */
@@ -59,19 +61,19 @@ public class DatabaseConfig {
         config.setPassword(dbPassword);
         
         /* Connection Pool Settings */
-        config.setMaximumPoolSize(10);          
-        config.setMinimumIdle(2);               
-        config.setIdleTimeout(600000);          
-        config.setConnectionTimeout(20000);      
-        config.setMaxLifetime(1200000);         
-        config.setLeakDetectionThreshold(30000); 
+        config.setMaximumPoolSize(20);          // Increased from 10
+        config.setMinimumIdle(5);               // Increased from 2
+        config.setIdleTimeout(300000);          // 5 minutes
+        config.setConnectionTimeout(30000);      // Increased from 20000
+        config.setMaxLifetime(1800000);         // Increased from 1200000
+        config.setLeakDetectionThreshold(60000); // Increased from 30000
         
         /* Connection Testing & Performance */
         config.setConnectionTestQuery("SELECT 1");
-        config.setAutoCommit(true);
+        config.setAutoCommit(false);            // Changed from true
         config.addDataSourceProperty("cachePrepStmts", "true");
-        config.addDataSourceProperty("prepStmtCacheSize", "250");
-        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+        config.addDataSourceProperty("prepStmtCacheSize", "500");  // Increased from 250
+        config.addDataSourceProperty("prepStmtCacheSqlLimit", "4096"); // Increased from 2048
         
         /* Monitoring Configuration */
         config.addDataSourceProperty("registerMbeans", "true");
@@ -82,10 +84,10 @@ public class DatabaseConfig {
         config.addDataSourceProperty("useServerPrepStmts", "true");
         config.addDataSourceProperty("rewriteBatchedStatements", "true");
         config.addDataSourceProperty("maintainTimeStats", "false");
+        config.addDataSourceProperty("cacheServerConfiguration", "true");
+        config.addDataSourceProperty("elideSetAutoCommits", "true");
         
         /* Connection Cleanup Settings */
-        config.setAutoCommit(true);
-        config.setInitializationFailTimeout(1);
         config.setValidationTimeout(5000);
         config.addDataSourceProperty("useDisposableConnectionFacade", "true");
         config.addDataSourceProperty("closeConnectionWatch", "true");

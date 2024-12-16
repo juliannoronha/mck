@@ -41,13 +41,19 @@ public class AuditLogService {
      */
     @Transactional
     public void logEvent(String action, String category, String details) {
-        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
-        
-        AuditLog auditLog = new AuditLog(action, currentUser, category, details);
-        auditLogRepository.save(auditLog);
-        
-        logger.info("Audit log created: action={}, user={}, category={}", 
-                   action, currentUser, category);
+        logger.debug("Creating audit log entry: action={}, category={}", action, category);
+        try {
+            String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+            
+            AuditLog auditLog = new AuditLog(action, currentUser, category, details);
+            auditLogRepository.save(auditLog);
+            
+            logger.info("Audit log created successfully: action={}, user={}, category={}", 
+                       action, currentUser, category);
+        } catch (Exception e) {
+            logger.error("Failed to create audit log: action={}, category={}", action, category, e);
+            throw new RuntimeException("Failed to create audit log", e);
+        }
     }
 
     /**
@@ -59,9 +65,14 @@ public class AuditLogService {
      */
     @Transactional
     public void clearAllLogs() {
-        logger.info("Initiating complete audit log clearance");
-        auditLogRepository.deleteAll();
-        logger.info("Audit logs cleared successfully");
+        try {
+            logger.info("Initiating complete audit log clearance");
+            auditLogRepository.deleteAll();
+            logger.info("Audit logs cleared successfully");
+        } catch (Exception e) {
+            logger.error("Failed to clear audit logs", e);
+            throw new RuntimeException("Failed to clear audit logs", e);
+        }
     }
 
     /* --------------------------------------------------------------------------
