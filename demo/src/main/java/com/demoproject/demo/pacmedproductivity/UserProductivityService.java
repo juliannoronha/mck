@@ -24,9 +24,13 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.caffeine.CaffeineCache;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -50,17 +54,20 @@ public class UserProductivityService {
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
     public static final long SSE_TIMEOUT = 300000L; // 5 minutes
     private final TransactionTemplate transactionTemplate;
+    private final CacheManager cacheManager;
 
     /**
      * Service constructor
      * @param pacRepository Data access for PAC records
      * @param objectMapper JSON serialization
      * @param transactionManager Transaction manager
+     * @param cacheManager Cache manager
      */
-    public UserProductivityService(PacRepository pacRepository, ObjectMapper objectMapper, PlatformTransactionManager transactionManager) {
+    public UserProductivityService(PacRepository pacRepository, ObjectMapper objectMapper, PlatformTransactionManager transactionManager, CacheManager cacheManager) {
         this.pacRepository = pacRepository;
         this.objectMapper = objectMapper;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.cacheManager = cacheManager;
     }
 
     /* -----------------------------------------------------------------------------
@@ -147,7 +154,7 @@ public class UserProductivityService {
     }
 
     /* -----------------------------------------------------------------------------
-     * Productivity Data Access
+     * Productivity Data Access with Caching
      * -------------------------------------------------------------------------- */
 
     /**
@@ -157,9 +164,9 @@ public class UserProductivityService {
      * @returns Page of productivity DTOs
      * @note Results are cached by page/size
      */
-    @Cacheable(value = "allUserProductivity", key = "#page + '-' + #size")
+    @Cacheable(value = "allUserProductivity", key = "#page + '-' + #size", unless = "#result.isEmpty()")
     public Page<UserProductivityDTO> getAllUserProductivity(int page, int size) {
-        logger.info("Fetching all user productivity data for page {} with size {}", page, size);
+        logger.info("Cache miss - Fetching all user productivity data for page {} with size {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
         return pacRepository.getUserProductivityDataPaginated(pageable)
             .map(this::mapToUserProductivityDTO);
@@ -169,7 +176,9 @@ public class UserProductivityService {
      * Calculates overall productivity metrics
      * @returns Aggregated productivity DTO
      */
+    @Cacheable(value = "overallProductivity", unless = "#result == null")
     public UserProductivityDTO getOverallProductivity() {
+        logger.info("Cache miss - Calculating overall productivity metrics");
         List<Pac> allPacs = pacRepository.findAll();
         List<UserProductivityDTO> allProductivity = allPacs.stream()
             .collect(Collectors.groupingBy(pac -> pac.getUser().getUsername()))
@@ -321,11 +330,12 @@ public class UserProductivityService {
      * @param username Target username
      * @returns Map of productivity metrics
      */
+    @Cacheable(value = "userProductivity", key = "#username", unless = "#result == null", condition = "#username != null")
     public Map<String, Object> getUserProductivity(String username) {
+        logger.info("Cache miss - Fetching productivity metrics for user: {}", username);
         try {
             Object[] result = pacRepository.getUserProductivityMetrics(username);
             
-            // Calculate metrics
             long totalSubmissions = ((Number) result[0]).longValue();
             long totalPouchesChecked = ((Number) result[1]).longValue();
             double totalSeconds = ((Number) result[2]).doubleValue();
@@ -352,9 +362,43 @@ public class UserProductivityService {
     /**
      * Updates productivity and invalidates cache
      */
-    @CacheEvict(value = "allUserProductivity", allEntries = true)
+    @CacheEvict(value = {"allUserProductivity", "userProductivity", "overallProductivity"}, allEntries = true)
     public void updateUserProductivity() {
-        logger.info("Updating user productivity and evicting cache");
+        logger.info("Updating user productivity and evicting all caches");
+    }
+
+    @Scheduled(fixedRate = 3600000) // Every hour
+    @CacheEvict(value = {"allUserProductivity", "userProductivity", "overallProductivity"}, allEntries = true)
+    public void evictCaches() {
+        logger.info("Scheduled cache eviction executed");
+    }
+
+    public void clearSpecificUserCache(String username) {
+        Cache cache = cacheManager.getCache("userProductivity");
+        if (cache != null) {
+            cache.evict(username);
+            logger.info("Evicted cache for user: {}", username);
+        }
+    }
+
+    /* -----------------------------------------------------------------------------
+     * Cache Monitoring
+     * -------------------------------------------------------------------------- */
+
+    public Map<String, Object> getCacheStatistics() {
+        Map<String, Object> stats = new HashMap<>();
+        
+        Arrays.asList("allUserProductivity", "userProductivity", "overallProductivity")
+            .forEach(cacheName -> {
+                Cache cache = cacheManager.getCache(cacheName);
+                if (cache instanceof CaffeineCache) {
+                    com.github.benmanes.caffeine.cache.Cache<Object, Object> nativeCache = 
+                        ((CaffeineCache) cache).getNativeCache();
+                    stats.put(cacheName, nativeCache.stats());
+                }
+            });
+        
+        return stats;
     }
 
     /* -----------------------------------------------------------------------------
@@ -374,6 +418,15 @@ public class UserProductivityService {
      */
     @PreDestroy
     public void cleanup() {
+        // Clear all caches before shutdown
+        Arrays.asList("allUserProductivity", "userProductivity", "overallProductivity")
+            .forEach(cacheName -> {
+                Cache cache = cacheManager.getCache(cacheName);
+                if (cache != null) {
+                    cache.clear();
+                }
+            });
+
         emitters.forEach(emitter -> {
             try {
                 emitter.complete();
