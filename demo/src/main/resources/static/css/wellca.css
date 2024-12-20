@@ -193,9 +193,15 @@ h3 {
  * 6. Form Styles
  * -------------------------------------------------------------------------- */
 .data-form {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-lg);
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: var(--container-bg);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+}
+
+.data-form .form-group {
+    margin-bottom: 1rem;
 }
 
 /* Form Groups */
@@ -916,4 +922,67 @@ h3 {
 
 .loading {
     animation: pulse 1.5s infinite;
+}
+
+/* Message Bubble Styles */
+.message-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.message-bubble {
+    padding: 16px 24px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    animation: slideIn 0.3s ease-out forwards;
+    max-width: 300px;
+}
+
+.success-bubble {
+    background-color: #2a2a2a;
+    border-left: 4px solid var(--primary-color);
+    color: var(--text-color);
+}
+
+.error-bubble {
+    background-color: #2a2a2a;
+    border-left: 4px solid #dc3545;
+    color: var(--text-color);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* Prevent form interference */
+#rxSalesForm {
+    display: block;
+    clear: both;
+}
+
+/* Active form section highlight */
+.data-form:focus-within {
+    box-shadow: var(--shadow-md);
+    border-left: 3px solid var(--primary-color);
 }

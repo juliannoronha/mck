@@ -5,7 +5,16 @@
  * for the Wellca management system
  * ============================================================================= */
 
+let messageContainer;
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Create message container if it doesn't exist
+    if (!messageContainer) {
+        messageContainer = document.createElement('div');
+        messageContainer.className = 'message-container';
+        document.body.appendChild(messageContainer);
+    }
+    
     // Initialize tab functionality
     initializeTabs();
     
@@ -14,6 +23,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup form submissions and calculations
     setupFormHandlers();
+    
+    // Setup delivery form submission
+    setupDeliveryForm();
+    setupRxSalesForm();
 });
 
 /* ------------------------------------------------------------------------- 
@@ -262,11 +275,9 @@ async function submitForm(formData) {
         const data = await response.json();
         console.log('Submission successful:', data);
         
-        showSuccessMessage('Data saved successfully');
         return data;
     } catch (error) {
         console.error('Error submitting form:', error);
-        showErrorMessage(`Error: ${error.message}`);
         throw error;
     }
 }
@@ -398,4 +409,116 @@ function updateReportDisplay(data) {
         console.error('Error updating report display:', error);
         showErrorMessage('Error updating report display');
     }
+}
+
+function setupDeliveryForm() {
+    const deliveryForm = document.getElementById('deliveryForm');
+    if (deliveryForm) {
+        deliveryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('Submitting delivery form...');
+
+            const dateInput = document.getElementById('date');
+            if (!dateInput.value) {
+                showMessage('Please select a date', 'error');
+                return;
+            }
+
+            const formData = {
+                date: dateInput.value,
+                purolator: parseInt(document.getElementById('purolator').value) || 0,
+                fedex: parseInt(document.getElementById('fedex').value) || 0,
+                oneCourier: parseInt(document.getElementById('oneCourier').value) || 0,
+                goBolt: parseInt(document.getElementById('goBolt').value) || 0
+            };
+
+            try {
+                const response = await submitForm(formData);
+                console.log('Delivery submission response:', response);
+                showMessage('Successfully Submitted!');
+                
+                // Optionally reset the form
+                deliveryForm.reset();
+            } catch (error) {
+                console.error('Error submitting delivery data:', error);
+                showMessage(error.message, 'error');
+            }
+        });
+    }
+}
+
+function setupRxSalesForm() {
+    const rxSalesForm = document.getElementById('rxSalesForm');
+    if (rxSalesForm) {
+        rxSalesForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('Submitting RX Sales form...');
+
+            // Use the common date input from the page
+            const dateInput = document.getElementById('date');
+            if (!dateInput.value) {
+                showMessage('Please select a date', 'error');
+                return;
+            }
+
+            const formData = {
+                date: dateInput.value,
+                // Use the existing input IDs from your HTML
+                newRx: parseInt(document.getElementById('newRx').value) || 0,
+                refill: parseInt(document.getElementById('refill').value) || 0,
+                reAuth: parseInt(document.getElementById('reAuth').value) || 0,
+                hold: parseInt(document.getElementById('hold').value) || 0,
+                // Set other fields to 0 to maintain data consistency
+                purolator: 0,
+                fedex: 0,
+                oneCourier: 0,
+                goBolt: 0
+            };
+
+            console.log('RX Sales form data:', formData);
+
+            try {
+                const response = await submitForm(formData);
+                console.log('RX Sales submission response:', response);
+                showMessage('Successfully Submitted!');
+                
+                // Calculate and update totals
+                const totalFilled = formData.newRx + formData.refill + formData.reAuth;
+                const totalEntered = totalFilled + formData.hold;
+                
+                // Update the display totals if they exist
+                if (document.getElementById('totalFilled')) {
+                    document.getElementById('totalFilled').textContent = totalFilled;
+                }
+                if (document.getElementById('totalEntered')) {
+                    document.getElementById('totalEntered').textContent = totalEntered;
+                }
+                if (document.getElementById('totalPerHour')) {
+                    // Assuming 8-hour workday, adjust as needed
+                    document.getElementById('totalPerHour').textContent = (totalEntered / 8).toFixed(2);
+                }
+            } catch (error) {
+                console.error('Error submitting RX Sales data:', error);
+                showMessage('Failed to save RX Sales data: ' + error.message, 'error');
+            }
+        });
+    } else {
+        console.error('RX Sales form not found in DOM');
+    }
+}
+
+function showMessage(message, type = 'success') {
+    const bubble = document.createElement('div');
+    bubble.className = `message-bubble ${type}-bubble`;
+    bubble.textContent = message;
+
+    messageContainer.appendChild(bubble);
+
+    // Remove the message after 3 seconds
+    setTimeout(() => {
+        bubble.style.animation = 'fadeOut 0.3s ease-out forwards';
+        setTimeout(() => {
+            messageContainer.removeChild(bubble);
+        }, 300);
+    }, 3000);
 }

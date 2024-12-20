@@ -46,30 +46,44 @@ public class WellcaController {
      */
     @PostMapping("/submit")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    @Transactional(readOnly = false)
+    @Transactional
     public ResponseEntity<?> submitEntry(@Valid @RequestBody WellcaDTO wellcaDTO, 
                                        BindingResult bindingResult) {
+        logger.info("=== Starting Data Submission ===");
         logger.info("Received submission request for date: {}", wellcaDTO.getDate());
         
-        if (bindingResult.hasErrors()) {
-            logger.error("Validation errors: {}", bindingResult.getAllErrors());
-            return ResponseEntity.badRequest()
-                .body(bindingResult.getAllErrors());
-        }
-
         try {
-            logger.debug("Converting DTO to entity: {}", wellcaDTO);
+            if (bindingResult.hasErrors()) {
+                logger.error("Validation errors: {}", bindingResult.getAllErrors());
+                return ResponseEntity.badRequest()
+                    .body(bindingResult.getAllErrors());
+            }
+
+            logger.debug("Converting DTO to entity");
             Wellca entity = convertToEntity(wellcaDTO);
             
+            if (entity.getDate() == null) {
+                logger.error("Date is null after conversion");
+                return ResponseEntity.badRequest()
+                    .body("Date cannot be null");
+            }
+
+            // Log RX Sales specific validation
+            if (entity.getTotalFilled() < 0) {
+                logger.error("Invalid total filled RX count: {}", entity.getTotalFilled());
+                return ResponseEntity.badRequest()
+                    .body("Total filled RX count cannot be negative");
+            }
+
             logger.debug("Saving entity to database");
             Wellca savedEntry = wellcaService.saveEntry(entity);
             
             logger.info("Successfully saved entry for date: {}", savedEntry.getDate());
+            logger.info("RX Sales Summary - Total Filled: {}, Total Entered: {}", 
+                savedEntry.getTotalFilled(), savedEntry.getTotalEntered());
+            logger.info("=== Completed Data Submission ===");
+            
             return ResponseEntity.ok(convertToDTO(savedEntry));
-        } catch (DataAccessException e) {
-            logger.error("Database error while saving Wellca entry: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError()
-                .body("Database error: " + e.getMessage());
         } catch (Exception e) {
             logger.error("Error saving Wellca entry: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
@@ -179,30 +193,67 @@ public class WellcaController {
             throw new IllegalArgumentException("DTO cannot be null");
         }
 
-        // Delivery Tracking Validation and Logging
-        logger.info("Processing Delivery Tracking data for date: {}", dto.getDate());
-        logger.debug("Delivery counts - Purolator: {}, FedEx: {}, OneCourier: {}, GoBolt: {}", 
-            dto.getPurolator(), dto.getFedex(), dto.getOneCourier(), dto.getGoBolt());
-
-        // Validate delivery counts
-        if (dto.getPurolator() != null && dto.getPurolator() < 0) {
-            logger.error("Invalid Purolator count: {}", dto.getPurolator());
-            throw new IllegalArgumentException("Purolator count cannot be negative");
+        // Validate date first
+        if (dto.getDate() == null) {
+            logger.error("Date is null in DTO");
+            throw new IllegalArgumentException("Date cannot be null");
         }
-        // Similar validation for other delivery services...
 
         Wellca entity = new Wellca();
         
+        // Set the ID and date first
+        entity.setId(dto.getId());
+        entity.setDate(dto.getDate());
+        
+        logger.info("Converting DTO with date: {}", dto.getDate());
+
+        // Delivery Tracking Validation and Logging (keeping existing logs)
+        logger.debug("Setting delivery data - Purolator: {}, FedEx: {}, OneCourier: {}, GoBolt: {}", 
+            dto.getPurolator(), dto.getFedex(), dto.getOneCourier(), dto.getGoBolt());
+
         // Set delivery tracking data with null checks
         entity.setPurolator(dto.getPurolator() != null ? dto.getPurolator() : 0);
         entity.setFedex(dto.getFedex() != null ? dto.getFedex() : 0);
         entity.setOneCourier(dto.getOneCourier() != null ? dto.getOneCourier() : 0);
         entity.setGoBolt(dto.getGoBolt() != null ? dto.getGoBolt() : 0);
 
-        int totalDeliveries = entity.getTotalDeliveries();
-        logger.info("Total deliveries calculated: {}", totalDeliveries);
-        
-        // Continue with other conversions...
+        // RX Sales Summary Validation and Logging
+        logger.info("Processing RX Sales data for date: {}", dto.getDate());
+        logger.debug("RX Sales counts - New: {}, Refill: {}, ReAuth: {}, Hold: {}", 
+            dto.getNewRx(), dto.getRefill(), dto.getReAuth(), dto.getHold());
+
+        // Validate RX counts
+        if (dto.getNewRx() != null && dto.getNewRx() < 0) {
+            logger.error("Invalid New RX count: {}", dto.getNewRx());
+            throw new IllegalArgumentException("New RX count cannot be negative");
+        }
+        if (dto.getRefill() != null && dto.getRefill() < 0) {
+            logger.error("Invalid Refill count: {}", dto.getRefill());
+            throw new IllegalArgumentException("Refill count cannot be negative");
+        }
+        if (dto.getReAuth() != null && dto.getReAuth() < 0) {
+            logger.error("Invalid ReAuth count: {}", dto.getReAuth());
+            throw new IllegalArgumentException("ReAuth count cannot be negative");
+        }
+        if (dto.getHold() != null && dto.getHold() < 0) {
+            logger.error("Invalid Hold count: {}", dto.getHold());
+            throw new IllegalArgumentException("Hold count cannot be negative");
+        }
+
+        // Set RX Sales data with null checks
+        entity.setNewRx(dto.getNewRx() != null ? dto.getNewRx() : 0);
+        entity.setRefill(dto.getRefill() != null ? dto.getRefill() : 0);
+        entity.setReAuth(dto.getReAuth() != null ? dto.getReAuth() : 0);
+        entity.setHold(dto.getHold() != null ? dto.getHold() : 0);
+
+        // Log RX totals
+        int totalFilled = entity.getTotalFilled();
+        int totalEntered = entity.getTotalEntered();
+        logger.info("Total RX filled: {}, Total RX entered: {}", totalFilled, totalEntered);
+        logger.debug("RX Sales breakdown - Filled: {}, Hold: {}", totalFilled, entity.getHold());
+
+        // Log the entity state before returning
+        logger.debug("Converted entity: {}", entity);
         return entity;
     }
 

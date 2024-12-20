@@ -16,23 +16,22 @@ public class WellcaDTO {
 
     private Long id;
 
-    /* Delivery Tracking (Counts) */
-    @NotNull(message = "Date is required")
+    @NotNull(message = "Date cannot be null")
     private LocalDate date;
 
-    @PositiveOrZero(message = "Purolator deliveries must be zero or positive")
+    @PositiveOrZero(message = "Purolator count must be zero or positive")
     @Max(value = 9999, message = "Number of deliveries cannot exceed 9999")
     private Integer purolator;
 
-    @PositiveOrZero(message = "FedEx deliveries must be zero or positive")
+    @PositiveOrZero(message = "FedEx count must be zero or positive")
     @Max(value = 9999, message = "Number of deliveries cannot exceed 9999")
     private Integer fedex;
 
-    @PositiveOrZero(message = "1Courier deliveries must be zero or positive")
+    @PositiveOrZero(message = "OneCourier count must be zero or positive")
     @Max(value = 9999, message = "Number of deliveries cannot exceed 9999")
     private Integer oneCourier;
 
-    @PositiveOrZero(message = "GoBolt deliveries must be zero or positive")
+    @PositiveOrZero(message = "GoBolt count must be zero or positive")
     @Max(value = 9999, message = "Number of deliveries cannot exceed 9999")
     private Integer goBolt;
 
