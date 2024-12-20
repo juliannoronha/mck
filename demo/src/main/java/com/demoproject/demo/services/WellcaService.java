@@ -119,4 +119,18 @@ public class WellcaService {
         logger.debug("Deleting Wellca entry with ID: {}", id);
         wellcaRepository.deleteById(id);
     }
+
+    /**
+     * Get monthly delivery counts
+     * @param yearMonth Year and month for the report
+     * @return Monthly delivery statistics
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getMonthlyDeliveryCounts(LocalDate yearMonth) {
+        LocalDate startDate = yearMonth.withDayOfMonth(1);
+        LocalDate endDate = yearMonth.withDayOfMonth(yearMonth.lengthOfMonth());
+        
+        logger.debug("Fetching monthly delivery counts for period: {} to {}", startDate, endDate);
+        return wellcaRepository.getMonthlyDeliveryCounts(startDate, endDate);
+    }
 }
