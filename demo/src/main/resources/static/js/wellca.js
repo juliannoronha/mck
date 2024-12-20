@@ -508,26 +508,31 @@ function setupDeliveryForm() {
 
             console.log('Submitting delivery form...');
 
-            const dateInput = document.getElementById('date');
-            if (!dateInput.value) {
-                showMessage('Please select a date', 'error');
-                return;
-            }
-
             const formData = {
-                date: dateInput.value,
+                date: document.getElementById('date').value,
+                // Delivery data
                 purolator: parseInt(document.getElementById('purolator').value) || 0,
                 fedex: parseInt(document.getElementById('fedex').value) || 0,
                 oneCourier: parseInt(document.getElementById('oneCourier').value) || 0,
-                goBolt: parseInt(document.getElementById('goBolt').value) || 0
+                goBolt: parseInt(document.getElementById('goBolt').value) || 0,
+                // Initialize other fields to 0 or null
+                newRx: 0,
+                refill: 0,
+                reAuth: 0,
+                hold: 0,
+                profilesEntered: 0,
+                whoFilledRx: 0,
+                activePercentage: 0,
+                serviceType: null,
+                serviceCost: 0
             };
 
             try {
                 const response = await submitForm(formData);
                 console.log('Delivery submission response:', response);
                 showMessage('Successfully Submitted!');
-                
-                // Optionally reset the form
+
+                // Reset the form after successful submission
                 clonedForm.reset();
 
                 if (submitButton) {
@@ -535,9 +540,15 @@ function setupDeliveryForm() {
                 }
             } catch (error) {
                 console.error('Error submitting delivery data:', error);
-                showMessage(error.message, 'error');
+                showMessage('Failed to save delivery data: ' + error.message, 'error');
+                
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
             }
         });
+    } else {
+        console.error('Delivery form not found in DOM');
     }
 }
 

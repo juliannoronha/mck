@@ -201,121 +201,43 @@ public class WellcaController {
         }
 
         Wellca entity = new Wellca();
-        
-        // Set the ID and date first
         entity.setId(dto.getId());
         entity.setDate(dto.getDate());
         
-        logger.info("Converting DTO with date: {}", dto.getDate());
+        // Determine submission type based on non-zero values
+        boolean isDeliverySubmission = dto.getPurolator() > 0 || dto.getFedex() > 0 || 
+                                      dto.getOneCourier() > 0 || dto.getGoBolt() > 0;
+        boolean isRxSubmission = dto.getNewRx() > 0 || dto.getRefill() > 0 || 
+                                dto.getReAuth() > 0 || dto.getHold() > 0;
+        boolean isProfileSubmission = dto.getProfilesEntered() > 0 || dto.getWhoFilledRx() > 0;
+        boolean isServiceSubmission = dto.getServiceType() != null && dto.getServiceCost() != null;
 
-        // Delivery Tracking Validation and Logging (keeping existing logs)
-        logger.debug("Setting delivery data - Purolator: {}, FedEx: {}, OneCourier: {}, GoBolt: {}", 
-            dto.getPurolator(), dto.getFedex(), dto.getOneCourier(), dto.getGoBolt());
-
-        // Set delivery tracking data with null checks
-        entity.setPurolator(dto.getPurolator() != null ? dto.getPurolator() : 0);
-        entity.setFedex(dto.getFedex() != null ? dto.getFedex() : 0);
-        entity.setOneCourier(dto.getOneCourier() != null ? dto.getOneCourier() : 0);
-        entity.setGoBolt(dto.getGoBolt() != null ? dto.getGoBolt() : 0);
-
-        // RX Sales Summary Validation and Logging
-        logger.info("Processing RX Sales data for date: {}", dto.getDate());
-        logger.debug("RX Sales counts - New: {}, Refill: {}, ReAuth: {}, Hold: {}", 
-            dto.getNewRx(), dto.getRefill(), dto.getReAuth(), dto.getHold());
-
-        // Validate RX counts
-        if (dto.getNewRx() != null && dto.getNewRx() < 0) {
-            logger.error("Invalid New RX count: {}", dto.getNewRx());
-            throw new IllegalArgumentException("New RX count cannot be negative");
-        }
-        if (dto.getRefill() != null && dto.getRefill() < 0) {
-            logger.error("Invalid Refill count: {}", dto.getRefill());
-            throw new IllegalArgumentException("Refill count cannot be negative");
-        }
-        if (dto.getReAuth() != null && dto.getReAuth() < 0) {
-            logger.error("Invalid ReAuth count: {}", dto.getReAuth());
-            throw new IllegalArgumentException("ReAuth count cannot be negative");
-        }
-        if (dto.getHold() != null && dto.getHold() < 0) {
-            logger.error("Invalid Hold count: {}", dto.getHold());
-            throw new IllegalArgumentException("Hold count cannot be negative");
-        }
-
-        // Set RX Sales data with null checks
-        entity.setNewRx(dto.getNewRx() != null ? dto.getNewRx() : 0);
-        entity.setRefill(dto.getRefill() != null ? dto.getRefill() : 0);
-        entity.setReAuth(dto.getReAuth() != null ? dto.getReAuth() : 0);
-        entity.setHold(dto.getHold() != null ? dto.getHold() : 0);
-
-        // Log RX totals
-        int totalFilled = entity.getTotalFilled();
-        int totalEntered = entity.getTotalEntered();
-        logger.info("Total RX filled: {}, Total RX entered: {}", totalFilled, totalEntered);
-        logger.debug("RX Sales breakdown - Filled: {}, Hold: {}", totalFilled, entity.getHold());
-
-        // Weekly Profiles Validation and Logging
-        logger.info("Processing Weekly Profiles data for date: {}", dto.getDate());
-        logger.debug("Profile data - Profiles Entered: {}, Who Filled RX: {}, Active Percentage: {}", 
-            dto.getProfilesEntered(), dto.getWhoFilledRx(), dto.getActivePercentage());
-
-        // Validate Weekly Profiles data
-        if (dto.getProfilesEntered() != null && dto.getProfilesEntered() < 0) {
-            logger.error("Invalid Profiles Entered count: {}", dto.getProfilesEntered());
-            throw new IllegalArgumentException("Profiles Entered count cannot be negative");
-        }
-        if (dto.getWhoFilledRx() != null && dto.getWhoFilledRx() < 0) {
-            logger.error("Invalid Who Filled RX count: {}", dto.getWhoFilledRx());
-            throw new IllegalArgumentException("Who Filled RX count cannot be negative");
-        }
-        if (dto.getActivePercentage() != null) {
-            BigDecimal zero = BigDecimal.ZERO;
-            BigDecimal hundred = new BigDecimal("100");
-            if (dto.getActivePercentage().compareTo(zero) < 0 || 
-                dto.getActivePercentage().compareTo(hundred) > 0) {
-                logger.error("Invalid Active Percentage: {}", dto.getActivePercentage());
-                throw new IllegalArgumentException("Active Percentage must be between 0 and 100");
+        // Only validate ServiceType if it's a service submission
+        if (isServiceSubmission) {
+            if (dto.getServiceType() == null) {
+                logger.error("Invalid Service Type: null for service submission");
+                throw new IllegalArgumentException("Service Type cannot be null for service submission");
             }
+        } else {
+            // For non-service submissions, set default values
+            entity.setServiceType(null);
+            entity.setServiceCost(BigDecimal.ZERO);
         }
 
-        // Set Weekly Profiles data with null checks
-        entity.setProfilesEntered(dto.getProfilesEntered() != null ? dto.getProfilesEntered() : 0);
-        entity.setWhoFilledRx(dto.getWhoFilledRx() != null ? dto.getWhoFilledRx() : 0);
+        // Set all other fields as normal
+        entity.setPurolator(dto.getPurolator());
+        entity.setFedex(dto.getFedex());
+        entity.setOneCourier(dto.getOneCourier());
+        entity.setGoBolt(dto.getGoBolt());
+        entity.setNewRx(dto.getNewRx());
+        entity.setRefill(dto.getRefill());
+        entity.setReAuth(dto.getReAuth());
+        entity.setHold(dto.getHold());
+        entity.setProfilesEntered(dto.getProfilesEntered());
+        entity.setWhoFilledRx(dto.getWhoFilledRx());
         entity.setActivePercentage(dto.getActivePercentage() != null ? 
             dto.getActivePercentage() : BigDecimal.ZERO);
 
-        // Log Weekly Profiles calculations
-        logger.info("Weekly Profiles - Total Profiles: {}, Active Percentage: {}%", 
-            entity.getProfilesEntered(), entity.getActivePercentage());
-
-        // Professional Services Validation and Logging
-        logger.info("Processing Professional Services data for date: {}", dto.getDate());
-        logger.debug("Service data - Type: {}, Cost: {}", 
-            dto.getServiceType(), dto.getServiceCost());
-
-        // Validate Professional Services data
-        if (dto.getServiceType() == null) {
-            logger.error("Invalid Service Type: null");
-            throw new IllegalArgumentException("Service Type cannot be null");
-        }
-
-        if (dto.getServiceCost() != null) {
-            BigDecimal zero = BigDecimal.ZERO;
-            if (dto.getServiceCost().compareTo(zero) < 0) {
-                logger.error("Invalid Service Cost: {}", dto.getServiceCost());
-                throw new IllegalArgumentException("Service Cost cannot be negative");
-            }
-        }
-
-        // Set Professional Services data with null checks
-        entity.setServiceType(dto.getServiceType());
-        entity.setServiceCost(dto.getServiceCost() != null ? 
-            dto.getServiceCost() : BigDecimal.ZERO);
-
-        // Log Professional Services calculations
-        logger.info("Professional Services - Type: {}, Cost: ${}", 
-            entity.getServiceType(), entity.getServiceCost());
-
-        // Log the complete entity state
         logger.debug("Converted entity: {}", entity);
         return entity;
     }
