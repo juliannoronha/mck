@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup delivery form submission
     setupDeliveryForm();
     setupRxSalesForm();
+    setupProfilesForm();
+    setupServicesForm();
 });
 
 /* ------------------------------------------------------------------------- 
@@ -145,7 +147,84 @@ function calculateActivePercentage() {
 function setupServicesForm() {
     const servicesForm = document.getElementById('servicesForm');
     if (servicesForm) {
-        servicesForm.addEventListener('submit', handleServiceSubmission);
+        // Remove any existing event listeners to prevent double submissions
+        const clonedForm = servicesForm.cloneNode(true);
+        servicesForm.parentNode.replaceChild(clonedForm, servicesForm);
+        
+        clonedForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent default form submission
+            e.stopPropagation(); // Stop event bubbling
+            
+            // Disable submit button to prevent double clicks
+            const submitButton = clonedForm.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
+
+            console.log('Submitting Professional Services form...');
+
+            try {
+                // Get form values
+                const serviceType = document.getElementById('serviceType').value;
+                const serviceCost = parseFloat(document.getElementById('serviceCost').value) || 0;
+
+                if (!serviceType.trim()) {
+                    showMessage('Please enter a service type', 'error');
+                    return;
+                }
+
+                const formData = {
+                    date: document.getElementById('date').value,
+                    // Professional Services data
+                    serviceType: serviceType,
+                    serviceCost: serviceCost,
+                    // Initialize other fields to 0
+                    purolator: 0,
+                    fedex: 0,
+                    oneCourier: 0,
+                    goBolt: 0,
+                    newRx: 0,
+                    refill: 0,
+                    reAuth: 0,
+                    hold: 0,
+                    profilesEntered: 0,
+                    whoFilledRx: 0,
+                    activePercentage: 0
+                };
+
+                console.log('Professional Services form data:', formData);
+
+                const response = await submitForm(formData);
+                console.log('Professional Services submission response:', response);
+                showMessage('Successfully Submitted!');
+
+                // Update services summary if elements exist
+                if (document.getElementById('totalServices')) {
+                    const currentTotal = parseFloat(document.getElementById('totalServices').textContent) || 0;
+                    document.getElementById('totalServices').textContent = 
+                        (currentTotal + serviceCost).toFixed(2);
+                }
+
+                // Re-enable submit button after successful submission
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+                
+                // Reset the form after successful submission
+                clonedForm.reset();
+
+            } catch (error) {
+                console.error('Error submitting Professional Services data:', error);
+                showMessage('Failed to save Professional Services data: ' + error.message, 'error');
+                
+                // Re-enable submit button on error
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+            }
+        });
+    } else {
+        console.error('Services form not found in DOM');
     }
 }
 
@@ -414,8 +493,19 @@ function updateReportDisplay(data) {
 function setupDeliveryForm() {
     const deliveryForm = document.getElementById('deliveryForm');
     if (deliveryForm) {
-        deliveryForm.addEventListener('submit', async (e) => {
+        // Remove any existing event listeners
+        const clonedForm = deliveryForm.cloneNode(true);
+        deliveryForm.parentNode.replaceChild(clonedForm, deliveryForm);
+        
+        clonedForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            e.stopPropagation();
+            
+            const submitButton = clonedForm.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
+
             console.log('Submitting delivery form...');
 
             const dateInput = document.getElementById('date');
@@ -438,7 +528,11 @@ function setupDeliveryForm() {
                 showMessage('Successfully Submitted!');
                 
                 // Optionally reset the form
-                deliveryForm.reset();
+                clonedForm.reset();
+
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
             } catch (error) {
                 console.error('Error submitting delivery data:', error);
                 showMessage(error.message, 'error');
@@ -450,29 +544,38 @@ function setupDeliveryForm() {
 function setupRxSalesForm() {
     const rxSalesForm = document.getElementById('rxSalesForm');
     if (rxSalesForm) {
-        rxSalesForm.addEventListener('submit', async (e) => {
+        // Remove any existing event listeners
+        const clonedForm = rxSalesForm.cloneNode(true);
+        rxSalesForm.parentNode.replaceChild(clonedForm, rxSalesForm);
+        
+        clonedForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log('Submitting RX Sales form...');
-
-            // Use the common date input from the page
-            const dateInput = document.getElementById('date');
-            if (!dateInput.value) {
-                showMessage('Please select a date', 'error');
-                return;
+            e.stopPropagation();
+            
+            const submitButton = clonedForm.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
             }
 
+            console.log('Submitting RX Sales form...');
+
             const formData = {
-                date: dateInput.value,
-                // Use the existing input IDs from your HTML
+                date: document.getElementById('date').value,
+                // RX Sales data
                 newRx: parseInt(document.getElementById('newRx').value) || 0,
                 refill: parseInt(document.getElementById('refill').value) || 0,
                 reAuth: parseInt(document.getElementById('reAuth').value) || 0,
                 hold: parseInt(document.getElementById('hold').value) || 0,
-                // Set other fields to 0 to maintain data consistency
+                // Initialize other category fields to 0
                 purolator: 0,
                 fedex: 0,
                 oneCourier: 0,
-                goBolt: 0
+                goBolt: 0,
+                profilesEntered: 0,
+                whoFilledRx: 0,
+                activePercentage: 0,
+                serviceType: null,
+                serviceCost: 0
             };
 
             console.log('RX Sales form data:', formData);
@@ -486,7 +589,7 @@ function setupRxSalesForm() {
                 const totalFilled = formData.newRx + formData.refill + formData.reAuth;
                 const totalEntered = totalFilled + formData.hold;
                 
-                // Update the display totals if they exist
+                // Update the display totals
                 if (document.getElementById('totalFilled')) {
                     document.getElementById('totalFilled').textContent = totalFilled;
                 }
@@ -494,9 +597,16 @@ function setupRxSalesForm() {
                     document.getElementById('totalEntered').textContent = totalEntered;
                 }
                 if (document.getElementById('totalPerHour')) {
-                    // Assuming 8-hour workday, adjust as needed
                     document.getElementById('totalPerHour').textContent = (totalEntered / 8).toFixed(2);
                 }
+
+                // Reset the form after successful submission
+                clonedForm.reset();
+                
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+
             } catch (error) {
                 console.error('Error submitting RX Sales data:', error);
                 showMessage('Failed to save RX Sales data: ' + error.message, 'error');
@@ -504,6 +614,86 @@ function setupRxSalesForm() {
         });
     } else {
         console.error('RX Sales form not found in DOM');
+    }
+}
+
+function setupProfilesForm() {
+    const profilesForm = document.getElementById('profilesForm');
+    if (profilesForm) {
+        // Remove any existing event listeners
+        const clonedForm = profilesForm.cloneNode(true);
+        profilesForm.parentNode.replaceChild(clonedForm, profilesForm);
+        
+        clonedForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const submitButton = clonedForm.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
+
+            console.log('Submitting Weekly Profiles form...');
+
+            // Validate inputs
+            const profilesEntered = parseInt(document.getElementById('profilesEntered').value) || 0;
+            const whoFilledRx = parseInt(document.getElementById('whoFilledRx').value) || 0;
+            let activePercentage = parseFloat(document.getElementById('activePercentage').value) || 0;
+
+            // Calculate active percentage if not manually entered
+            if (activePercentage === 0 && profilesEntered > 0) {
+                activePercentage = (whoFilledRx / profilesEntered) * 100;
+            }
+
+            const formData = {
+                date: document.getElementById('date').value,
+                // Weekly Profiles data
+                profilesEntered: profilesEntered,
+                whoFilledRx: whoFilledRx,
+                activePercentage: activePercentage,
+                // Initialize other fields to 0
+                purolator: 0,
+                fedex: 0,
+                oneCourier: 0,
+                goBolt: 0,
+                newRx: 0,
+                refill: 0,
+                reAuth: 0,
+                hold: 0,
+                serviceType: null,
+                serviceCost: 0
+            };
+
+            console.log('Weekly Profiles form data:', formData);
+
+            try {
+                const response = await submitForm(formData);
+                console.log('Weekly Profiles submission response:', response);
+                showMessage('Successfully Submitted!');
+
+                // Update weekly summary
+                if (document.getElementById('weeklyTotalProfiles')) {
+                    document.getElementById('weeklyTotalProfiles').textContent = profilesEntered;
+                }
+                if (document.getElementById('weeklyAverageActive')) {
+                    document.getElementById('weeklyAverageActive').textContent = 
+                        `${activePercentage.toFixed(2)}%`;
+                }
+
+                // Reset the form after successful submission
+                clonedForm.reset();
+
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+
+            } catch (error) {
+                console.error('Error submitting Weekly Profiles data:', error);
+                showMessage('Failed to save Weekly Profiles data: ' + error.message, 'error');
+            }
+        });
+    } else {
+        console.error('Profiles form not found in DOM');
     }
 }
 

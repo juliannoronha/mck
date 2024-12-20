@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.math.BigDecimal;
 
 @Controller
 @RequestMapping("/wellca-management")
@@ -252,7 +253,69 @@ public class WellcaController {
         logger.info("Total RX filled: {}, Total RX entered: {}", totalFilled, totalEntered);
         logger.debug("RX Sales breakdown - Filled: {}, Hold: {}", totalFilled, entity.getHold());
 
-        // Log the entity state before returning
+        // Weekly Profiles Validation and Logging
+        logger.info("Processing Weekly Profiles data for date: {}", dto.getDate());
+        logger.debug("Profile data - Profiles Entered: {}, Who Filled RX: {}, Active Percentage: {}", 
+            dto.getProfilesEntered(), dto.getWhoFilledRx(), dto.getActivePercentage());
+
+        // Validate Weekly Profiles data
+        if (dto.getProfilesEntered() != null && dto.getProfilesEntered() < 0) {
+            logger.error("Invalid Profiles Entered count: {}", dto.getProfilesEntered());
+            throw new IllegalArgumentException("Profiles Entered count cannot be negative");
+        }
+        if (dto.getWhoFilledRx() != null && dto.getWhoFilledRx() < 0) {
+            logger.error("Invalid Who Filled RX count: {}", dto.getWhoFilledRx());
+            throw new IllegalArgumentException("Who Filled RX count cannot be negative");
+        }
+        if (dto.getActivePercentage() != null) {
+            BigDecimal zero = BigDecimal.ZERO;
+            BigDecimal hundred = new BigDecimal("100");
+            if (dto.getActivePercentage().compareTo(zero) < 0 || 
+                dto.getActivePercentage().compareTo(hundred) > 0) {
+                logger.error("Invalid Active Percentage: {}", dto.getActivePercentage());
+                throw new IllegalArgumentException("Active Percentage must be between 0 and 100");
+            }
+        }
+
+        // Set Weekly Profiles data with null checks
+        entity.setProfilesEntered(dto.getProfilesEntered() != null ? dto.getProfilesEntered() : 0);
+        entity.setWhoFilledRx(dto.getWhoFilledRx() != null ? dto.getWhoFilledRx() : 0);
+        entity.setActivePercentage(dto.getActivePercentage() != null ? 
+            dto.getActivePercentage() : BigDecimal.ZERO);
+
+        // Log Weekly Profiles calculations
+        logger.info("Weekly Profiles - Total Profiles: {}, Active Percentage: {}%", 
+            entity.getProfilesEntered(), entity.getActivePercentage());
+
+        // Professional Services Validation and Logging
+        logger.info("Processing Professional Services data for date: {}", dto.getDate());
+        logger.debug("Service data - Type: {}, Cost: {}", 
+            dto.getServiceType(), dto.getServiceCost());
+
+        // Validate Professional Services data
+        if (dto.getServiceType() == null) {
+            logger.error("Invalid Service Type: null");
+            throw new IllegalArgumentException("Service Type cannot be null");
+        }
+
+        if (dto.getServiceCost() != null) {
+            BigDecimal zero = BigDecimal.ZERO;
+            if (dto.getServiceCost().compareTo(zero) < 0) {
+                logger.error("Invalid Service Cost: {}", dto.getServiceCost());
+                throw new IllegalArgumentException("Service Cost cannot be negative");
+            }
+        }
+
+        // Set Professional Services data with null checks
+        entity.setServiceType(dto.getServiceType());
+        entity.setServiceCost(dto.getServiceCost() != null ? 
+            dto.getServiceCost() : BigDecimal.ZERO);
+
+        // Log Professional Services calculations
+        logger.info("Professional Services - Type: {}, Cost: ${}", 
+            entity.getServiceType(), entity.getServiceCost());
+
+        // Log the complete entity state
         logger.debug("Converted entity: {}", entity);
         return entity;
     }
