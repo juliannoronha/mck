@@ -74,10 +74,14 @@ public class ServerConfig {
                 @Override
                 public void lifecycleEvent(LifecycleEvent event) {
                     if (Lifecycle.STOP_EVENT.equals(event.getType())) {
-                        try {
-                            ((Connector) event.getLifecycle()).destroy();
-                        } catch (LifecycleException e) {
-                            logger.error("Error during connector destruction", e);
+                        Connector connector = (Connector) event.getLifecycle();
+                        if (connector.getState().isAvailable()) {
+                            try {
+                                logger.info("Gracefully shutting down connector");
+                                connector.stop();
+                            } catch (LifecycleException e) {
+                                logger.warn("Error during connector shutdown", e);
+                            }
                         }
                     }
                 }
