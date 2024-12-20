@@ -4,10 +4,12 @@ import com.demoproject.demo.entity.Wellca;
 import com.demoproject.demo.repository.WellcaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.CacheEvict;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -15,12 +17,15 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
+@CacheConfig(cacheNames = {"wellcaData"})
 public class WellcaService {
     private static final Logger logger = LoggerFactory.getLogger(WellcaService.class);
     private final WellcaRepository wellcaRepository;
+    private final CacheManager cacheManager;
 
-    public WellcaService(WellcaRepository wellcaRepository) {
+    public WellcaService(WellcaRepository wellcaRepository, CacheManager cacheManager) {
         this.wellcaRepository = wellcaRepository;
+        this.cacheManager = cacheManager;
     }
 
     /**
@@ -29,7 +34,7 @@ public class WellcaService {
      * @return The saved entry
      */
     @Transactional
-    @CacheEvict(value = "wellcaData", allEntries = true)
+    @CacheEvict(value = {"wellcaRangeData", "wellcaData"}, allEntries = true)
     public Wellca saveEntry(Wellca wellca) {
         logger.debug("Saving Wellca entry for date: {}", wellca.getDate());
         
@@ -37,7 +42,23 @@ public class WellcaService {
             logger.info("Updating existing entry for date: {}", wellca.getDate());
         }
         
-        return wellcaRepository.save(wellca);
+        Wellca savedEntry = wellcaRepository.save(wellca);
+        logger.debug("Successfully saved entry with ID: {}", savedEntry.getId());
+        
+        // Clear all related caches
+        clearCaches();
+        
+        return savedEntry;
+    }
+
+    private void clearCaches() {
+        logger.debug("Clearing all Wellca related caches");
+        cacheManager.getCacheNames().stream()
+            .filter(name -> name.startsWith("wellca"))
+            .forEach(cacheName -> {
+                logger.debug("Clearing cache: {}", cacheName);
+                cacheManager.getCache(cacheName).clear();
+            });
     }
 
     /**
@@ -57,7 +78,7 @@ public class WellcaService {
      * @param endDate End of the range
      * @return List of entries
      */
-    @Cacheable(value = "wellcaRangeData", key = "#startDate + '-' + #endDate")
+    @Cacheable(value = "wellcaRangeData", key = "#startDate.toString() + '-' + #endDate.toString()")
     public List<Wellca> getEntriesInRange(LocalDate startDate, LocalDate endDate) {
         logger.debug("Fetching Wellca entries between {} and {}", startDate, endDate);
         return wellcaRepository.findByDateBetweenOrderByDateAsc(startDate, endDate);
