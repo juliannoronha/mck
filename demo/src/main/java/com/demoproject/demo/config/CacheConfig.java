@@ -33,7 +33,8 @@ public class CacheConfig {
             "allUserProductivity",
             "userProductivity",
             "overallProductivity",
-            "wellcaData"
+            "wellcaData",
+            "wellcaRangeData"
         ));
         
         logger.info("Cache Manager initialized with caches: {}", cacheManager.getCacheNames());
