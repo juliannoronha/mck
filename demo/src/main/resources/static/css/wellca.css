@@ -10,6 +10,7 @@
  * 6. Form Styles
  * 7. Responsive Design
  * 8. Table & Report Styles
+ * 9. Interactive Features & Animations
  * ============================================================================= */
 
 /* -----------------------------------------------------------------------------
@@ -598,7 +599,7 @@ h3 {
 /* Report Section */
 .report-section {
     margin-bottom: var(--spacing-xl);
-    background-color: white;
+    background-color: var(--container-bg);
     border-radius: 8px;
     box-shadow: var(--shadow-sm);
     overflow: hidden;
@@ -616,12 +617,14 @@ h3 {
     width: 100%;
     overflow-x: auto;
     margin-top: var(--spacing-md);
+    background-color: var(--container-bg);
 }
 
 .services-summary-table table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.95rem;
+    color: var(--text-color);
 }
 
 .services-summary-table th,
@@ -629,10 +632,11 @@ h3 {
     padding: var(--spacing-md);
     text-align: left;
     border-bottom: 1px solid var(--border-color);
+    color: var(--text-color);
 }
 
 .services-summary-table th {
-    background-color: var(--container-bg);
+    background-color: var(--background-color);
     font-weight: 600;
     color: var(--text-color);
     white-space: nowrap;
@@ -650,6 +654,7 @@ h3 {
 
 .services-summary-table tfoot td {
     border-top: 2px solid var(--border-color);
+    color: var(--primary-color);
 }
 
 /* Stats Grid */
@@ -766,4 +771,149 @@ h3 {
         flex-direction: column;
         align-items: stretch;
     }
+}
+
+/* -----------------------------------------------------------------------------
+ * 9. Interactive Features & Animations
+ * -------------------------------------------------------------------------- */
+
+/* Card Hover Effects */
+.stats-card {
+    transition: transform var(--transition-speed) var(--transition-timing),
+                box-shadow var(--transition-speed) var(--transition-timing);
+}
+
+.stats-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Input Focus Effects */
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(183, 213, 140, 0.2); /* Using primary color with opacity */
+    transform: scale(1.01);
+}
+
+/* Button Interactions */
+.button {
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition-speed) var(--transition-timing);
+}
+
+.button:active {
+    transform: scale(0.98);
+}
+
+.button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease-out, height 0.6s ease-out;
+}
+
+.button:active::after {
+    width: 300px;
+    height: 300px;
+}
+
+/* Table Row Interactions */
+.services-summary-table tr {
+    transition: background-color var(--transition-speed) var(--transition-timing),
+                transform var(--transition-speed) var(--transition-timing);
+}
+
+.services-summary-table tbody tr:hover {
+    transform: scale(1.01);
+    background-color: var(--hover-bg);
+    cursor: pointer;
+}
+
+/* Tab Hover Animation */
+.tab-button::before {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--primary-color);
+    transform: scaleX(0);
+    transition: transform var(--transition-speed) var(--transition-timing);
+    transform-origin: right;
+}
+
+.tab-button:hover::before {
+    transform: scaleX(1);
+    transform-origin: left;
+}
+
+/* Stat Value Counter Animation */
+@keyframes countUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.stat-value {
+    animation: countUp 0.5s ease-out forwards;
+}
+
+/* Success/Error Message Animations */
+@keyframes slideInDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.success-message,
+.error-message {
+    animation: slideInDown 0.3s ease-out forwards;
+}
+
+/* Export Button Interaction */
+.export-button {
+    transition: all var(--transition-speed) var(--transition-timing);
+}
+
+.export-button:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.export-button:active {
+    transform: translateY(0);
+}
+
+/* Form Group Label Animation */
+.form-group label {
+    transition: color var(--transition-speed) var(--transition-timing);
+}
+
+.form-group:focus-within label {
+    color: var(--primary-color);
+}
+
+/* Loading State Animation */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.loading {
+    animation: pulse 1.5s infinite;
 }

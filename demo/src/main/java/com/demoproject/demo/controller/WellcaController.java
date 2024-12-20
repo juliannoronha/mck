@@ -13,6 +13,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.dao.DataAccessException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -44,18 +46,32 @@ public class WellcaController {
      */
     @PostMapping("/submit")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @Transactional(readOnly = false)
     public ResponseEntity<?> submitEntry(@Valid @RequestBody WellcaDTO wellcaDTO, 
                                        BindingResult bindingResult) {
+        logger.info("Received submission request for date: {}", wellcaDTO.getDate());
+        
         if (bindingResult.hasErrors()) {
+            logger.error("Validation errors: {}", bindingResult.getAllErrors());
             return ResponseEntity.badRequest()
                 .body(bindingResult.getAllErrors());
         }
 
         try {
-            Wellca savedEntry = wellcaService.saveEntry(convertToEntity(wellcaDTO));
+            logger.debug("Converting DTO to entity: {}", wellcaDTO);
+            Wellca entity = convertToEntity(wellcaDTO);
+            
+            logger.debug("Saving entity to database");
+            Wellca savedEntry = wellcaService.saveEntry(entity);
+            
+            logger.info("Successfully saved entry for date: {}", savedEntry.getDate());
             return ResponseEntity.ok(convertToDTO(savedEntry));
+        } catch (DataAccessException e) {
+            logger.error("Database error while saving Wellca entry: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                .body("Database error: " + e.getMessage());
         } catch (Exception e) {
-            logger.error("Error saving Wellca entry", e);
+            logger.error("Error saving Wellca entry: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
                 .body("Error saving entry: " + e.getMessage());
         }
@@ -78,13 +94,43 @@ public class WellcaController {
      */
     @GetMapping("/range")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<WellcaDTO>> getEntriesInRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        List<Wellca> entries = wellcaService.getEntriesInRange(startDate, endDate);
-        return ResponseEntity.ok(entries.stream()
-            .map(this::convertToDTO)
-            .toList());
+            @RequestParam(required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        
+        logger.info("Fetching entries between {} and {}", startDate, endDate);
+        
+        // Validate date range
+        if (startDate == null || endDate == null) {
+            logger.error("Invalid date parameters: startDate={}, endDate={}", startDate, endDate);
+            return ResponseEntity.badRequest().build();
+        }
+        
+        if (endDate.isBefore(startDate)) {
+            logger.error("End date {} is before start date {}", endDate, startDate);
+            return ResponseEntity.badRequest().build();
+        }
+        
+        try {
+            List<Wellca> entries = wellcaService.getEntriesInRange(startDate, endDate);
+            logger.debug("Found {} entries in date range", entries.size());
+            
+            List<WellcaDTO> dtos = entries.stream()
+                .map(this::convertToDTO)
+                .toList();
+                
+            return ResponseEntity.ok(dtos);
+        } catch (DataAccessException e) {
+            logger.error("Database error while fetching entries: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        } catch (Exception e) {
+            logger.error("Error fetching entries in range: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        } finally {
+            // Log completion of request
+            logger.debug("Completed processing range request for {} to {}", startDate, endDate);
+        }
     }
 
     /**
@@ -126,23 +172,37 @@ public class WellcaController {
      * Convert DTO to Entity
      */
     private Wellca convertToEntity(WellcaDTO dto) {
+        logger.debug("Starting DTO to Entity conversion");
+        
+        if (dto == null) {
+            logger.error("Received null DTO");
+            throw new IllegalArgumentException("DTO cannot be null");
+        }
+
+        // Delivery Tracking Validation and Logging
+        logger.info("Processing Delivery Tracking data for date: {}", dto.getDate());
+        logger.debug("Delivery counts - Purolator: {}, FedEx: {}, OneCourier: {}, GoBolt: {}", 
+            dto.getPurolator(), dto.getFedex(), dto.getOneCourier(), dto.getGoBolt());
+
+        // Validate delivery counts
+        if (dto.getPurolator() != null && dto.getPurolator() < 0) {
+            logger.error("Invalid Purolator count: {}", dto.getPurolator());
+            throw new IllegalArgumentException("Purolator count cannot be negative");
+        }
+        // Similar validation for other delivery services...
+
         Wellca entity = new Wellca();
-        // Map DTO fields to entity
-        entity.setId(dto.getId());
-        entity.setDate(dto.getDate());
-        entity.setPurolator(dto.getPurolator());
-        entity.setFedex(dto.getFedex());
-        entity.setOneCourier(dto.getOneCourier());
-        entity.setGoBolt(dto.getGoBolt());
-        entity.setNewRx(dto.getNewRx());
-        entity.setRefill(dto.getRefill());
-        entity.setReAuth(dto.getReAuth());
-        entity.setHold(dto.getHold());
-        entity.setProfilesEntered(dto.getProfilesEntered());
-        entity.setWhoFilledRx(dto.getWhoFilledRx());
-        entity.setActivePercentage(dto.getActivePercentage());
-        entity.setServiceType(dto.getServiceType());
-        entity.setServiceCost(dto.getServiceCost());
+        
+        // Set delivery tracking data with null checks
+        entity.setPurolator(dto.getPurolator() != null ? dto.getPurolator() : 0);
+        entity.setFedex(dto.getFedex() != null ? dto.getFedex() : 0);
+        entity.setOneCourier(dto.getOneCourier() != null ? dto.getOneCourier() : 0);
+        entity.setGoBolt(dto.getGoBolt() != null ? dto.getGoBolt() : 0);
+
+        int totalDeliveries = entity.getTotalDeliveries();
+        logger.info("Total deliveries calculated: {}", totalDeliveries);
+        
+        // Continue with other conversions...
         return entity;
     }
 

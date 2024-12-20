@@ -197,6 +197,205 @@ async function submitServiceData(data) {
 }
 
 async function refreshReportData() {
-    // Implementation for refreshing report data
-    // This will be called when switching to the reports tab
+    try {
+        console.log('Refreshing report data');
+        
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        
+        if (!startDateInput.value || !endDateInput.value) {
+            showErrorMessage('Please select both start and end dates');
+            return;
+        }
+
+        // Format dates to ISO format (YYYY-MM-DD)
+        const startDate = new Date(startDateInput.value).toISOString().split('T')[0];
+        const endDate = new Date(endDateInput.value).toISOString().split('T')[0];
+        
+        console.log('Date range:', startDate, 'to', endDate);
+
+        const response = await fetch(`/wellca-management/range?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                [csrfHeader]: csrfToken
+            }
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.text();
+            console.error('Server response:', errorData);
+            throw new Error('Failed to fetch report data');
+        }
+
+        const data = await response.json();
+        console.log('Report data:', data);
+        
+        updateReportDisplay(data);
+    } catch (error) {
+        console.error('Error refreshing report data:', error);
+        showErrorMessage(`Error loading report: ${error.message}`);
+    }
+}
+
+async function submitForm(formData) {
+    try {
+        console.log('Submitting form data:', formData);
+        
+        const response = await fetch('/wellca-management/submit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                [csrfHeader]: csrfToken
+            },
+            body: JSON.stringify(formData)
+        });
+
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Submission error:', errorData);
+            throw new Error(`Submission failed: ${JSON.stringify(errorData)}`);
+        }
+
+        const data = await response.json();
+        console.log('Submission successful:', data);
+        
+        showSuccessMessage('Data saved successfully');
+        return data;
+    } catch (error) {
+        console.error('Error submitting form:', error);
+        showErrorMessage(`Error: ${error.message}`);
+        throw error;
+    }
+}
+
+// Add date validation function
+function validateDateRange() {
+    const startDate = new Date(document.getElementById('startDate').value);
+    const endDate = new Date(document.getElementById('endDate').value);
+    
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        showErrorMessage('Please select valid dates');
+        return false;
+    }
+    
+    if (endDate < startDate) {
+        showErrorMessage('End date must be after start date');
+        return false;
+    }
+    
+    return true;
+}
+
+async function generateReport() {
+    console.log('Generating report...');
+    
+    // Validate dates before proceeding
+    if (!validateDateRange()) {
+        return;
+    }
+
+    try {
+        // Show loading state
+        const generateButton = document.querySelector('.generate-button');
+        const originalText = generateButton.textContent;
+        generateButton.textContent = 'Generating...';
+        generateButton.disabled = true;
+
+        // Refresh the report data
+        await refreshReportData();
+
+        // Update UI elements
+        document.querySelectorAll('.report-section').forEach(section => {
+            section.style.display = 'block';
+        });
+
+        // Reset button state
+        generateButton.textContent = originalText;
+        generateButton.disabled = false;
+
+        // Show success message
+        showSuccessMessage('Report generated successfully');
+
+    } catch (error) {
+        console.error('Error generating report:', error);
+        showErrorMessage('Failed to generate report: ' + error.message);
+        
+        // Reset button state
+        const generateButton = document.querySelector('.generate-button');
+        generateButton.textContent = 'Generate Report';
+        generateButton.disabled = false;
+    }
+}
+
+// Helper function to update the report display with the fetched data
+function updateReportDisplay(data) {
+    console.log('Updating report display with data:', data);
+
+    try {
+        // Update Delivery Statistics
+        if (data.length > 0) {
+            let totalPurolator = 0, totalFedex = 0, totalOneCourier = 0, totalGoBolt = 0;
+            
+            data.forEach(entry => {
+                totalPurolator += entry.purolator || 0;
+                totalFedex += entry.fedex || 0;
+                totalOneCourier += entry.oneCourier || 0;
+                totalGoBolt += entry.goBolt || 0;
+            });
+
+            document.getElementById('totalPurolator').textContent = totalPurolator;
+            document.getElementById('totalFedex').textContent = totalFedex;
+            document.getElementById('totalOneCourier').textContent = totalOneCourier;
+            document.getElementById('totalGoBolt').textContent = totalGoBolt;
+            document.getElementById('reportTotalDeliveries').textContent = 
+                totalPurolator + totalFedex + totalOneCourier + totalGoBolt;
+        }
+
+        // Update RX Sales Statistics
+        if (data.length > 0) {
+            let totalNewRx = 0, totalRefills = 0, totalReAuth = 0, totalHold = 0;
+            
+            data.forEach(entry => {
+                totalNewRx += entry.newRx || 0;
+                totalRefills += entry.refill || 0;
+                totalReAuth += entry.reAuth || 0;
+                totalHold += entry.hold || 0;
+            });
+
+            document.getElementById('totalNewRx').textContent = totalNewRx;
+            document.getElementById('totalRefills').textContent = totalRefills;
+            document.getElementById('totalReAuth').textContent = totalReAuth;
+            document.getElementById('totalHold').textContent = totalHold;
+            document.getElementById('reportTotalProcessed').textContent = 
+                totalNewRx + totalRefills + totalReAuth;
+        }
+
+        // Update Profile Statistics
+        if (data.length > 0) {
+            let totalProfiles = 0;
+            let totalActivePercentage = 0;
+            
+            data.forEach(entry => {
+                totalProfiles += entry.profilesEntered || 0;
+                totalActivePercentage += entry.activePercentage || 0;
+            });
+
+            const avgActivePercentage = (totalActivePercentage / data.length).toFixed(2);
+            
+            document.getElementById('totalProfiles').textContent = totalProfiles;
+            document.getElementById('avgActivePercentage').textContent = `${avgActivePercentage}%`;
+        }
+
+        // Make report sections visible
+        document.querySelectorAll('.report-section').forEach(section => {
+            section.style.display = 'block';
+        });
+
+    } catch (error) {
+        console.error('Error updating report display:', error);
+        showErrorMessage('Error updating report display');
+    }
 }
