@@ -32,7 +32,6 @@
                     <div class="tab-navigation">
                         <button class="tab-button active" data-tab="delivery">Delivery Tracking</button>
                         <button class="tab-button" data-tab="rx-sales">RX Sales</button>
-                        <button class="tab-button" data-tab="profiles">Weekly Profiles</button>
                         <button class="tab-button" data-tab="services">Professional Services</button>
                         <button class="tab-button" data-tab="reports">Reports</button>
                     </div>
@@ -121,63 +120,6 @@
                                 <div class="form-actions">
                                     <button type="submit" class="button submit-button">Save RX Data</button>
                                     <button type="button" class="button clear-button">Clear</button>
-                                </div>
-                            </form>
-                        </div>
-
-                        <!-- Weekly Profiles Tab -->
-                        <div id="profiles" class="tab-pane">
-                            <h3>Weekly Profiles</h3>
-                            <form id="profilesForm" class="data-form">
-                                <div class="form-group">
-                                    <label for="profilesEntered">Profiles Entered:</label>
-                                    <input type="number" 
-                                           id="profilesEntered" 
-                                           name="profilesEntered" 
-                                           min="0" 
-                                           value="0"
-                                           required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="whoFilledRx">Who Filled RX:</label>
-                                    <input type="number" 
-                                           id="whoFilledRx" 
-                                           name="whoFilledRx" 
-                                           min="0" 
-                                           value="0"
-                                           required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="activePercentage">Active Percentage:</label>
-                                    <div class="percentage-input-group">
-                                        <input type="number" 
-                                               id="activePercentage" 
-                                               name="activePercentage" 
-                                               min="0" 
-                                               max="100" 
-                                               step="0.01" 
-                                               value="0"
-                                               required>
-                                        <span class="percentage-symbol">%</span>
-                                    </div>
-                                    <small class="help-text">Calculated as: (Who Filled RX / Profiles Entered) × 100</small>
-                                </div>
-                                <div class="weekly-summary">
-                                    <div class="summary-item">
-                                        <label>Weekly Total Profiles:</label>
-                                        <span id="weeklyTotalProfiles">0</span>
-                                    </div>
-                                    <div class="summary-item">
-                                        <label>Weekly Average Active %:</label>
-                                        <span id="weeklyAverageActive">0%</span>
-                                    </div>
-                                </div>
-                                <div class="form-actions">
-                                    <button type="submit" class="button submit-button">Save Profile Data</button>
-                                    <button type="button" class="button clear-button">Clear</button>
-                                    <button type="button" class="button calculate-button" onclick="calculateActivePercentage()">
-                                        Calculate Percentage
-                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -330,22 +272,6 @@
                                             </div>
                                         </div>
                                     </div>
-
-                                    <!-- Profile Statistics -->
-                                    <div class="report-section" id="profileStats">
-                                        <h4>Profile Statistics</h4>
-                                        <div class="stats-grid">
-                                            <div class="stat-item">
-                                                <label>Total Profiles:</label>
-                                                <span id="totalProfiles">0</span>
-                                            </div>
-                                            <div class="stat-item">
-                                                <label>Average Active %:</label>
-                                                <span id="avgActivePercentage">0%</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
                                     <!-- Professional Services Summary -->
                                     <div class="report-section" id="serviceStats">
                                         <h4>Professional Services Summary</h4>
