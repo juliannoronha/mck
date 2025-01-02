@@ -145,6 +145,37 @@ public interface PacRepository extends JpaRepository<Pac, Long> {
         @Param("endDate") LocalDateTime endDate);
 
     /* -----------------------------------------------------------------------------
+     * User Existence Checks
+     * -------------------------------------------------------------------------- */
+
+    /**
+     * Checks if a user has any PAC entries
+     * @param username Username to check
+     * @returns True if user exists with PAC entries
+     */
+    @Query("SELECT COUNT(p) > 0 FROM Pac p WHERE p.user.username = :username")
+    boolean existsByUsername(@Param("username") String username);
+
+    /* -----------------------------------------------------------------------------
+     * User Productivity Metrics
+     * -------------------------------------------------------------------------- */
+
+    /**
+     * Retrieves detailed productivity metrics for a specific user
+     * @param username Target username
+     * @returns Array containing [totalSubmissions, totalPouchesChecked, totalSeconds]
+     */
+    @Query("""
+        SELECT 
+            COUNT(p) as totalSubmissions,
+            COALESCE(SUM(p.pouchesChecked), 0) as totalPouchesChecked,
+            COALESCE(SUM(FUNCTION('TIMESTAMPDIFF', SECOND, p.startTime, p.endTime)), 0) as totalSeconds
+        FROM Pac p 
+        WHERE p.user.username = :username
+        """)
+    Object[] getUserProductivityMetrics(@Param("username") String username);
+
+    /* -----------------------------------------------------------------------------
      * TODO: Future Enhancements
      * -------------------------------------------------------------------------- */
     // - Add date range filtering capabilities

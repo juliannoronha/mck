@@ -15,23 +15,26 @@ package com.demoproject.demo.pacmedproductivity;
 
 import com.demoproject.demo.entity.Pac;
 import com.demoproject.demo.repository.PacRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.annotation.PreDestroy;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import org.springframework.transaction.annotation.Transactional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.caffeine.CaffeineCache;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -51,18 +54,21 @@ public class UserProductivityService {
     private static final Logger logger = LoggerFactory.getLogger(UserProductivityService.class);
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
     public static final long SSE_TIMEOUT = 300000L; // 5 minutes
-
-    @PersistenceContext
-    private EntityManager entityManager;
+    private final TransactionTemplate transactionTemplate;
+    private final CacheManager cacheManager;
 
     /**
      * Service constructor
      * @param pacRepository Data access for PAC records
      * @param objectMapper JSON serialization
+     * @param transactionManager Transaction manager
+     * @param cacheManager Cache manager
      */
-    public UserProductivityService(PacRepository pacRepository, ObjectMapper objectMapper) {
+    public UserProductivityService(PacRepository pacRepository, ObjectMapper objectMapper, PlatformTransactionManager transactionManager, CacheManager cacheManager) {
         this.pacRepository = pacRepository;
         this.objectMapper = objectMapper;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.cacheManager = cacheManager;
     }
 
     /* -----------------------------------------------------------------------------
@@ -77,31 +83,39 @@ public class UserProductivityService {
      */
     @Transactional
     public SseEmitter subscribeToProductivityUpdates(SseEmitter emitter) {
-        // Configure emitter lifecycle handlers
         emitter.onTimeout(() -> {
             emitters.remove(emitter);
             emitter.complete();
+            logger.debug("SSE connection timed out");
         });
-        emitter.onCompletion(() -> emitters.remove(emitter));
+        
+        emitter.onCompletion(() -> {
+            emitters.remove(emitter);
+            logger.debug("SSE connection completed");
+        });
+        
         emitter.onError(e -> {
             emitters.remove(emitter);
             emitter.completeWithError(e);
+            logger.error("SSE connection error", e);
         });
         
-        try {
-            emitters.add(emitter);
-            
-            // Send initial data
-            Page<UserProductivityDTO> initialData = getAllUserProductivity(0, Integer.MAX_VALUE);
-            String jsonData = objectMapper.writeValueAsString(initialData.getContent());
-            emitter.send(SseEmitter.event().data(jsonData));
-            
-            return emitter;
-        } catch (Exception e) {
-            logger.error("Error setting up SSE connection: {}", e.getMessage());
-            emitter.completeWithError(e);
-            return emitter;
-        }
+        return transactionTemplate.execute(status -> {
+            try {
+                emitters.add(emitter);
+                Page<UserProductivityDTO> initialData = getAllUserProductivity(0, Integer.MAX_VALUE);
+                String jsonData = objectMapper.writeValueAsString(initialData.getContent());
+                emitter.send(SseEmitter.event()
+                    .id(UUID.randomUUID().toString())
+                    .data(jsonData)
+                    .reconnectTime(5000));
+                return emitter;
+            } catch (Exception e) {
+                logger.error("Error in SSE setup", e);
+                emitter.completeWithError(e);
+                return emitter;
+            }
+        });
     }
 
     /**
@@ -109,21 +123,40 @@ public class UserProductivityService {
      * @returns Configured emitter for overall updates
      */
     public SseEmitter subscribeToOverallProductivityUpdates() {
-        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
         
-        try {
-            UserProductivityDTO overallProductivity = getOverallProductivity();
-            emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(overallProductivity)));
-        } catch (IOException e) {
-            logger.error("Error sending initial overall productivity data", e);
-            emitter.completeWithError(e);
-        }
-
-        return emitter;
+        return transactionTemplate.execute(status -> {
+            try {
+                UserProductivityDTO overallProductivity = getOverallProductivity();
+                emitter.send(SseEmitter.event()
+                    .id(UUID.randomUUID().toString())
+                    .data(objectMapper.writeValueAsString(overallProductivity))
+                    .reconnectTime(5000));
+                
+                emitter.onTimeout(() -> {
+                    emitters.remove(emitter);
+                    emitter.complete();
+                });
+                
+                emitter.onCompletion(() -> emitters.remove(emitter));
+                
+                emitter.onError(e -> {
+                    emitters.remove(emitter);
+                    emitter.completeWithError(e);
+                });
+                
+                emitters.add(emitter);
+                return emitter;
+            } catch (Exception e) {
+                logger.error("Error in overall productivity SSE setup", e);
+                emitter.completeWithError(e);
+                return emitter;
+            }
+        });
     }
 
     /* -----------------------------------------------------------------------------
-     * Productivity Data Access
+     * Productivity Data Access with Caching
      * -------------------------------------------------------------------------- */
 
     /**
@@ -133,29 +166,97 @@ public class UserProductivityService {
      * @returns Page of productivity DTOs
      * @note Results are cached by page/size
      */
-    @Cacheable(value = "allUserProductivity", key = "#page + '-' + #size")
+    @Cacheable(value = "allUserProductivity", key = "#page + '-' + #size", unless = "#result.isEmpty()")
     @Transactional(readOnly = true)
     public Page<UserProductivityDTO> getAllUserProductivity(int page, int size) {
-        logger.info("Fetching all user productivity data for page {} with size {}", page, size);
-        Pageable pageable = PageRequest.of(page, size);
-        return pacRepository.getUserProductivityDataPaginated(pageable)
-            .map(this::mapToUserProductivityDTO);
+        logger.info("Cache miss - Fetching all user productivity data for page {} with size {}", page, size);
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            return pacRepository.getUserProductivityDataPaginated(pageable)
+                .map(this::mapToUserProductivityDTO);
+        } catch (Exception e) {
+            logger.error("Error fetching paginated productivity data", e);
+            throw new RuntimeException("Failed to fetch paginated productivity data", e);
+        }
     }
 
     /**
      * Calculates overall productivity metrics
      * @returns Aggregated productivity DTO
      */
+    @Cacheable(value = "overallProductivity", unless = "#result == null")
     @Transactional(readOnly = true)
     public UserProductivityDTO getOverallProductivity() {
-        List<Pac> allPacs = pacRepository.findAll();
-        List<UserProductivityDTO> allProductivity = allPacs.stream()
-            .collect(Collectors.groupingBy(pac -> pac.getUser().getUsername()))
-            .entrySet().stream()
-            .map(this::mapToUserProductivityDTO)
-            .collect(Collectors.toList());
+        logger.info("Cache miss - Calculating overall productivity metrics");
+        try {
+            return transactionTemplate.execute(status -> {
+                List<Pac> allPacs = pacRepository.findAll();
+                List<UserProductivityDTO> allProductivity = allPacs.stream()
+                    .collect(Collectors.groupingBy(pac -> pac.getUser().getUsername()))
+                    .entrySet().stream()
+                    .map(this::mapToUserProductivityDTO)
+                    .collect(Collectors.toList());
 
-        return calculateOverallProductivity(allProductivity);
+                return calculateOverallProductivity(allProductivity);
+            });
+        } catch (Exception e) {
+            logger.error("Error calculating overall productivity", e);
+            return getFallbackOverallProductivity();
+        }
+    }
+
+    /**
+     * Gets productivity metrics for specific user
+     * @param username Target username
+     * @returns Map of productivity metrics
+     */
+    @Cacheable(value = "userProductivity", key = "#username", unless = "#result == null", condition = "#username != null")
+    @Transactional(readOnly = true)
+    public Map<String, Object> getUserProductivity(String username) {
+        logger.info("Cache miss - Fetching productivity metrics for user: {}", username);
+        try {
+            return transactionTemplate.execute(status -> {
+                Object[] result = pacRepository.getUserProductivityMetrics(username);
+                
+                long totalSubmissions = ((Number) result[0]).longValue();
+                long totalPouchesChecked = ((Number) result[1]).longValue();
+                double totalSeconds = ((Number) result[2]).doubleValue();
+                
+                double avgTimePerPouch = totalPouchesChecked > 0 ? totalSeconds / totalPouchesChecked : 0;
+                double avgPouchesPerHour = totalSeconds > 0 ? (totalPouchesChecked * 3600.0) / totalSeconds : 0;
+                
+                return Map.of(
+                    "totalSubmissions", totalSubmissions,
+                    "totalPouchesChecked", totalPouchesChecked,
+                    "avgPouchesPerHour", avgPouchesPerHour,
+                    "avgTimePerPouch", avgTimePerPouch
+                );
+            });
+        } catch (Exception e) {
+            logger.error("Error fetching productivity metrics for user: {}", username, e);
+            return getFallbackUserProductivity(username);
+        }
+    }
+
+    private UserProductivityDTO getFallbackOverallProductivity() {
+        return new UserProductivityDTO(
+            "Overall",
+            0L,
+            0L,
+            0.0,
+            0.0,
+            null
+        );
+    }
+
+    private Map<String, Object> getFallbackUserProductivity(String username) {
+        return Map.of(
+            "totalSubmissions", 0L,
+            "totalPouchesChecked", 0L,
+            "avgPouchesPerHour", 0.0,
+            "avgTimePerPouch", 0.0,
+            "isFallback", true
+        );
     }
 
     /* -----------------------------------------------------------------------------
@@ -228,20 +329,25 @@ public class UserProductivityService {
         emitters.forEach(emitter -> {
             try {
                 String jsonData = objectMapper.writeValueAsString(data);
-                emitter.send(SseEmitter.event().data(jsonData));
-            } catch (JsonProcessingException e) {
-                logger.error("Failed to serialize productivity data: {}", e.getMessage());
-                deadEmitters.add(emitter);
-            } catch (IOException e) {
-                logger.error("Failed to send SSE update: {}", e.getMessage());
-                deadEmitters.add(emitter);
+                emitter.send(SseEmitter.event()
+                    .id(UUID.randomUUID().toString())
+                    .data(jsonData)
+                    .reconnectTime(5000));
             } catch (Exception e) {
-                logger.error("Unexpected error during SSE update: {}", e.getMessage());
+                logger.error("Failed to send SSE update", e);
                 deadEmitters.add(emitter);
+                try {
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    logger.error("Error completing emitter", ex);
+                }
             }
         });
 
-        emitters.removeAll(deadEmitters);
+        if (!deadEmitters.isEmpty()) {
+            emitters.removeAll(deadEmitters);
+            logger.info("Removed {} dead emitters", deadEmitters.size());
+        }
     }
 
     /* -----------------------------------------------------------------------------
@@ -286,25 +392,80 @@ public class UserProductivityService {
     }
 
     /* -----------------------------------------------------------------------------
-     * User-specific Productivity
+     * Cache Management and Monitoring
      * -------------------------------------------------------------------------- */
 
-    /**
-     * Gets productivity metrics for specific user
-     * @param username Target username
-     * @returns Map of productivity metrics
-     */
-    public Map<String, Object> getUserProductivity(String username) {
-        String jpql = "SELECT COUNT(p) as totalSubmissions, " +
-                      "SUM(p.pouchesChecked) as totalPouchesChecked, " +
-                      "SUM(FUNCTION('TIMESTAMPDIFF', SECOND, p.startTime, p.endTime)) as totalSeconds " +
-                      "FROM Pac p WHERE p.user.username = :username";
+    @CacheEvict(value = {"allUserProductivity", "userProductivity", "overallProductivity"}, 
+                allEntries = true)
+    @Transactional
+    public void updateUserProductivity() {
+        logger.info("Updating user productivity and evicting all caches");
+        notifyProductivityUpdate();
+    }
+
+    @Scheduled(fixedRate = 3600000) // Every hour
+    @CacheEvict(value = {"allUserProductivity", "userProductivity", "overallProductivity"}, 
+                allEntries = true)
+    public void evictCaches() {
+        logger.info("Scheduled cache eviction executed");
+    }
+
+    public void clearSpecificUserCache(String username) {
+        Cache cache = cacheManager.getCache("userProductivity");
+        if (cache != null) {
+            cache.evict(username);
+            logger.info("Evicted cache for user: {}", username);
+        }
+    }
+
+    public Map<String, Object> getDetailedCacheMetrics() {
+        Map<String, Object> metrics = new HashMap<>();
         
-        Object[] result = (Object[]) entityManager.createQuery(jpql)
-                .setParameter("username", username)
-                .getSingleResult();
+        Arrays.asList("allUserProductivity", "userProductivity", "overallProductivity")
+            .forEach(cacheName -> {
+                Cache cache = cacheManager.getCache(cacheName);
+                if (cache instanceof CaffeineCache) {
+                    com.github.benmanes.caffeine.cache.Cache<Object, Object> nativeCache = 
+                        ((CaffeineCache) cache).getNativeCache();
+                    
+                    metrics.put(cacheName, Map.of(
+                        "stats", nativeCache.stats(),
+                        "estimatedSize", nativeCache.estimatedSize(),
+                        "hitRate", nativeCache.stats().hitRate(),
+                        "missRate", nativeCache.stats().missRate(),
+                        "evictionCount", nativeCache.stats().evictionCount()
+                    ));
+                }
+            });
         
-        // Calculate metrics
+        return metrics;
+    }
+
+    @Scheduled(fixedRate = 900000) // Every 15 minutes
+    public void validateCacheConsistency() {
+        logger.info("Starting cache consistency check");
+        Cache userCache = cacheManager.getCache("userProductivity");
+        if (userCache instanceof CaffeineCache) {
+            CaffeineCache caffeineCache = (CaffeineCache) userCache;
+            caffeineCache.getNativeCache().asMap().forEach((key, value) -> {
+                try {
+                    if (key instanceof String) {
+                        String username = (String) key;
+                        Object[] dbResult = pacRepository.getUserProductivityMetrics(username);
+                        if (dbResult == null || !value.equals(convertToUserProductivity(dbResult))) {
+                            logger.warn("Cache inconsistency detected for user: {}", username);
+                            userCache.evict(key);
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.error("Error during cache consistency check for key: {}", key, e);
+                    userCache.evict(key);
+                }
+            });
+        }
+    }
+
+    private Map<String, Object> convertToUserProductivity(Object[] result) {
         long totalSubmissions = ((Number) result[0]).longValue();
         long totalPouchesChecked = ((Number) result[1]).longValue();
         double totalSeconds = ((Number) result[2]).doubleValue();
@@ -318,19 +479,6 @@ public class UserProductivityService {
             "avgPouchesPerHour", avgPouchesPerHour,
             "avgTimePerPouch", avgTimePerPouch
         );
-    }
-
-    /* -----------------------------------------------------------------------------
-     * Cache Management
-     * -------------------------------------------------------------------------- */
-
-    /**
-     * Updates productivity and invalidates cache
-     */
-    @CacheEvict(value = "allUserProductivity", allEntries = true)
-    @Transactional
-    public void updateUserProductivity() {
-        logger.info("Updating user productivity and evicting cache");
     }
 
     /* -----------------------------------------------------------------------------
@@ -350,6 +498,19 @@ public class UserProductivityService {
      */
     @PreDestroy
     public void cleanup() {
+        logger.info("Performing service cleanup");
+        
+        // Clear all caches
+        Arrays.asList("allUserProductivity", "userProductivity", "overallProductivity")
+            .forEach(cacheName -> {
+                Cache cache = cacheManager.getCache(cacheName);
+                if (cache != null) {
+                    cache.clear();
+                    logger.debug("Cleared cache: {}", cacheName);
+                }
+            });
+
+        // Cleanup SSE emitters
         emitters.forEach(emitter -> {
             try {
                 emitter.complete();
@@ -358,6 +519,7 @@ public class UserProductivityService {
             }
         });
         emitters.clear();
+        logger.info("Service cleanup completed");
     }
 
     /* -----------------------------------------------------------------------------
@@ -379,7 +541,7 @@ public class UserProductivityService {
      * @returns List of productivity DTOs
      */
     public List<UserProductivityDTO> getAllUserProductivityMetrics() {
-        logger.info("Retrieving productivity data for all users.");
+        logger.info("Retrieving productivity data for all users");
         return getAllUserProductivity(0, Integer.MAX_VALUE).getContent();
     }
 
@@ -411,10 +573,7 @@ public class UserProductivityService {
     @Transactional(readOnly = true)
     public boolean userExists(String username) {
         try {
-            String jpql = "SELECT COUNT(p) > 0 FROM Pac p WHERE p.user.username = :username";
-            return entityManager.createQuery(jpql, Boolean.class)
-                    .setParameter("username", username)
-                    .getSingleResult();
+            return pacRepository.existsByUsername(username);
         } catch (Exception e) {
             logger.error("Error checking user existence for username: {}", username, e);
             return false;
