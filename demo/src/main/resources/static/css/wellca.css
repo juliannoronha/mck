@@ -604,11 +604,11 @@ h3 {
 
 /* Report Section */
 .report-section {
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: 2rem;
+    padding: 1.5rem;
     background-color: var(--container-bg);
     border-radius: 8px;
     box-shadow: var(--shadow-sm);
-    overflow: hidden;
 }
 
 .report-section h4 {
@@ -666,29 +666,29 @@ h3 {
 /* Stats Grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    margin-top: 1rem;
 }
 
 .stat-item {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-md);
-    background-color: var(--background-color);
-    border-radius: 4px;
-    border-bottom: 1px solid var(--border-color);
+    gap: 0.5rem;
+    padding: 1rem;
+    background-color: var(--stats-bg);
+    border-radius: 6px;
+    transition: all var(--transition-speed) var(--transition-timing);
 }
 
 .stat-item label {
+    color: var(--text-muted);
     font-size: 0.9rem;
-    color: var(--muted-text);
-    opacity: 0.8;
+    font-weight: 500;
 }
 
 .stat-item span {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
     font-weight: 600;
     color: var(--text-color);
 }
@@ -998,18 +998,99 @@ h3 {
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
     margin-top: 1rem;
 }
 
+/* Total Services Cost Styling */
 .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    background-color: var(--stats-bg);
+    border-radius: 6px;
+    transition: all var(--transition-speed) var(--transition-timing);
+}
+
+.stat-item label {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.stat-item span {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+/* Service Breakdown Styling */
+.month-section {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--stats-bg);
+    border-radius: 6px;
+}
+
+.month-section h5 {
+    color: var(--primary-color);
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.month-stats {
+    margin-bottom: 1rem;
+}
+
+.month-stats div {
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.service-types {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+.service-type {
+    padding: 0.5rem 0.75rem;
+    background: var(--hover-bg);
+    border-radius: 4px;
+    font-size: 0.9rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem;
-    background-color: var(--stats-bg);
-    border-radius: 4px;
+}
+
+.grand-total {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.grand-total h5 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .service-types {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Report Loading Animation */
@@ -1036,51 +1117,4 @@ h3 {
         transparent 100%);
     background-size: 1000px 100%;
     animation: shimmer 2s infinite;
-}
-
-.monthly-breakdown {
-    margin-top: 1rem;
-}
-
-.month-section {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: var(--container-bg);
-    border-radius: 4px;
-    box-shadow: var(--shadow-sm);
-}
-
-.month-section h5 {
-    margin: 0 0 0.5rem 0;
-    color: var(--primary-color);
-}
-
-.month-stats {
-    margin-bottom: 0.5rem;
-}
-
-.service-types {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 0.5rem;
-}
-
-.service-type {
-    padding: 0.25rem 0.5rem;
-    background: var(--hover-bg);
-    border-radius: 4px;
-    font-size: 0.9rem;
-}
-
-.grand-total {
-    margin-top: 1rem;
-    padding: 1rem;
-    background: var(--primary-color);
-    color: white;
-    border-radius: 4px;
-    text-align: center;
-}
-
-.grand-total h5 {
-    margin: 0;
 }
