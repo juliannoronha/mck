@@ -212,19 +212,7 @@ public class WellcaController {
         boolean isProfileSubmission = dto.getProfilesEntered() > 0 || dto.getWhoFilledRx() > 0;
         boolean isServiceSubmission = dto.getServiceType() != null && dto.getServiceCost() != null;
 
-        // Only validate ServiceType if it's a service submission
-        if (isServiceSubmission) {
-            if (dto.getServiceType() == null) {
-                logger.error("Invalid Service Type: null for service submission");
-                throw new IllegalArgumentException("Service Type cannot be null for service submission");
-            }
-        } else {
-            // For non-service submissions, set default values
-            entity.setServiceType(null);
-            entity.setServiceCost(BigDecimal.ZERO);
-        }
-
-        // Set all other fields as normal
+        // Set all fields as normal
         entity.setPurolator(dto.getPurolator());
         entity.setFedex(dto.getFedex());
         entity.setOneCourier(dto.getOneCourier());
@@ -238,7 +226,12 @@ public class WellcaController {
         entity.setActivePercentage(dto.getActivePercentage() != null ? 
             dto.getActivePercentage() : BigDecimal.ZERO);
 
-        logger.debug("Converted entity: {}", entity);
+        // Handle service fields explicitly
+        logger.debug("Processing service data - Type: {}, Cost: {}", dto.getServiceType(), dto.getServiceCost());
+        entity.setServiceType(dto.getServiceType());
+        entity.setServiceCost(dto.getServiceCost());
+
+        logger.debug("Converted entity service data: type={}, cost={}", entity.getServiceType(), entity.getServiceCost());
         return entity;
     }
 
@@ -261,8 +254,12 @@ public class WellcaController {
         dto.setProfilesEntered(entity.getProfilesEntered());
         dto.setWhoFilledRx(entity.getWhoFilledRx());
         dto.setActivePercentage(entity.getActivePercentage());
+        
+        // Explicitly set service fields
         dto.setServiceType(entity.getServiceType());
         dto.setServiceCost(entity.getServiceCost());
+        
+        logger.debug("Converted DTO service data: type={}, cost={}", dto.getServiceType(), dto.getServiceCost());
         return dto;
     }
 }

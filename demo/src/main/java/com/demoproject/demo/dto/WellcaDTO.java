@@ -60,9 +60,25 @@ public class WellcaDTO {
     private BigDecimal activePercentage;
 
     /* Professional Services */
-    private ServiceType serviceType;
+    private String serviceType;
 
     @PositiveOrZero(message = "Service cost must be zero or positive")
     @Digits(integer = 8, fraction = 2, message = "Invalid currency format")
     private BigDecimal serviceCost;
+
+    public String getServiceType() {
+        return serviceType;
+    }
+
+    public void setServiceType(String serviceType) {
+        this.serviceType = serviceType;
+    }
+
+    public BigDecimal getServiceCost() {
+        return serviceCost;
+    }
+
+    public void setServiceCost(BigDecimal serviceCost) {
+        this.serviceCost = serviceCost;
+    }
 }

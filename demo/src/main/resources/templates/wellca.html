@@ -275,26 +275,15 @@
                                     <!-- Professional Services Summary -->
                                     <div class="report-section" id="serviceStats">
                                         <h4>Professional Services Summary</h4>
-                                        <div class="services-summary-table">
-                                            <table>
-                                                <thead>
-                                                    <tr>
-                                                        <th>Service Type</th>
-                                                        <th>Count</th>
-                                                        <th>Total Revenue</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody id="servicesReportBody">
-                                                    <!-- Service summary rows will be dynamically added here -->
-                                                </tbody>
-                                                <tfoot>
-                                                    <tr>
-                                                        <td><strong>Totals</strong></td>
-                                                        <td id="totalServicesCount">0</td>
-                                                        <td id="totalServicesRevenue">$0.00</td>
-                                                    </tr>
-                                                </tfoot>
-                                            </table>
+                                        <div class="stats-grid">
+                                            <div class="stat-item">
+                                                <label>Total Services Cost:</label>
+                                                <span id="totalServices">0</span>
+                                            </div>
+                                            <div class="stat-item">
+                                                <label>Service Breakdown:</label>
+                                                <div id="serviceBreakdown"></div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

@@ -109,14 +109,14 @@ public class Wellca {
      * Type of professional service provided
      * Stored as a string representation of ServiceType enum
      */
-    @Enumerated(EnumType.STRING)
-    private ServiceType serviceType;
+    @Column(name = "service_type")
+    private String serviceType;
 
     /**
      * Cost associated with the professional service
      * Stored with 2 decimal precision
      */
-    @Column(precision = 10, scale = 2)
+    @Column(name = "service_cost", precision = 10, scale = 2)
     private BigDecimal serviceCost;
 
     /* ========== Calculated Fields Section ========== */
@@ -183,5 +183,21 @@ public class Wellca {
         ANNUAL_MED_REVIEW,
         DIABETIC_EDUCATION_REVIEW,
         MINOR_ALIGNMENT_IN_PERSON
+    }
+
+    public String getServiceType() {
+        return serviceType;
+    }
+
+    public void setServiceType(String serviceType) {
+        this.serviceType = serviceType;
+    }
+
+    public BigDecimal getServiceCost() {
+        return serviceCost;
+    }
+
+    public void setServiceCost(BigDecimal serviceCost) {
+        this.serviceCost = serviceCost;
     }
 }

@@ -36,14 +36,16 @@ public class WellcaService {
     @Transactional
     @CacheEvict(value = {"wellcaRangeData", "wellcaData"}, allEntries = true)
     public Wellca saveEntry(Wellca wellca) {
-        logger.debug("Saving Wellca entry for date: {}", wellca.getDate());
+        logger.debug("Saving Wellca entry for date: {} with service type: {} and cost: {}", 
+            wellca.getDate(), wellca.getServiceType(), wellca.getServiceCost());
         
         if (wellcaRepository.existsByDate(wellca.getDate())) {
             logger.info("Updating existing entry for date: {}", wellca.getDate());
         }
         
         Wellca savedEntry = wellcaRepository.save(wellca);
-        logger.debug("Successfully saved entry with ID: {}", savedEntry.getId());
+        logger.debug("Successfully saved entry with ID: {}. Service type: {}, cost: {}", 
+            savedEntry.getId(), savedEntry.getServiceType(), savedEntry.getServiceCost());
         
         // Clear all related caches
         clearCaches();
@@ -69,7 +71,10 @@ public class WellcaService {
     @Cacheable(value = "wellcaData", key = "#date")
     public Optional<Wellca> getEntryByDate(LocalDate date) {
         logger.debug("Fetching Wellca entry for date: {}", date);
-        return wellcaRepository.findByDate(date);
+        Optional<Wellca> entry = wellcaRepository.findByDate(date);
+        entry.ifPresent(e -> logger.debug("Found entry with service type: {} and cost: {}", 
+            e.getServiceType(), e.getServiceCost()));
+        return entry;
     }
 
     /**
@@ -81,7 +86,11 @@ public class WellcaService {
     @Cacheable(value = "wellcaRangeData", key = "#startDate.toString() + '-' + #endDate.toString()")
     public List<Wellca> getEntriesInRange(LocalDate startDate, LocalDate endDate) {
         logger.debug("Fetching Wellca entries between {} and {}", startDate, endDate);
-        return wellcaRepository.findByDateBetweenOrderByDateAsc(startDate, endDate);
+        List<Wellca> entries = wellcaRepository.findByDateBetweenOrderByDateAsc(startDate, endDate);
+        logger.debug("Found {} entries in date range", entries.size());
+        entries.forEach(e -> logger.debug("Entry date: {}, service type: {}, cost: {}", 
+            e.getDate(), e.getServiceType(), e.getServiceCost()));
+        return entries;
     }
 
     /**
@@ -93,7 +102,7 @@ public class WellcaService {
     public Map<String, Object> getWeeklyStats(LocalDate weekStartDate) {
         LocalDate weekEndDate = weekStartDate.plusDays(6);
         List<Wellca> weeklyData = wellcaRepository.findWeeklyData(weekStartDate, weekEndDate);
-        
+        logger.debug("Fetching weekly stats for period {} to {}", weekStartDate, weekEndDate);
         return calculateWeeklyStats(weeklyData);
     }
 
@@ -105,6 +114,7 @@ public class WellcaService {
      */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getServiceTypeStats(LocalDate startDate, LocalDate endDate) {
+        logger.debug("Fetching service type stats for period {} to {}", startDate, endDate);
         return wellcaRepository.getServiceTypeStats(startDate, endDate);
     }
 
@@ -123,11 +133,14 @@ public class WellcaService {
             .mapToInt(Wellca::getTotalFilled)
             .sum();
 
-        return Map.of(
+        Map<String, Object> stats = Map.of(
             "averageProfilesEntered", avgProfilesEntered,
             "totalRxFilled", totalRx,
             "entriesCount", weeklyData.size()
         );
+        
+        logger.debug("Calculated weekly stats: {}", stats);
+        return stats;
     }
 
     /**
